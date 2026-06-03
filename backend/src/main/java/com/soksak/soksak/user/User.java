@@ -2,6 +2,7 @@ package com.soksak.soksak.user;
 
 import com.soksak.soksak.common.BaseTimeEntity;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -18,6 +19,16 @@ public class User extends BaseTimeEntity {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "nickname", nullable = false, length = 20)
+    @Column(name = "nickname", nullable = false, unique = true, length = 20)
     private String nickname;
+
+    @Column(name = "password", nullable = false)
+    private String password;
+
+    @Builder
+    public User(String email, String nickname, String password) {
+        this.email = email;
+        this.nickname = nickname;
+        this.password = password;
+    }
 }

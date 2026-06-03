@@ -25,4 +25,5 @@ Base package for new code: `com.soksak.soksak`.
 
 ## Workflow
 
+- **Do not write or edit code unless the user explicitly asks for it.** By default, act as an advisor: answer questions, explain trade-offs, suggest approaches, and review. Only create or modify code files when the user clearly requests an implementation (e.g. "make it", "write it", "fix it", "apply it"). When in doubt, give advice and ask whether they want you to implement it. (Reading/searching the codebase to inform advice is always fine.)
 - **Do not run `git commit`.** The user makes all commits themselves. You may stage changes and suggest a commit message, but never create the commit.

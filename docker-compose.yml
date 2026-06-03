@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: soksak-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: soksak
       POSTGRES_USER: postgres
