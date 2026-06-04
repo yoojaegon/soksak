@@ -2,6 +2,7 @@ package com.soksak.soksak.user;
 
 import com.soksak.soksak.user.dto.CreateUserRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public User createUser(CreateUserRequest request) {
@@ -17,7 +19,7 @@ public class UserService {
                 .email(request.getEmail())
                 .loginId(request.getLoginId())
                 .nickname(request.getNickname())
-                .password(request.getPassword())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .build();
         return userRepository.save(user);
     }
