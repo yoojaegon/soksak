@@ -12,3 +12,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+jwt:
+  issuer: soksak
+  secret-key: IE8SEbMtNMJpUm5orEUveXx5hGmgSnYjymjdZ1i/CsE=
+  access-token-expiration: 3600000      # 1h (ms)
+  refresh-token-expiration: 1209600000  # 14d (ms)

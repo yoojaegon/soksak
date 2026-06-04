@@ -9,12 +9,14 @@ import java.time.LocalDateTime;
 public class UserResponse {
     private final Long id;
     private final String email;
+    private final String loginId;
     private final String nickname;
     private final LocalDateTime createdAt;
 
-    private UserResponse(Long id, String email, String nickname, LocalDateTime createdAt) {
+    private UserResponse(Long id, String email, String loginId, String nickname, LocalDateTime createdAt) {
         this.id = id;
         this.email = email;
+        this.loginId = loginId;
         this.nickname = nickname;
         this.createdAt = createdAt;
     }
@@ -23,6 +25,7 @@ public class UserResponse {
         return new UserResponse(
                 user.getId(),
                 user.getEmail(),
+                user.getLoginId(),
                 user.getNickname(),
                 user.getCreatedAt()
         );

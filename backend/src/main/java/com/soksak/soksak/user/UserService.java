@@ -15,6 +15,7 @@ public class UserService {
     public User createUser(CreateUserRequest request) {
         User user = User.builder()
                 .email(request.getEmail())
+                .loginId(request.getLoginId())
                 .nickname(request.getNickname())
                 .password(request.getPassword())
                 .build();
