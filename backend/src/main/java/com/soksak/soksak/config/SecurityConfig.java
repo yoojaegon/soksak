@@ -1,5 +1,7 @@
 package com.soksak.soksak.config;
 
+import com.soksak.soksak.config.jwt.JwtFilter;
+import com.soksak.soksak.config.jwt.JwtTokenProvider;
 import com.soksak.soksak.user.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -12,12 +14,14 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     // 비밀번호 해싱, 검증용
     @Bean
@@ -50,7 +54,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/signup", "/auth/**").permitAll()
                     .anyRequest().authenticated()
-                );
+                )
+                .addFilterBefore(new JwtFilter(jwtTokenProvider),
+                        UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }
