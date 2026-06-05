@@ -16,10 +16,10 @@ public class UserService {
     @Transactional
     public User createUser(CreateUserRequest request) {
         User user = User.builder()
-                .email(request.getEmail())
-                .loginId(request.getLoginId())
-                .nickname(request.getNickname())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .email(request.email())
+                .loginId(request.loginId())
+                .nickname(request.nickname())
+                .password(passwordEncoder.encode(request.password()))
                 .build();
         return userRepository.save(user);
     }
