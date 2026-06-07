@@ -36,5 +36,10 @@ public class RefreshToken extends BaseTimeEntity {
         this.refreshToken = refreshToken;
         this.expiresAt = expiresAt;
     }
+
+    public void rotate(String newRefreshToken, LocalDateTime newExpiresAt) {
+        this.refreshToken = newRefreshToken;
+        this.expiresAt = newExpiresAt;
+    }
 }
 
