@@ -10,6 +10,6 @@ public class RefreshTokenService {
 
     public RefreshToken findByRefreshToken(String refreshToken) {
         return refreshTokenRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new IllegalArgumentException("Unexpected token"));
+                .orElseThrow(() -> new InvalidTokenException("Unexpected token"));
     }
 }

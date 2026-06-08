@@ -62,7 +62,7 @@ class TokenServiceTest {
 
         // when & then
         assertThatThrownBy(() -> tokenService.reissue(badRefresh))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(InvalidTokenException.class);
 
         verify(refreshTokenService, never()).findByRefreshToken(any());
     }

@@ -21,7 +21,7 @@ public class TokenService {
     @Transactional
     public TokenResponse reissue(String refreshToken){
         if (!tokenProvider.validToken(refreshToken)) {
-            throw new IllegalArgumentException("유효하지 않은 토큰");
+            throw new InvalidTokenException("유효하지 않은 토큰");
         }
         RefreshToken stored = refreshTokenService.findByRefreshToken(refreshToken);
         Authentication auth = tokenProvider.getAuthentication(refreshToken);
