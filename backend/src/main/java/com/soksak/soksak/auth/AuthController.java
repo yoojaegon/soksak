@@ -1,6 +1,7 @@
 package com.soksak.soksak.auth;
 
 import com.soksak.soksak.auth.dto.LoginRequest;
+import com.soksak.soksak.auth.dto.LogoutRequest;
 import com.soksak.soksak.auth.dto.ReIssueRequest;
 import com.soksak.soksak.auth.dto.TokenResponse;
 import jakarta.validation.Valid;
@@ -28,5 +29,11 @@ public class AuthController {
     public ResponseEntity<TokenResponse> reissue(@Valid @RequestBody ReIssueRequest request) {
         TokenResponse response = tokenService.reissue(request.refreshToken());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/auth/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request.refreshToken());
+        return ResponseEntity.noContent().build();
     }
 }

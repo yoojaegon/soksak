@@ -45,4 +45,9 @@ public class AuthService {
 
         return new TokenResponse(accessToken, refreshToken);
     }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokenRepository.deleteByRefreshToken(refreshToken);
+    }
 }
