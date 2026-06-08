@@ -3,6 +3,7 @@ package com.soksak.soksak.character;
 import com.soksak.soksak.common.BaseTimeEntity;
 import com.soksak.soksak.user.User;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -10,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "characters")
 @NoArgsConstructor
 @Getter
-public class Character extends BaseTimeEntity {
+public class ChatCharacter extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false)
@@ -28,4 +29,19 @@ public class Character extends BaseTimeEntity {
 
     @Column(name = "persona", nullable = false, length = 1000)
     private String persona;
+
+    @Builder
+    public ChatCharacter(Long id, User user, String name, String description, String persona) {
+        this.id = id;
+        this.user = user;
+        this.name = name;
+        this.description = description;
+        this.persona = persona;
+    }
+
+    public void update(String name, String description, String persona) {
+        this.name = name;
+        this.description = description;
+        this.persona = persona;
+    }
 }

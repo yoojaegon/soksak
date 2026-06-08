@@ -1,6 +1,6 @@
 package com.soksak.soksak.chatRoom;
 
-import com.soksak.soksak.character.Character;
+import com.soksak.soksak.character.ChatCharacter;
 import com.soksak.soksak.common.BaseTimeEntity;
 import com.soksak.soksak.user.User;
 import jakarta.persistence.*;
@@ -22,5 +22,5 @@ public class ChatRoom extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "character_id", nullable = false)
-    private Character character;
+    private ChatCharacter character;
 }
