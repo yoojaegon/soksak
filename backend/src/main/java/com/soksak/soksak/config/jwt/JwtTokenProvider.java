@@ -17,6 +17,7 @@ import javax.crypto.SecretKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
@@ -47,6 +48,7 @@ public class JwtTokenProvider {
                 .claim(AUTHORITIES_KEY, authorities )
                 .issuer(jwtProperties.getIssuer())
                 .issuedAt(now)
+                .id(UUID.randomUUID().toString())
                 .expiration(expiration)
                 .signWith(key)
                 .compact();
