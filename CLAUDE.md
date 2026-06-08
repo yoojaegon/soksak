@@ -1,6 +1,6 @@
 ## What this project is
 
-**soksak (속삭)** is a **character-chat website** — users hold conversations with AI characters. The chat experience is powered by a **LangChain-based chat pipeline** that already exists separately and will be brought into this repo later (expected to live in `ai-server/`). Do not rebuild the chat pipeline from scratch; it is being imported.
+**soksak (속삭)** is a **character-chat website** — users hold conversations with AI characters. The chat experience is powered by a **Python LangChain chat pipeline** that already exists separately and will be brought into this repo (in `ai-server/`) **as-is** — do not rebuild it from scratch. Any modifications to it are deferred until the Java backend is fully implemented; until then, leave `ai-server/` alone.
 
 The intended split: `backend/` handles the web/application layer (users, characters, persistence, REST API) while the AI service handles the LLM chat pipeline.
 
@@ -22,6 +22,8 @@ cd backend
 Note: a PostgreSQL datasource is on the classpath but **not configured** in `application.properties`. `bootRun` and the `contextLoads` test will fail until DB connection properties (`spring.datasource.*`) are added or a JPA/datasource config is otherwise supplied.
 
 Base package for new code: `com.soksak.soksak`.
+
+Secrets note: config lives in `application.yml`, which already holds values that shouldn't normally be committed (e.g. the DB password). For now, put the JWT `secret-key`/`issuer` directly in `application.yml` too — do **not** bother wiring up env-var injection yet. Moving these secrets out (env vars / `.env`) is a deferred cleanup task to do later.
 
 ## Workflow
 
