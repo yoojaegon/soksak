@@ -2,6 +2,7 @@ package com.soksak.soksak.character;
 
 import com.soksak.soksak.character.dto.CharacterResponse;
 import com.soksak.soksak.character.dto.CreateCharacterRequest;
+import com.soksak.soksak.character.dto.UpdateCharacterRequest;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,12 @@ public class CharacterService {
                 .map(CharacterResponse::from);
     }
 
+    @Transactional
+    public CharacterResponse updateCharacter(String loginId, Long id, UpdateCharacterRequest request) {
+        ChatCharacter character = getOwnedCharacter(loginId, id);
+        character.update(request.name(), request.description(), request.persona());
+        return CharacterResponse.from(character);
+    }
     private ChatCharacter getOwnedCharacter(String loginId, Long characterId) {
         ChatCharacter character = characterRepository.findById(characterId)
                 .orElseThrow(() -> new IllegalArgumentException("캐릭터 없음"));

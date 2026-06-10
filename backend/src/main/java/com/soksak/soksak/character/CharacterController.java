@@ -2,6 +2,7 @@ package com.soksak.soksak.character;
 
 import com.soksak.soksak.character.dto.CharacterResponse;
 import com.soksak.soksak.character.dto.CreateCharacterRequest;
+import com.soksak.soksak.character.dto.UpdateCharacterRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -45,4 +46,12 @@ public class CharacterController {
         return ResponseEntity.ok(characterService.getCharacters(pageable));
     }
 
+    @PutMapping("/characters/{id}")
+    public ResponseEntity<CharacterResponse> updateCharacter(
+            Authentication authentication,
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateCharacterRequest request) {
+        CharacterResponse response = characterService.updateCharacter(authentication.getName(), id, request);
+        return ResponseEntity.ok(response);
+    }
 }
