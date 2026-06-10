@@ -59,6 +59,12 @@ public class CharacterService {
         character.update(request.name(), request.description(), request.persona());
         return CharacterResponse.from(character);
     }
+
+    @Transactional
+    public void deleteCharacter(String loginId, Long id) {
+        ChatCharacter character = getOwnedCharacter(loginId, id);
+        characterRepository.delete(character);
+    }
     private ChatCharacter getOwnedCharacter(String loginId, Long characterId) {
         ChatCharacter character = characterRepository.findById(characterId)
                 .orElseThrow(() -> new IllegalArgumentException("캐릭터 없음"));

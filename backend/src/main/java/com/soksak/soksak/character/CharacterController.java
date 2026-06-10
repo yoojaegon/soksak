@@ -54,4 +54,12 @@ public class CharacterController {
         CharacterResponse response = characterService.updateCharacter(authentication.getName(), id, request);
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/characters/{id}")
+    public ResponseEntity<Void> deleteCharacter(
+            Authentication authentication,
+            @PathVariable Long id) {
+        characterService.deleteCharacter(authentication.getName(), id);
+        return ResponseEntity.noContent().build();
+    }
 }
