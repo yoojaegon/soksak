@@ -21,7 +21,7 @@ import java.util.List;
 public class CharacterController {
     private final CharacterService characterService;
 
-    @PostMapping("/characters/create")
+    @PostMapping("/characters")
     public ResponseEntity<CharacterResponse> createCharacter(
             Authentication authentication,
             @Valid @RequestBody CreateCharacterRequest request) {
