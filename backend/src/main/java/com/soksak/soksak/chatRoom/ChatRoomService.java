@@ -2,12 +2,15 @@ package com.soksak.soksak.chatRoom;
 
 import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.character.ChatCharacter;
+import com.soksak.soksak.chatRoom.dto.ChatRoomResponse;
 import com.soksak.soksak.chatRoom.dto.CreateChatRoomRequest;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,5 +33,27 @@ public class ChatRoomService {
                 .build();
 
         return chatRoomRepository.save(chatRoom);
+    }
+
+    @Transactional(readOnly = true)
+    public ChatRoomResponse getChatRoom(String loginId, Long id) {
+        return ChatRoomResponse.from(getOwnedChatRoom(loginId, id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatRoomResponse> getMyChatRooms(String loginId) {
+        return chatRoomRepository.findByUser_LoginId(loginId).stream()
+                .map(ChatRoomResponse::from)
+                .toList();
+    }
+
+    private ChatRoom getOwnedChatRoom(String loginId, Long chatRoomId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방 없음"));
+
+        if (!chatRoom.getUser().getLoginId().equals(loginId)) {
+            throw new IllegalArgumentException("본인 채팅방 아님");
+        }
+        return chatRoom;
     }
 }
