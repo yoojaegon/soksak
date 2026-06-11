@@ -52,7 +52,7 @@ public class SecurityConfig {
             )
 
             .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/signup", "/auth/**", "/error").permitAll()
+                    .requestMatchers("/", "/index.html", "/signup", "/auth/**", "/error").permitAll()
                     .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtFilter(jwtTokenProvider),
