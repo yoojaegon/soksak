@@ -63,7 +63,7 @@ class CharacterCrudE2eTest {
     @Test
     @DisplayName("인증된 유저가 캐릭터를 생성하면 201과 본문을 반환한다")
     void create_returns_201_with_body() throws Exception {
-        mockMvc.perform(post("/characters/create")
+        mockMvc.perform(post("/characters")
                         .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("name", "릴리", "description", "상냥한 마법사", "persona", "다정하다"))))
@@ -77,7 +77,7 @@ class CharacterCrudE2eTest {
     @Test
     @DisplayName("name이 빈 값이면 생성은 400을 반환한다")
     void create_with_blank_name_returns_400() throws Exception {
-        mockMvc.perform(post("/characters/create")
+        mockMvc.perform(post("/characters")
                         .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("name", "", "description", "d", "persona", "p"))))
@@ -87,7 +87,7 @@ class CharacterCrudE2eTest {
     @Test
     @DisplayName("토큰 없이 생성하면 403을 반환한다")
     void create_without_token_returns_403() throws Exception {
-        mockMvc.perform(post("/characters/create")
+        mockMvc.perform(post("/characters")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("name", "릴리", "description", "d", "persona", "p"))))
                 .andExpect(status().isForbidden());
@@ -225,7 +225,7 @@ class CharacterCrudE2eTest {
     }
 
     private long createCharacter(String token, String name, String description, String persona) throws Exception {
-        MvcResult result = mockMvc.perform(post("/characters/create")
+        MvcResult result = mockMvc.perform(post("/characters")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("name", name, "description", description, "persona", persona))))

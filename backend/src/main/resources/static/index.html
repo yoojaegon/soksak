@@ -9,13 +9,25 @@
         h1 { font-size: 20px; }
         section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 16px 0; }
         h2 { font-size: 15px; margin: 0 0 12px; }
+        h3 { font-size: 13px; margin: 16px 0 4px; color: #4a6cf7; }
+        .group { border: 2px solid #4a6cf7; }
+        .group.room { border-color: #2a9d6b; }
+        .group > h2 { color: #4a6cf7; }
+        .group.room > h2 { color: #2a9d6b; }
         label { display: block; font-size: 13px; color: #555; margin-top: 8px; }
         input, textarea { width: 100%; box-sizing: border-box; padding: 6px 8px; margin-top: 2px; border: 1px solid #ccc; border-radius: 4px; }
         button { margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 4px; background: #4a6cf7; color: #fff; cursor: pointer; }
         button:hover { background: #3a5ce0; }
+        button.room { background: #2a9d6b; }
+        button.room:hover { background: #228a5c; }
+        button.danger { background: #d9534f; }
+        button.danger:hover { background: #c64541; }
         pre { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
         .token { font-size: 12px; color: #2a7; word-break: break-all; }
         .muted { color: #999; font-size: 12px; }
+        .out-label { font-size: 13px; font-weight: bold; margin: 16px 0 4px; }
+        .out-label.char { color: #4a6cf7; }
+        .out-label.room { color: #2a9d6b; }
     </style>
 </head>
 <body>
@@ -40,31 +52,52 @@
         <button onclick="login()">로그인 (토큰 저장)</button>
     </section>
 
-    <section>
-        <h2>3. 캐릭터 생성 (POST /characters)</h2>
+    <div class="out-label">인증 응답</div>
+    <pre id="authOut">여기에 회원가입/로그인 응답이 표시됩니다.</pre>
+
+    <section class="group">
+        <h2>캐릭터</h2>
+
+        <h3>생성 (POST /characters)</h3>
         <label>이름</label><input id="ch_name" value="철수">
         <label>설명</label><input id="ch_description" value="동네 친구">
         <label>페르소나</label><textarea id="ch_persona" rows="2">친근하고 장난스러운 말투</textarea>
         <button onclick="createCharacter()">캐릭터 생성</button>
-    </section>
 
-    <section>
-        <h2>4. 캐릭터 목록 (GET /characters)</h2>
+        <h3>목록 (GET /characters)</h3>
         <button onclick="listCharacters()">전체 목록</button>
         <button onclick="myCharacters()" style="background:#777;">내 캐릭터</button>
     </section>
 
-    <section>
-        <h2>5. 챗룸 생성 (POST /chatrooms)</h2>
+    <div class="out-label char">캐릭터 응답</div>
+    <pre id="charOut">여기에 캐릭터 응답이 표시됩니다.</pre>
+
+    <section class="group room">
+        <h2>챗룸</h2>
+
+        <h3>생성 (POST /chatrooms)</h3>
         <label>characterId</label><input id="cr_characterId" value="1">
-        <button onclick="createChatRoom()">챗룸 생성</button>
+        <button class="room" onclick="createChatRoom()">챗룸 생성</button>
+
+        <h3>조회 (GET /chatrooms)</h3>
+        <label>챗룸 id (단건 조회용)</label><input id="cr_getId" value="1">
+        <button class="room" onclick="getChatRoom()">단건 조회</button>
+        <button class="room" onclick="myChatRooms()" style="background:#777;">내 챗룸 목록</button>
+
+        <h3>수정 (PATCH /chatrooms/{id})</h3>
+        <label>챗룸 id</label><input id="cr_updateId" value="1">
+        <label>새 제목</label><input id="cr_updateTitle" value="새로운 제목">
+        <button class="room" onclick="updateChatRoom()">제목 수정</button>
+
+        <h3>삭제 (DELETE /chatrooms/{id})</h3>
+        <label>챗룸 id</label><input id="cr_deleteId" value="1">
+        <button class="danger" onclick="deleteChatRoom()">챗룸 삭제</button>
     </section>
 
-    <h2>응답</h2>
-    <pre id="out">여기에 응답이 표시됩니다.</pre>
+    <div class="out-label room">챗룸 응답</div>
+    <pre id="roomOut">여기에 챗룸 응답이 표시됩니다.</pre>
 
 <script>
-    const out = document.getElementById('out');
     const tokenStatus = document.getElementById('tokenStatus');
 
     function showToken() {
@@ -74,7 +107,9 @@
     function clearToken() { localStorage.removeItem('accessToken'); showToken(); }
     showToken();
 
-    async function call(method, url, body, auth) {
+    // target: 'auth' | 'char' | 'room' → 응답을 표시할 영역 선택
+    async function call(method, url, body, auth, target) {
+        const out = document.getElementById(target + 'Out');
         const headers = { 'Content-Type': 'application/json' };
         if (auth) {
             const t = localStorage.getItem('accessToken');
@@ -96,33 +131,43 @@
 
     function val(id) { return document.getElementById(id).value; }
 
+    // --- 인증 ---
     function signup() {
         call('POST', '/signup', {
             email: val('su_email'), loginId: val('su_loginId'),
             nickname: val('su_nickname'), password: val('su_password')
-        }, false);
+        }, false, 'auth');
     }
 
     async function login() {
         const data = await call('POST', '/auth/login',
-            { loginId: val('li_loginId'), password: val('li_password') }, false);
+            { loginId: val('li_loginId'), password: val('li_password') }, false, 'auth');
         if (data && data.accessToken) {
             localStorage.setItem('accessToken', data.accessToken);
             showToken();
         }
     }
 
+    // --- 캐릭터 ---
     function createCharacter() {
         call('POST', '/characters', {
             name: val('ch_name'), description: val('ch_description'), persona: val('ch_persona')
-        }, true);
+        }, true, 'char');
     }
+    function listCharacters() { call('GET', '/characters', null, true, 'char'); }
+    function myCharacters() { call('GET', '/characters/me', null, true, 'char'); }
 
-    function listCharacters() { call('GET', '/characters', null, true); }
-    function myCharacters() { call('GET', '/characters/me', null, true); }
-
+    // --- 챗룸 ---
     function createChatRoom() {
-        call('POST', '/chatrooms', { characterId: Number(val('cr_characterId')) }, true);
+        call('POST', '/chatrooms', { characterId: Number(val('cr_characterId')) }, true, 'room');
+    }
+    function getChatRoom() { call('GET', '/chatrooms/' + val('cr_getId'), null, true, 'room'); }
+    function myChatRooms() { call('GET', '/chatrooms', null, true, 'room'); }
+    function updateChatRoom() {
+        call('PATCH', '/chatrooms/' + val('cr_updateId'), { title: val('cr_updateTitle') }, true, 'room');
+    }
+    function deleteChatRoom() {
+        call('DELETE', '/chatrooms/' + val('cr_deleteId'), null, true, 'room');
     }
 </script>
 </body>
