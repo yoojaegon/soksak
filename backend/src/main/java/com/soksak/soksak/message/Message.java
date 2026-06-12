@@ -3,6 +3,7 @@ package com.soksak.soksak.message;
 import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.common.BaseTimeEntity;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -19,9 +20,17 @@ public class Message extends BaseTimeEntity {
     @JoinColumn(name = "chat_room_id", nullable = false)
     private ChatRoom chatRoom;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private String role;
+    private MessageRole role;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @Builder
+    public Message(ChatRoom chatRoom, MessageRole role, String content) {
+        this.chatRoom = chatRoom;
+        this.role = role;
+        this.content = content;
+    }
 }

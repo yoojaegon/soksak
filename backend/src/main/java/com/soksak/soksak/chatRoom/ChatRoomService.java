@@ -62,7 +62,7 @@ public class ChatRoomService {
         chatRoomRepository.delete(chatRoom);
     }
 
-    private ChatRoom getOwnedChatRoom(String loginId, Long chatRoomId) {
+    public ChatRoom getOwnedChatRoom(String loginId, Long chatRoomId) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방 없음"));
 
