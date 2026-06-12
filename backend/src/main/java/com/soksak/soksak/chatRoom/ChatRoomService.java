@@ -4,6 +4,7 @@ import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.character.ChatCharacter;
 import com.soksak.soksak.chatRoom.dto.ChatRoomResponse;
 import com.soksak.soksak.chatRoom.dto.CreateChatRoomRequest;
+import com.soksak.soksak.chatRoom.dto.UpdateChatRoomRequest;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,14 @@ public class ChatRoomService {
         return chatRoomRepository.findByUser_LoginId(loginId).stream()
                 .map(ChatRoomResponse::from)
                 .toList();
+    }
+
+    @Transactional
+    public ChatRoomResponse updateChatRoom(String loginId, Long id, UpdateChatRoomRequest request) {
+        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+        chatRoom.update(request.title());
+
+        return ChatRoomResponse.from(chatRoom);
     }
 
     @Transactional

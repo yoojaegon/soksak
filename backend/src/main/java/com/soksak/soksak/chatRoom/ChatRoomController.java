@@ -2,6 +2,7 @@ package com.soksak.soksak.chatRoom;
 
 import com.soksak.soksak.chatRoom.dto.ChatRoomResponse;
 import com.soksak.soksak.chatRoom.dto.CreateChatRoomRequest;
+import com.soksak.soksak.chatRoom.dto.UpdateChatRoomRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -45,5 +46,15 @@ public class ChatRoomController {
             @PathVariable Long id) {
         chatRoomService.deleteChatRoom(authentication.getName(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/chatrooms/{id}")
+    public ResponseEntity<ChatRoomResponse> updateChatRoom(
+            Authentication authentication,
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateChatRoomRequest request
+    ) {
+        ChatRoomResponse response = chatRoomService.updateChatRoom(authentication.getName(), id, request);
+        return ResponseEntity.ok(response);
     }
 }
