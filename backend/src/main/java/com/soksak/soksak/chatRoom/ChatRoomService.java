@@ -47,6 +47,12 @@ public class ChatRoomService {
                 .toList();
     }
 
+    @Transactional
+    public void deleteChatRoom(String loginId, Long id) {
+        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+        chatRoomRepository.delete(chatRoom);
+    }
+
     private ChatRoom getOwnedChatRoom(String loginId, Long chatRoomId) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방 없음"));

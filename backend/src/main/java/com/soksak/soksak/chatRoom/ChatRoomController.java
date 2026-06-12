@@ -38,4 +38,12 @@ public class ChatRoomController {
     public ResponseEntity<List<ChatRoomResponse>> getMyChatRooms(Authentication authentication) {
         return ResponseEntity.ok(chatRoomService.getMyChatRooms(authentication.getName()));
     }
+
+    @DeleteMapping("/chatrooms/{id}")
+    public ResponseEntity<Void> deleteChatRoom(
+            Authentication authentication,
+            @PathVariable Long id) {
+        chatRoomService.deleteChatRoom(authentication.getName(), id);
+        return ResponseEntity.noContent().build();
+    }
 }
