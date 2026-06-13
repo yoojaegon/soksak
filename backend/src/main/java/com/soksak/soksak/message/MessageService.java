@@ -20,6 +20,7 @@ public class MessageService {
     @Transactional
     public MessageResponse sendMessage(String loginId, Long roomId, String content) {
         ChatRoom chatRoom = chatRoomService.getOwnedChatRoom(loginId, roomId);
+        List<Message> priorHistory = messageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId);
 
         messageRepository.save(Message.builder()
                 .chatRoom(chatRoom)
@@ -27,8 +28,7 @@ public class MessageService {
                 .content(content)
                 .build());
 
-        List<Message> history = messageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId);
-        String reply = chatAiClient.reply(chatRoom, history);
+        String reply = chatAiClient.reply(chatRoom, content, priorHistory);
 
         Message aiMessage = messageRepository.save(Message.builder()
                 .chatRoom(chatRoom)

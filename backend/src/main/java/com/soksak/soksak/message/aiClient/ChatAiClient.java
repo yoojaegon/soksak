@@ -6,5 +6,5 @@ import com.soksak.soksak.message.Message;
 import java.util.List;
 
 public interface ChatAiClient {
-    String reply(ChatRoom room, List<Message> history);
+    String reply(ChatRoom room, String content, List<Message> priorHistory);
 }

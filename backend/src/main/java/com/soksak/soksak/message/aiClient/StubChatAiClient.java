@@ -9,7 +9,7 @@ import java.util.List;
 @Component
 public class StubChatAiClient implements ChatAiClient{
     @Override
-    public String reply(ChatRoom room, List<Message> history) {
+    public String reply(ChatRoom room, String content, List<Message> priorHistory) {
         return "(ai 서버 연결 예정) " + room.getCharacter().getName() + " 응답 자리";
     }
 }
