@@ -18,3 +18,10 @@ jwt:
   secret-key: IE8SEbMtNMJpUm5orEUveXx5hGmgSnYjymjdZ1i/CsE=
   access-token-expiration: 3600000      # 1h (ms)
   refresh-token-expiration: 1209600000  # 14d (ms)
+
+# 테스트에선 StubChatAiClient가 동작해 실제 호출은 없지만,
+# RestClientConfig 빈이 placeholder를 요구하므로 값만 채워둔다.
+ai-server:
+  base-url: http://localhost:8000
+  connect-timeout: 3000
+  read-timeout: 30000

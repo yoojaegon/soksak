@@ -5,14 +5,14 @@ import com.soksak.soksak.message.Message;
 import com.soksak.soksak.message.aiClient.dto.ChatAiRequest;
 import com.soksak.soksak.message.aiClient.dto.ChatAiResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
 
 @Component
-@Primary
+@Profile("!test")   // test 프로필에서는 StubChatAiClient가 대신 쓰임
 @RequiredArgsConstructor
 public class ChatAiServerClient implements ChatAiClient{
     private final RestClient aiServerRestClient;

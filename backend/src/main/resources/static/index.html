@@ -12,14 +12,18 @@
         h3 { font-size: 13px; margin: 16px 0 4px; color: #4a6cf7; }
         .group { border: 2px solid #4a6cf7; }
         .group.room { border-color: #2a9d6b; }
+        .group.msg { border-color: #7c4dff; }
         .group > h2 { color: #4a6cf7; }
         .group.room > h2 { color: #2a9d6b; }
+        .group.msg > h2 { color: #7c4dff; }
         label { display: block; font-size: 13px; color: #555; margin-top: 8px; }
         input, textarea { width: 100%; box-sizing: border-box; padding: 6px 8px; margin-top: 2px; border: 1px solid #ccc; border-radius: 4px; }
         button { margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 4px; background: #4a6cf7; color: #fff; cursor: pointer; }
         button:hover { background: #3a5ce0; }
         button.room { background: #2a9d6b; }
         button.room:hover { background: #228a5c; }
+        button.msg { background: #7c4dff; }
+        button.msg:hover { background: #6a3de0; }
         button.danger { background: #d9534f; }
         button.danger:hover { background: #c64541; }
         pre { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
@@ -28,6 +32,7 @@
         .out-label { font-size: 13px; font-weight: bold; margin: 16px 0 4px; }
         .out-label.char { color: #4a6cf7; }
         .out-label.room { color: #2a9d6b; }
+        .out-label.msg { color: #7c4dff; }
     </style>
 </head>
 <body>
@@ -96,6 +101,22 @@
 
     <div class="out-label room">챗룸 응답</div>
     <pre id="roomOut">여기에 챗룸 응답이 표시됩니다.</pre>
+
+    <section class="group msg">
+        <h2>대화</h2>
+
+        <h3>메시지 전송 (POST /chatrooms/{roomId}/messages)</h3>
+        <label>채팅방 id</label><input id="msg_sendRoomId" value="1">
+        <label>내용</label><textarea id="msg_content" rows="2">안녕! 오늘 기분 어때?</textarea>
+        <button class="msg" onclick="sendMessage()">전송 (AI 응답 받기)</button>
+
+        <h3>대화 내역 (GET /chatrooms/{roomId}/messages)</h3>
+        <label>채팅방 id</label><input id="msg_getRoomId" value="1">
+        <button class="msg" onclick="getMessages()">대화 내역 조회</button>
+    </section>
+
+    <div class="out-label msg">대화 응답</div>
+    <pre id="msgOut">여기에 대화 응답이 표시됩니다.</pre>
 
 <script>
     const tokenStatus = document.getElementById('tokenStatus');
@@ -168,6 +189,15 @@
     }
     function deleteChatRoom() {
         call('DELETE', '/chatrooms/' + val('cr_deleteId'), null, true, 'room');
+    }
+
+    // --- 대화 ---
+    function sendMessage() {
+        call('POST', '/chatrooms/' + val('msg_sendRoomId') + '/messages',
+            { content: val('msg_content') }, true, 'msg');
+    }
+    function getMessages() {
+        call('GET', '/chatrooms/' + val('msg_getRoomId') + '/messages', null, true, 'msg');
     }
 </script>
 </body>
