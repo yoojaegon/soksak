@@ -20,7 +20,7 @@ public class MessageService {
     @Transactional
     public MessageResponse sendMessage(String loginId, Long roomId, String content) {
         ChatRoom chatRoom = chatRoomService.getOwnedChatRoom(loginId, roomId);
-        List<Message> priorHistory = messageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId);
+        List<Message> priorHistory = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
 
         messageRepository.save(Message.builder()
                 .chatRoom(chatRoom)
@@ -41,7 +41,7 @@ public class MessageService {
     @Transactional
     public List<MessageResponse> getMessages(String loginId, Long roomId) {
         chatRoomService.getOwnedChatRoom(loginId, roomId);
-        return messageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId).stream()
+        return messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId).stream()
                 .map(MessageResponse::from).toList();
     }
 
@@ -63,7 +63,7 @@ public class MessageService {
     @Transactional
     public MessageResponse regenerate(String loginId, Long roomId) {
         ChatRoom chatRoom = chatRoomService.getOwnedChatRoom(loginId, roomId);
-        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId);
+        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
 
         if (messages.isEmpty()) {
             throw new IllegalArgumentException("대화가 없음");
@@ -101,7 +101,7 @@ public class MessageService {
         if (!target.getChatRoom().getId().equals(roomId)) {
             throw new IllegalArgumentException("해당 방 메세지가 아님");
         }
-        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId);;
+        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);;
 
         int idx = -1;
         for (int i = 0; i < messages.size(); i++) {
