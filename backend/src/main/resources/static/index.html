@@ -113,6 +113,21 @@
         <h3>대화 내역 (GET /chatrooms/{roomId}/messages)</h3>
         <label>채팅방 id</label><input id="msg_getRoomId" value="1">
         <button class="msg" onclick="getMessages()">대화 내역 조회</button>
+
+        <h3>메시지 수정 (PUT /chatrooms/{roomId}/messages/{messageId})</h3>
+        <label>채팅방 id</label><input id="msg_updateRoomId" value="1">
+        <label>메시지 id</label><input id="msg_updateId" value="1">
+        <label>새 내용</label><textarea id="msg_updateContent" rows="2">고친 메시지</textarea>
+        <button class="msg" onclick="updateMessage()">메시지 수정</button>
+
+        <h3>재생성 (POST /chatrooms/{roomId}/messages/regenerate)</h3>
+        <label>채팅방 id</label><input id="msg_regenRoomId" value="1">
+        <button class="msg" onclick="regenerate()">마지막 AI 응답 재생성</button>
+
+        <h3>삭제 (DELETE /chatrooms/{roomId}/messages/{messageId}/after)</h3>
+        <label>채팅방 id</label><input id="msg_deleteRoomId" value="1">
+        <label>메시지 id (이 메시지부터 이후 전부 삭제)</label><input id="msg_deleteId" value="1">
+        <button class="danger" onclick="deleteFrom()">이 지점부터 삭제</button>
     </section>
 
     <div class="out-label msg">대화 응답</div>
@@ -127,6 +142,16 @@
     }
     function clearToken() { localStorage.removeItem('accessToken'); showToken(); }
     showToken();
+
+    // 회원가입 기본값을 매번 랜덤으로 채워 unique 충돌 방지
+    (function randomizeSignup() {
+        const r = Math.floor(Math.random() * 1000000);
+        document.getElementById('su_loginId').value = 'user' + r;
+        document.getElementById('su_email').value = 'user' + r + '@test.com';
+        document.getElementById('su_nickname').value = '테스터' + r;
+        // 로그인 폼도 같은 계정으로 채워 바로 로그인 가능하게
+        document.getElementById('li_loginId').value = 'user' + r;
+    })();
 
     // target: 'auth' | 'char' | 'room' → 응답을 표시할 영역 선택
     async function call(method, url, body, auth, target) {
@@ -198,6 +223,17 @@
     }
     function getMessages() {
         call('GET', '/chatrooms/' + val('msg_getRoomId') + '/messages', null, true, 'msg');
+    }
+    function updateMessage() {
+        call('PUT', '/chatrooms/' + val('msg_updateRoomId') + '/messages/' + val('msg_updateId'),
+            { content: val('msg_updateContent') }, true, 'msg');
+    }
+    function regenerate() {
+        call('POST', '/chatrooms/' + val('msg_regenRoomId') + '/messages/regenerate', null, true, 'msg');
+    }
+    function deleteFrom() {
+        call('DELETE', '/chatrooms/' + val('msg_deleteRoomId') + '/messages/' + val('msg_deleteId') + '/after',
+            null, true, 'msg');
     }
 </script>
 </body>
