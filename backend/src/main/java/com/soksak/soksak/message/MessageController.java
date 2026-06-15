@@ -55,4 +55,14 @@ public class MessageController {
         MessageResponse response = messageService.regenerate(authentication.getName(), roomId);
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/chatrooms/{roomId}/messages/{messageId}/after")
+    public ResponseEntity<Void> deleteForm(
+            Authentication authentication,
+            @PathVariable Long roomId,
+            @PathVariable Long messageId
+    ) {
+        messageService.deleteFrom(authentication.getName(), roomId, messageId);
+        return ResponseEntity.noContent().build();
+    }
 }

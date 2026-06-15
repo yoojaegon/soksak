@@ -91,4 +91,26 @@ public class MessageService {
                 .build());
         return MessageResponse.from(aiMessages);
     }
+
+    @Transactional
+    public void deleteFrom(String loginId, Long roomId, Long messageId) {
+        chatRoomService.getOwnedChatRoom(loginId, roomId);
+        Message target = messageRepository.findById(messageId)
+                .orElseThrow(() -> new IllegalArgumentException("메세지 없음"));
+
+        if (!target.getChatRoom().getId().equals(roomId)) {
+            throw new IllegalArgumentException("해당 방 메세지가 아님");
+        }
+        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId);;
+
+        int idx = -1;
+        for (int i = 0; i < messages.size(); i++) {
+            if (messages.get(i).getId().equals(messageId)){
+                idx = i;
+                break;
+            }
+        }
+
+        messageRepository.deleteAll(messages.subList(idx, messages.size()));
+    }
 }
