@@ -33,4 +33,8 @@ public class Message extends BaseTimeEntity {
         this.role = role;
         this.content = content;
     }
+
+    public void update(String content) {
+        this.content = content;
+    }
 }

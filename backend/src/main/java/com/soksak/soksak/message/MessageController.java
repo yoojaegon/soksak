@@ -35,4 +35,24 @@ public class MessageController {
     ) {
         return ResponseEntity.ok(messageService.getMessages(authentication.getName(), roomId));
     }
+
+    @PutMapping("/chatrooms/{roomId}/messages/{messageId}")
+    public ResponseEntity<MessageResponse> update(
+            Authentication authentication,
+            @PathVariable Long roomId,
+            @PathVariable Long messageId,
+            @Valid @RequestBody MessageRequest request
+    ) {
+        MessageResponse response = messageService.updateMessage(authentication.getName(), roomId, messageId, request.content());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/chatrooms/{roomId}/messages/regenerate")
+    public ResponseEntity<MessageResponse> regenerate(
+            Authentication authentication,
+            @PathVariable Long roomId
+    ) {
+        MessageResponse response = messageService.regenerate(authentication.getName(), roomId);
+        return ResponseEntity.ok(response);
+    }
 }
