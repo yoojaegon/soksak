@@ -2,6 +2,7 @@ package com.soksak.soksak.common;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -33,6 +34,14 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return build(ErrorCode.LOGIN_FAILED, request);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicate(
+            DataIntegrityViolationException e,
+            HttpServletRequest request
+    ) {
+        return build(ErrorCode.DUPLICATE_VALUE, request);
     }
 
     @ExceptionHandler(Exception.class)
