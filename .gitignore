@@ -49,3 +49,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+
+### Logs ###
+logs/
+*.log

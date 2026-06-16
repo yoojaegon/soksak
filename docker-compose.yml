@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: soksak
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1234
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
