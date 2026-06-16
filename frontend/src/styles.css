@@ -1,0 +1,388 @@
+:root {
+  --bg: #f6f5fb;
+  --panel: #ffffff;
+  --primary: #6c5ce7;
+  --primary-dark: #5a49d6;
+  --text: #2d2d3a;
+  --muted: #8a8a9a;
+  --border: #e6e4f0;
+  --me: #6c5ce7;
+  --bot: #efeefb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Pretendard', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 상단바 */
+.topbar {
+  height: 56px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+.logo {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary);
+  text-decoration: none;
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+}
+.link-btn:hover {
+  color: var(--text);
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+h1 {
+  font-size: 22px;
+  margin: 0 0 16px;
+}
+
+.muted {
+  color: var(--muted);
+}
+.error {
+  color: #e03131;
+  font-size: 14px;
+}
+
+/* 버튼 공통 */
+button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 로그인 / 회원가입 카드 */
+.auth-card {
+  max-width: 360px;
+  margin: 40px auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+}
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.auth-card input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--text);
+}
+.auth-card input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.auth-card button {
+  margin-top: 4px;
+}
+
+/* 캐릭터 카드 그리드 */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+.char-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.char-card h3 {
+  margin: 4px 0 0;
+}
+.char-card .muted {
+  font-size: 13px;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.char-card button {
+  align-self: stretch;
+  margin-top: 8px;
+}
+.char-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 채팅 화면 */
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px - 48px);
+}
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 4px;
+}
+.bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bubble.me {
+  align-self: flex-end;
+  background: var(--me);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.bubble.bot {
+  align-self: flex-start;
+  background: var(--bot);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+/* 응답 대기 로딩: 점 3개가 순서대로 깜빡임 */
+.bubble.typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 14px;
+}
+.bubble.typing .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: typing-bounce 1.2s infinite ease-in-out;
+}
+.bubble.typing .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.bubble.typing .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* 메시지 + 그 아래 작은 액션(재생성/삭제) 묶음 */
+.msg-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 100%;
+}
+.msg-row.me {
+  align-items: flex-end;
+}
+.msg-row.bot {
+  align-items: flex-start;
+}
+.msg-actions {
+  display: flex;
+  gap: 10px;
+  padding: 0 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+/* 평소엔 숨겼다가 마우스 올리면 보이게 */
+.msg-row:hover .msg-actions {
+  opacity: 1;
+}
+.msg-action {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.msg-action:hover:not(:disabled) {
+  color: var(--primary);
+  background: none;
+}
+.msg-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 인라인 수정 입력창 */
+.edit-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+.edit-box textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  resize: vertical;
+}
+.edit-box textarea:focus {
+  outline: none;
+}
+.edit-box .msg-actions {
+  opacity: 1;
+}
+.composer {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.composer input {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+}
+.composer input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* 목록 상단 헤더 (제목 + 만들기 버튼) */
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 링크를 버튼처럼 보이게 */
+.btn-link {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.btn-link:hover {
+  background: var(--primary-dark);
+}
+
+/* 캐릭터 만들기 폼 */
+.form-card {
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+}
+.form-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.form-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.form-card input,
+.form-card textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--text);
+  font-family: inherit;
+  resize: vertical;
+}
+.form-card input:focus,
+.form-card textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 4px;
+}
