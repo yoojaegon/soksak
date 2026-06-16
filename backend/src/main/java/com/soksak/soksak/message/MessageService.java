@@ -2,6 +2,8 @@ package com.soksak.soksak.message;
 
 import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.chatRoom.ChatRoomService;
+import com.soksak.soksak.common.BusinessException;
+import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.message.aiClient.ChatAiClient;
 import com.soksak.soksak.message.dto.MessageResponse;
 import lombok.RequiredArgsConstructor;
@@ -50,9 +52,9 @@ public class MessageService {
     public MessageResponse updateMessage(String loginId, Long roomId, Long id, String content) {
         chatRoomService.getOwnedChatRoom(loginId, roomId);
         Message message = messageRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("메세지 없음"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
         if (!message.getChatRoom().getId().equals(roomId)) {
-            throw new IllegalArgumentException("해당 방의 메세지가 아님");
+            throw new BusinessException(ErrorCode.MESSAGE_FORBIDDEN);
         }
         message.update(content);
 
@@ -66,7 +68,7 @@ public class MessageService {
         List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
 
         if (messages.isEmpty()) {
-            throw new IllegalArgumentException("대화가 없음");
+            throw new BusinessException(ErrorCode.MESSAGE_NOT_FOUND);
         }
         Message last = messages.get(messages.size() - 1);
 
@@ -96,10 +98,10 @@ public class MessageService {
     public void deleteFrom(String loginId, Long roomId, Long messageId) {
         chatRoomService.getOwnedChatRoom(loginId, roomId);
         Message target = messageRepository.findById(messageId)
-                .orElseThrow(() -> new IllegalArgumentException("메세지 없음"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
 
         if (!target.getChatRoom().getId().equals(roomId)) {
-            throw new IllegalArgumentException("해당 방 메세지가 아님");
+            throw new BusinessException(ErrorCode.MESSAGE_FORBIDDEN);
         }
         List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);;
 

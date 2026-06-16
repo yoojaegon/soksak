@@ -1,0 +1,35 @@
+package com.soksak.soksak.common;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@RequiredArgsConstructor
+public enum ErrorCode {
+    // 공통
+    INVALID_INPUT(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
+    INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
+
+    // 인증
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
+    LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다."),
+
+    // 유저
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."),
+
+    // 캐릭터
+    CHARACTER_NOT_FOUND(HttpStatus.NOT_FOUND, "캐릭터를 찾을 수 없습니다."),
+    CHARACTER_FORBIDDEN(HttpStatus.FORBIDDEN, "본인 캐릭터가 아닙니다."),
+
+    // 채팅방
+    CHATROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."),
+    CHATROOM_FORBIDDEN(HttpStatus.FORBIDDEN, "본인 채팅방이 아닙니다."),
+
+    // 메시지
+    MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."),
+    MESSAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 방의 메시지가 아닙니다.");
+
+    private final HttpStatus status;
+    private final String message;
+}

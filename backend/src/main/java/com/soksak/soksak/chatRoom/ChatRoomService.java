@@ -5,6 +5,8 @@ import com.soksak.soksak.character.ChatCharacter;
 import com.soksak.soksak.chatRoom.dto.ChatRoomResponse;
 import com.soksak.soksak.chatRoom.dto.CreateChatRoomRequest;
 import com.soksak.soksak.chatRoom.dto.UpdateChatRoomRequest;
+import com.soksak.soksak.common.BusinessException;
+import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +25,9 @@ public class ChatRoomService {
     @Transactional
     public ChatRoom createChatRoom(String loginId, CreateChatRoomRequest request) {
         User user = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new IllegalArgumentException("유저 없음"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         ChatCharacter character = characterRepository.findById(request.characterId())
-                .orElseThrow(() -> new IllegalArgumentException("캐릭터 없음"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
 
         ChatRoom chatRoom = ChatRoom.builder()
                 .user(user)
@@ -64,10 +66,10 @@ public class ChatRoomService {
 
     public ChatRoom getOwnedChatRoom(String loginId, Long chatRoomId) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
-                .orElseThrow(() -> new IllegalArgumentException("채팅방 없음"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHATROOM_NOT_FOUND));
 
         if (!chatRoom.getUser().getLoginId().equals(loginId)) {
-            throw new IllegalArgumentException("본인 채팅방 아님");
+            throw new BusinessException(ErrorCode.CHATROOM_FORBIDDEN);
         }
         return chatRoom;
     }

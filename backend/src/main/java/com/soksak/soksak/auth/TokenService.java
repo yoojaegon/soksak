@@ -1,6 +1,8 @@
 package com.soksak.soksak.auth;
 
 import com.soksak.soksak.auth.dto.TokenResponse;
+import com.soksak.soksak.common.BusinessException;
+import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.config.jwt.JwtProperties;
 import com.soksak.soksak.config.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +23,7 @@ public class TokenService {
     @Transactional
     public TokenResponse reissue(String refreshToken){
         if (!tokenProvider.validToken(refreshToken)) {
-            throw new InvalidTokenException("유효하지 않은 토큰");
+            throw new BusinessException(ErrorCode.INVALID_TOKEN);
         }
         RefreshToken stored = refreshTokenService.findByRefreshToken(refreshToken);
         Authentication auth = tokenProvider.getAuthentication(refreshToken);

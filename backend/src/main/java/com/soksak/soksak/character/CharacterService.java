@@ -3,6 +3,8 @@ package com.soksak.soksak.character;
 import com.soksak.soksak.character.dto.CharacterResponse;
 import com.soksak.soksak.character.dto.CreateCharacterRequest;
 import com.soksak.soksak.character.dto.UpdateCharacterRequest;
+import com.soksak.soksak.common.BusinessException;
+import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,7 @@ public class CharacterService {
     @Transactional
     public ChatCharacter createCharacter(String loginId, CreateCharacterRequest request) {
         User user = userRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new IllegalArgumentException("유저 없음"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         ChatCharacter chatCharacter = ChatCharacter.builder()
                 .user(user)
@@ -36,7 +38,7 @@ public class CharacterService {
     @Transactional(readOnly = true)
     public CharacterResponse getCharacter(Long id) {
         ChatCharacter chatCharacter = characterRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("캐릭터 없음"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
         return CharacterResponse.from(chatCharacter);
     }
 
@@ -67,9 +69,9 @@ public class CharacterService {
     }
     private ChatCharacter getOwnedCharacter(String loginId, Long characterId) {
         ChatCharacter character = characterRepository.findById(characterId)
-                .orElseThrow(() -> new IllegalArgumentException("캐릭터 없음"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
         if (!character.getUser().getLoginId().equals(loginId)) {
-            throw new IllegalArgumentException("본인 캐릭터 아님");
+            throw new BusinessException(ErrorCode.CHARACTER_FORBIDDEN);
         }
         return character;
     }

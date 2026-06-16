@@ -20,7 +20,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -165,13 +164,11 @@ class CharacterCrudE2eTest {
     void update_others_character_is_blocked() throws Exception {
         long id = createCharacter(ownerToken, "원래이름", "d", "p");
 
-        // 현재 소유권 위반은 임시 IllegalArgumentException. 핸들러가 없어 MockMvc가 예외를 그대로 던진다
-        // (실제 컨테이너에선 500). TODO 예외 리팩토링 후 .andExpect(status().isForbidden())로 변경할 것.
-        assertThatThrownBy(() -> mockMvc.perform(put("/characters/{id}", id)
+        mockMvc.perform(put("/characters/{id}", id)
                         .header("Authorization", "Bearer " + otherToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("name", "해킹", "description", "x", "persona", "x")))))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+                        .content(json(Map.of("name", "해킹", "description", "x", "persona", "x"))))
+                .andExpect(status().isForbidden());
 
         // 인가 핵심: 차단됐으니 값은 그대로여야 한다 (상태코드와 무관하게 안정적인 검증)
         assertThat(characterRepository.findById(id).orElseThrow().getName()).isEqualTo("원래이름");
@@ -196,11 +193,9 @@ class CharacterCrudE2eTest {
     void delete_others_character_is_blocked() throws Exception {
         long id = createCharacter(ownerToken, "삭제대상", "d", "p");
 
-        // 현재 소유권 위반은 임시 IllegalArgumentException. 핸들러가 없어 MockMvc가 예외를 그대로 던진다
-        // (실제 컨테이너에선 500). TODO 예외 리팩토링 후 .andExpect(status().isForbidden())로 변경할 것.
-        assertThatThrownBy(() -> mockMvc.perform(delete("/characters/{id}", id)
-                        .header("Authorization", "Bearer " + otherToken)))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+        mockMvc.perform(delete("/characters/{id}", id)
+                        .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
 
         assertThat(characterRepository.findById(id)).isPresent();
     }

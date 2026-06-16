@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -136,11 +135,9 @@ class ChatRoomCrudE2eTest {
     void get_others_chatroom_is_blocked() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
 
-        // 현재 소유권 위반은 임시 IllegalArgumentException. 핸들러가 없어 MockMvc가 예외를 그대로 던진다
-        // (실제 컨테이너에선 500). TODO 예외 리팩토링 후 .andExpect(status().isForbidden())로 변경할 것.
-        assertThatThrownBy(() -> mockMvc.perform(get("/chatrooms/{id}", id)
-                        .header("Authorization", "Bearer " + otherToken)))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+        mockMvc.perform(get("/chatrooms/{id}", id)
+                        .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
     }
 
     // ---------- UPDATE ----------
@@ -178,13 +175,11 @@ class ChatRoomCrudE2eTest {
     void update_others_chatroom_is_blocked() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
 
-        // 현재 소유권 위반은 임시 IllegalArgumentException. 핸들러가 없어 MockMvc가 예외를 그대로 던진다
-        // (실제 컨테이너에선 500). TODO 예외 리팩토링 후 .andExpect(status().isForbidden())로 변경할 것.
-        assertThatThrownBy(() -> mockMvc.perform(patch("/chatrooms/{id}", id)
+        mockMvc.perform(patch("/chatrooms/{id}", id)
                         .header("Authorization", "Bearer " + otherToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("title", "해킹")))))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+                        .content(json(Map.of("title", "해킹"))))
+                .andExpect(status().isForbidden());
 
         // 인가 핵심: 차단됐으니 제목은 그대로여야 한다 (상태코드와 무관하게 안정적인 검증)
         assertThat(chatRoomRepository.findById(id).orElseThrow().getTitle()).isEqualTo("릴리");
@@ -209,11 +204,9 @@ class ChatRoomCrudE2eTest {
     void delete_others_chatroom_is_blocked() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
 
-        // 현재 소유권 위반은 임시 IllegalArgumentException. 핸들러가 없어 MockMvc가 예외를 그대로 던진다
-        // (실제 컨테이너에선 500). TODO 예외 리팩토링 후 .andExpect(status().isForbidden())로 변경할 것.
-        assertThatThrownBy(() -> mockMvc.perform(delete("/chatrooms/{id}", id)
-                        .header("Authorization", "Bearer " + otherToken)))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+        mockMvc.perform(delete("/chatrooms/{id}", id)
+                        .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
 
         assertThat(chatRoomRepository.findById(id)).isPresent();
     }

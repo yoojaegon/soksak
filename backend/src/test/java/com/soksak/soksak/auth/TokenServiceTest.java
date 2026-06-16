@@ -1,6 +1,7 @@
 package com.soksak.soksak.auth;
 
 import com.soksak.soksak.auth.dto.TokenResponse;
+import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.config.jwt.JwtProperties;
 import com.soksak.soksak.config.jwt.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
@@ -62,7 +63,7 @@ class TokenServiceTest {
 
         // when & then
         assertThatThrownBy(() -> tokenService.reissue(badRefresh))
-                .isInstanceOf(InvalidTokenException.class);
+                .isInstanceOf(BusinessException.class);
 
         verify(refreshTokenService, never()).findByRefreshToken(any());
     }

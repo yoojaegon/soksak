@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -129,13 +128,11 @@ class MessageE2eTest {
     @Test
     @DisplayName("남의 채팅방에는 메시지를 전송할 수 없다")
     void send_to_others_room_is_blocked() throws Exception {
-        // 현재 소유권 위반은 임시 IllegalArgumentException. 핸들러가 없어 MockMvc가 예외를 그대로 던진다
-        // (실제 컨테이너에선 500). TODO 예외 리팩토링 후 .andExpect(status().isForbidden())로 변경할 것.
-        assertThatThrownBy(() -> mockMvc.perform(post("/chatrooms/{roomId}/messages", roomId)
+        mockMvc.perform(post("/chatrooms/{roomId}/messages", roomId)
                         .header("Authorization", "Bearer " + otherToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("content", "침입")))))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+                        .content(json(Map.of("content", "침입"))))
+                .andExpect(status().isForbidden());
 
         // 차단됐으니 메시지는 하나도 저장되지 않아야 한다
         assertThat(messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId)).isEmpty();
@@ -175,11 +172,9 @@ class MessageE2eTest {
     void get_others_room_is_blocked() throws Exception {
         send(ownerToken, "비밀 대화");
 
-        // 현재 소유권 위반은 임시 IllegalArgumentException. 핸들러가 없어 MockMvc가 예외를 그대로 던진다
-        // (실제 컨테이너에선 500). TODO 예외 리팩토링 후 .andExpect(status().isForbidden())로 변경할 것.
-        assertThatThrownBy(() -> mockMvc.perform(get("/chatrooms/{roomId}/messages", roomId)
-                        .header("Authorization", "Bearer " + otherToken)))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+        mockMvc.perform(get("/chatrooms/{roomId}/messages", roomId)
+                        .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -248,13 +243,11 @@ class MessageE2eTest {
         long msgId = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId).get(0).getId();
         long otherRoomId = seedChatRoom(owner, character);   // 같은 주인의 다른 방
 
-        // 현재 검증 위반은 임시 IllegalArgumentException. 핸들러가 없어 MockMvc가 예외를 그대로 던진다
-        // (실제 컨테이너에선 500). TODO 예외 리팩토링 후 status 검증으로 변경할 것.
-        assertThatThrownBy(() -> mockMvc.perform(put("/chatrooms/{roomId}/messages/{messageId}", otherRoomId, msgId)
+        mockMvc.perform(put("/chatrooms/{roomId}/messages/{messageId}", otherRoomId, msgId)
                         .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("content", "우회 수정")))))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+                        .content(json(Map.of("content", "우회 수정"))))
+                .andExpect(status().isForbidden());
 
         assertThat(messageRepository.findById(msgId)).get()
                 .extracting(Message::getContent).isEqualTo("원본");   // 안 바뀜
@@ -266,11 +259,11 @@ class MessageE2eTest {
         send(ownerToken, "원본");
         long msgId = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId).get(0).getId();
 
-        assertThatThrownBy(() -> mockMvc.perform(put("/chatrooms/{roomId}/messages/{messageId}", roomId, msgId)
+        mockMvc.perform(put("/chatrooms/{roomId}/messages/{messageId}", roomId, msgId)
                         .header("Authorization", "Bearer " + otherToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("content", "침입 수정")))))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+                        .content(json(Map.of("content", "침입 수정"))))
+                .andExpect(status().isForbidden());
 
         assertThat(messageRepository.findById(msgId)).get()
                 .extracting(Message::getContent).isEqualTo("원본");
@@ -312,9 +305,9 @@ class MessageE2eTest {
     @Test
     @DisplayName("대화가 없는 방은 재생성할 수 없다")
     void regenerate_empty_room_throws() throws Exception {
-        assertThatThrownBy(() -> mockMvc.perform(post("/chatrooms/{roomId}/messages/regenerate", roomId)
-                        .header("Authorization", "Bearer " + ownerToken)))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+        mockMvc.perform(post("/chatrooms/{roomId}/messages/regenerate", roomId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -322,9 +315,9 @@ class MessageE2eTest {
     void regenerate_others_room_is_blocked() throws Exception {
         send(ownerToken, "안녕");
 
-        assertThatThrownBy(() -> mockMvc.perform(post("/chatrooms/{roomId}/messages/regenerate", roomId)
-                        .header("Authorization", "Bearer " + otherToken)))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+        mockMvc.perform(post("/chatrooms/{roomId}/messages/regenerate", roomId)
+                        .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
 
         assertThat(messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId)).hasSize(2); // 그대로
     }
@@ -377,9 +370,9 @@ class MessageE2eTest {
         long msgId = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId).get(0).getId();
         long otherRoomId = seedChatRoom(owner, character);   // 같은 주인의 다른 방
 
-        assertThatThrownBy(() -> mockMvc.perform(delete("/chatrooms/{roomId}/messages/{messageId}/after", otherRoomId, msgId)
-                        .header("Authorization", "Bearer " + ownerToken)))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+        mockMvc.perform(delete("/chatrooms/{roomId}/messages/{messageId}/after", otherRoomId, msgId)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isForbidden());
 
         assertThat(messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId)).hasSize(2); // 안 지워짐
     }
@@ -390,9 +383,9 @@ class MessageE2eTest {
         send(ownerToken, "원본");
         long msgId = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId).get(0).getId();
 
-        assertThatThrownBy(() -> mockMvc.perform(delete("/chatrooms/{roomId}/messages/{messageId}/after", roomId, msgId)
-                        .header("Authorization", "Bearer " + otherToken)))
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+        mockMvc.perform(delete("/chatrooms/{roomId}/messages/{messageId}/after", roomId, msgId)
+                        .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
 
         assertThat(messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId)).hasSize(2);
     }
