@@ -18,10 +18,11 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
+@RequestMapping("/characters")
 public class CharacterController {
     private final CharacterService characterService;
 
-    @PostMapping("/characters")
+    @PostMapping
     public ResponseEntity<CharacterResponse> createCharacter(
             Authentication authentication,
             @Valid @RequestBody CreateCharacterRequest request) {
@@ -30,23 +31,23 @@ public class CharacterController {
                 .body(CharacterResponse.from(chatCharacter));
     }
 
-    @GetMapping("/characters/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<CharacterResponse> getCharacter(@PathVariable Long id) {
         return ResponseEntity.ok(characterService.getCharacter(id));
     }
 
-    @GetMapping("/characters/me")
+    @GetMapping("/me")
     public ResponseEntity<List<CharacterResponse>> getMyCharacters(Authentication authentication) {
         return ResponseEntity.ok(characterService.getMyCharacters(authentication.getName()));
     }
 
-    @GetMapping("/characters")
+    @GetMapping
     public ResponseEntity<Page<CharacterResponse>> getCharacters(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(characterService.getCharacters(pageable));
     }
 
-    @PutMapping("/characters/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<CharacterResponse> updateCharacter(
             Authentication authentication,
             @PathVariable Long id,
@@ -55,7 +56,7 @@ public class CharacterController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/characters/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCharacter(
             Authentication authentication,
             @PathVariable Long id) {

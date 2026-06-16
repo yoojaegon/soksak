@@ -13,10 +13,11 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/chatrooms/{roomId}/messages")
 public class MessageController {
     private final MessageService messageService;
 
-    @PostMapping("/chatrooms/{roomId}/messages")
+    @PostMapping
     public ResponseEntity<MessageResponse> send(
             Authentication authentication,
             @PathVariable Long roomId,
@@ -28,7 +29,7 @@ public class MessageController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping("/chatrooms/{roomId}/messages")
+    @GetMapping
     public ResponseEntity<List<MessageResponse>> list(
             Authentication authentication,
             @PathVariable Long roomId
@@ -36,7 +37,7 @@ public class MessageController {
         return ResponseEntity.ok(messageService.getMessages(authentication.getName(), roomId));
     }
 
-    @PutMapping("/chatrooms/{roomId}/messages/{messageId}")
+    @PutMapping("/{messageId}")
     public ResponseEntity<MessageResponse> update(
             Authentication authentication,
             @PathVariable Long roomId,
@@ -47,7 +48,7 @@ public class MessageController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/chatrooms/{roomId}/messages/regenerate")
+    @PostMapping("/regenerate")
     public ResponseEntity<MessageResponse> regenerate(
             Authentication authentication,
             @PathVariable Long roomId
@@ -56,7 +57,7 @@ public class MessageController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/chatrooms/{roomId}/messages/{messageId}/after")
+    @DeleteMapping("/{messageId}/after")
     public ResponseEntity<Void> deleteForm(
             Authentication authentication,
             @PathVariable Long roomId,

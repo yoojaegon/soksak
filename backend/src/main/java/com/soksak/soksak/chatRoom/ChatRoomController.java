@@ -14,10 +14,11 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/chatrooms")
 public class ChatRoomController {
     private final ChatRoomService chatRoomService;
 
-    @PostMapping("/chatrooms")
+    @PostMapping
     public ResponseEntity<ChatRoomResponse> createChatRoom(
             Authentication authentication,
             @Valid @RequestBody CreateChatRoomRequest request) {
@@ -27,7 +28,7 @@ public class ChatRoomController {
                 .body(ChatRoomResponse.from(chatRoom));
     }
 
-    @GetMapping("/chatrooms/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<ChatRoomResponse> getChatRoom(
             Authentication authentication,
             @PathVariable Long id
@@ -35,12 +36,12 @@ public class ChatRoomController {
         return ResponseEntity.ok(chatRoomService.getChatRoom(authentication.getName(), id));
     }
 
-    @GetMapping("/chatrooms")
+    @GetMapping
     public ResponseEntity<List<ChatRoomResponse>> getMyChatRooms(Authentication authentication) {
         return ResponseEntity.ok(chatRoomService.getMyChatRooms(authentication.getName()));
     }
 
-    @DeleteMapping("/chatrooms/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteChatRoom(
             Authentication authentication,
             @PathVariable Long id) {
@@ -48,7 +49,7 @@ public class ChatRoomController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/chatrooms/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<ChatRoomResponse> updateChatRoom(
             Authentication authentication,
             @PathVariable Long id,

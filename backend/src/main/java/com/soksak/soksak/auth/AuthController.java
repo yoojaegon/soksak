@@ -9,29 +9,31 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/auth")
 public class AuthController {
     private final AuthService authService;
     private final TokenService tokenService;
 
     // 초기 토큰 생성
-    @PostMapping("/auth/login")
+    @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request){
         TokenResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
 
     // 토큰 재생성
-    @PostMapping("/auth/reissue")
+    @PostMapping("/reissue")
     public ResponseEntity<TokenResponse> reissue(@Valid @RequestBody ReIssueRequest request) {
         TokenResponse response = tokenService.reissue(request.refreshToken());
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/auth/logout")
+    @PostMapping("/logout")
     public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
         authService.logout(request.refreshToken());
         return ResponseEntity.noContent().build();
