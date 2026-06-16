@@ -24,7 +24,7 @@ public class RefreshToken extends BaseTimeEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "refresh_token", nullable = false, unique = true)
+    @Column(name = "refresh_token", nullable = false, unique = true, length = 512)
     private String refreshToken;
 
     @Column(name = "expires_at", nullable = false)

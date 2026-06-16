@@ -25,6 +25,34 @@ Base package for new code: `com.soksak.soksak`.
 
 Secrets note: config lives in `application.yml`, which already holds values that shouldn't normally be committed (e.g. the DB password). For now, put the JWT `secret-key`/`issuer` directly in `application.yml` too — do **not** bother wiring up env-var injection yet. Moving these secrets out (env vars / `.env`) is a deferred cleanup task to do later.
 
+## Running locally (full stack)
+
+Start order: **Postgres → backend → AI server → frontend**. Commands shown for Windows PowerShell (use `.\gradlew`); on macOS/Linux use `./gradlew`.
+
+Prerequisite (once): copy `.env.example` to `.env` at the repo root and fill `DB_PASSWORD` / `JWT_SECRET_KEY` (e.g. `openssl rand -hex 16` / `openssl rand -base64 48`). Both docker-compose and the backend (`spring-dotenv`) read this root `.env`. The AI server reads its own `ai-server/.env` (needs `OPENAI_API_KEY`).
+
+```bash
+# 1) Postgres (Docker) — from repo root
+docker compose up -d            # stop later with: docker compose stop
+
+# 2) Backend (Spring Boot) → http://localhost:8080
+cd backend
+.\gradlew bootRun               # bootRun cwd = repo root, so it picks up ./.env
+
+# 3) AI server (FastAPI + LangChain) → http://localhost:8000
+cd ai-server
+uv run uvicorn app.main:app --port 8000
+
+# 4) Frontend (React + Vite) → http://localhost:5173
+cd frontend
+npm install                     # first time only
+npm run dev
+```
+
+Notes:
+- The frontend talks to the backend through a Vite dev proxy (`/auth`, `/signup`, `/characters`, `/chatrooms` → :8080), so no CORS config is needed in dev.
+- To see real AI replies, the AI server (step 3) must be up. To run the backend without it, switch the chat client to `StubChatAiClient`.
+
 ## Workflow
 
 - **Do not write or edit code unless the user explicitly asks for it.** By default, act as an advisor: answer questions, explain trade-offs, suggest approaches, and review. Only create or modify code files when the user clearly requests an implementation (e.g. "make it", "write it", "fix it", "apply it"). When in doubt, give advice and ask whether they want you to implement it. (Reading/searching the codebase to inform advice is always fine.)
