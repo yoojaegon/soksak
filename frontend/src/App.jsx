@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Link, Outlet } from 'react-router-dom'
 import { useAuth } from './auth.jsx'
+import Sidebar from './Sidebar.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import SignupPage from './pages/SignupPage.jsx'
 import CharactersPage from './pages/CharactersPage.jsx'
@@ -13,21 +14,22 @@ function RequireAuth({ children }) {
 }
 
 function Header() {
-  const { isAuthenticated, logout } = useAuth()
-  const navigate = useNavigate()
-
-  const onLogout = async () => {
-    await logout()
-    navigate('/login')
-  }
-
   return (
     <header className="topbar">
       <Link to="/" className="logo">속삭</Link>
-      {isAuthenticated && (
-        <button className="link-btn" onClick={onLogout}>로그아웃</button>
-      )}
     </header>
+  )
+}
+
+// 로그인 후 화면 공통 레이아웃: 왼쪽 사이드바 + 오른쪽 본문
+function AppLayout() {
+  return (
+    <div className="layout">
+      <Sidebar />
+      <main className="content">
+        <Outlet />
+      </main>
+    </div>
   )
 }
 
@@ -35,16 +37,20 @@ export default function App() {
   return (
     <div className="app">
       <Header />
-      <main className="content">
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/" element={<RequireAuth><CharactersPage /></RequireAuth>} />
-          <Route path="/characters/new" element={<RequireAuth><NewCharacterPage /></RequireAuth>} />
-          <Route path="/chat/:roomId" element={<RequireAuth><ChatPage /></RequireAuth>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+      <Routes>
+        {/* 로그인/회원가입은 사이드바 없이 단독 화면 */}
+        <Route path="/login" element={<main className="content"><LoginPage /></main>} />
+        <Route path="/signup" element={<main className="content"><SignupPage /></main>} />
+
+        {/* 로그인 필요 + 사이드바 레이아웃 */}
+        <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
+          <Route path="/" element={<CharactersPage />} />
+          <Route path="/characters/new" element={<NewCharacterPage />} />
+          <Route path="/chat/:roomId" element={<ChatPage />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   )
 }

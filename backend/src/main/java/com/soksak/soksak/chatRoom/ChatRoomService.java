@@ -13,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -32,10 +34,28 @@ public class ChatRoomService {
         ChatRoom chatRoom = ChatRoom.builder()
                 .user(user)
                 .character(character)
-                .title(character.getName())
+                .title(nextRoomTitle(loginId, character))
                 .build();
 
         return chatRoomRepository.save(chatRoom);
+    }
+
+    // 같은 사용자가 같은 캐릭터로 방을 여러 개 만들면 제목을 자동으로 넘버링한다.
+    // 첫 방은 캐릭터 이름 그대로, 그다음부터 "이름2", "이름3" … 식.
+    // 이미 쓰고 있는 제목은 건너뛰어 중간 방을 지워도 제목이 겹치지 않는다.
+    private String nextRoomTitle(String loginId, ChatCharacter character) {
+        String base = character.getName();
+        Set<String> used = new HashSet<>(
+                chatRoomRepository.findTitlesByUserAndCharacter(loginId, character.getId()));
+
+        if (!used.contains(base)) {
+            return base;
+        }
+        int n = 2;
+        while (used.contains(base + n)) {
+            n++;
+        }
+        return base + n;
     }
 
     @Transactional(readOnly = true)

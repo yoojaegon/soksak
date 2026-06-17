@@ -32,6 +32,8 @@ export default function CharactersPage() {
     setStartingId(characterId)
     setError('')
     try {
+      // 같은 캐릭터라도 매번 새 방을 만든다. 제목은 서버가 자동으로 넘버링한다
+      // (예: 클쨩, 클쨩2, 클쨩3 …).
       const room = await api.createChatRoom(characterId)
       navigate(`/chat/${room.id}`)
     } catch (err) {

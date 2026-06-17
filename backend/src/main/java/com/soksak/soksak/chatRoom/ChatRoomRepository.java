@@ -10,4 +10,9 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     // 나의 전체 채팅방 목록 조회
     @Query("select r from ChatRoom r join fetch r.character c where r.user.loginId = :loginId")
     List<ChatRoom> findByUser_LoginId(@Param("loginId") String loginId);
+
+    // 특정 사용자가 특정 캐릭터와 가진 방들의 제목 (제목 자동 넘버링에 사용)
+    @Query("select r.title from ChatRoom r where r.user.loginId = :loginId and r.character.id = :characterId")
+    List<String> findTitlesByUserAndCharacter(@Param("loginId") String loginId,
+                                              @Param("characterId") Long characterId);
 }
