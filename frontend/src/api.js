@@ -48,7 +48,9 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
     if (reissued) {
       return request(path, { method, body, auth, retry: false })
     }
+    // 재발급까지 실패 → 세션 만료. 토큰을 비우고 앱에 알려 로그인 화면으로 보낸다.
     clearTokens()
+    window.dispatchEvent(new Event('soksak:unauthorized'))
     throw new ApiError(401, '로그인이 필요합니다.')
   }
 
