@@ -11,7 +11,10 @@ public record ChatAiRequest (
         String userMessage,
         List<Turn> recentMessages,
         List<String> loreEntries,
-        String summary
+        String summary,
+        String charName,
+        String userName,
+        String userPersona
 ) {
     public record Turn(String role, String content) {}
 }

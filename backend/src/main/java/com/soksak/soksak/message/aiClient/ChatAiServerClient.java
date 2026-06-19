@@ -4,6 +4,8 @@ import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.message.Message;
 import com.soksak.soksak.message.aiClient.dto.ChatAiRequest;
 import com.soksak.soksak.message.aiClient.dto.ChatAiResponse;
+import com.soksak.soksak.userPersona.UserPersona;
+import com.soksak.soksak.userPersona.UserPersonaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatAiServerClient implements ChatAiClient{
     private final RestClient aiServerRestClient;
+    private final UserPersonaRepository userPersonaRepository;
 
     @Override
     public String reply(ChatRoom room, String content, List<Message> priorHistory) {
@@ -24,12 +27,22 @@ public class ChatAiServerClient implements ChatAiClient{
                 .map(m -> new ChatAiRequest.Turn(m.getRole().name().toLowerCase(), m.getContent()))
                 .toList();
 
+        // 유저의 기본 페르소나 -> user_name / user_persona (없으면 null, ai-server가 기본값 처리)
+        UserPersona persona = userPersonaRepository
+                .findByUserAndIsDefaultTrue(room.getUser())
+                .orElse(null);
+        String userName = persona != null ? persona.getName() : null;
+        String userPersona = persona != null ? persona.getPersona() : null;
+
         ChatAiRequest request = new ChatAiRequest(
                 room.getCharacter().getPersona(),
                 content,
                 recent,
                 List.of(),
-                null
+                null,
+                room.getCharacter().getName(),
+                userName,
+                userPersona
         );
 
         ChatAiResponse response = aiServerRestClient.post()
