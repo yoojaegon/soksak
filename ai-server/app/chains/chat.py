@@ -6,6 +6,7 @@ from langchain.messages import AIMessage, HumanMessage
 
 from app.llm.utils import response_to_text
 from app.prompts.builder import build_system_message
+from app.prompts.config import PromptConfig
 
 
 def _to_messages(recent_messages: list[dict[str, str]]) -> list:
@@ -27,8 +28,20 @@ def chat(
     recent_messages: list[dict[str, str]] | None = None,
     lore_entries: list[str] | None = None,
     summary: str | None = None,
+    config: PromptConfig | None = None,
+    user_name: str | None = None,
+    user_persona: str | None = None,
+    char_name: str | None = None,
 ) -> str:
-    system_msg = build_system_message(persona, lore_entries=lore_entries, summary=summary)
+    system_msg = build_system_message(
+        persona,
+        lore_entries=lore_entries,
+        summary=summary,
+        config=config,
+        user_name=user_name,
+        user_persona=user_persona,
+        char_name=char_name,
+    )
     history = _to_messages(recent_messages or [])
     messages = [system_msg, *history, HumanMessage(content=user_text)]
     response = llm.invoke(messages)
@@ -42,8 +55,20 @@ def chat_stream(
     recent_messages: list[dict[str, str]] | None = None,
     lore_entries: list[str] | None = None,
     summary: str | None = None,
+    config: PromptConfig | None = None,
+    user_name: str | None = None,
+    user_persona: str | None = None,
+    char_name: str | None = None,
 ) -> Iterator[str]:
-    system_msg = build_system_message(persona, lore_entries=lore_entries, summary=summary)
+    system_msg = build_system_message(
+        persona,
+        lore_entries=lore_entries,
+        summary=summary,
+        config=config,
+        user_name=user_name,
+        user_persona=user_persona,
+        char_name=char_name,
+    )
     history = _to_messages(recent_messages or [])
     messages = [system_msg, *history, HumanMessage(content=user_text)]
     for chunk in llm.stream(messages):

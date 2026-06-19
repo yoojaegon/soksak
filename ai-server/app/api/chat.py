@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from app.chains.chat import chat, chat_stream
 from app.memory.summarizer import ConversationSummarizer
+from app.prompts.config import PromptConfig
 
 router = APIRouter()
 
@@ -20,6 +21,10 @@ class ChatRequest(BaseModel):
     recent_messages: list[Message] = []
     lore_entries: list[str] = []
     summary: str | None = None
+    config: PromptConfig = PromptConfig()
+    char_name: str | None = None
+    user_name: str | None = None
+    user_persona: str | None = None
 
 
 class SummarizeRequest(BaseModel):
@@ -37,6 +42,10 @@ def chat_endpoint(request: ChatRequest, http_request: Request):
             recent_messages=[m.model_dump() for m in request.recent_messages],
             lore_entries=request.lore_entries,
             summary=request.summary,
+            config=request.config,
+            user_name=request.user_name,
+            user_persona=request.user_persona,
+            char_name=request.char_name,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -54,6 +63,10 @@ def chat_stream_endpoint(request: ChatRequest, http_request: Request):
                 recent_messages=[m.model_dump() for m in request.recent_messages],
                 lore_entries=request.lore_entries,
                 summary=request.summary,
+                config=request.config,
+                user_name=request.user_name,
+                user_persona=request.user_persona,
+                char_name=request.char_name,
             ):
                 yield f"data: {token}\n\n"
             yield "data: [DONE]\n\n"
