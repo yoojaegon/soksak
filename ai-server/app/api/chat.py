@@ -68,7 +68,10 @@ def chat_stream_endpoint(request: ChatRequest, http_request: Request):
                 user_persona=request.user_persona,
                 char_name=request.char_name,
             ):
-                yield f"data: {token}\n\n"
+                # 토큰에 개행이 있으면 줄마다 data: 를 붙여야 SSE 프레이밍이 안 깨진다.
+                for line in token.split("\n"):
+                    yield f"data: {line}\n"
+                yield "\n"
             yield "data: [DONE]\n\n"
         except Exception as exc:
             yield f"event: error\ndata: {exc}\n\n"
