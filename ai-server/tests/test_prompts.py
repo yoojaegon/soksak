@@ -57,7 +57,7 @@ def test_spoiler_off_by_default():
 
 
 def test_spoiler_on():
-    content = _build(persona="세린", config=PromptConfig(hide_spoilers=True))
+    content = _build(persona="세린", config=PromptConfig(fold_spoilers=True))
     assert "<spoiler>" in content
 
 

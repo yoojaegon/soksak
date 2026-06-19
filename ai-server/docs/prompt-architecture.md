@@ -28,7 +28,7 @@ persona + (lore_entries) + (summary)  ->  단일 SystemMessage
 [시스템 프롬프트]
   1. <rules>      역할/정체성 + 코어 하드룰 (메타금지·일관성·시점·반복회피·언어) (항상)
   2. <writing>    작문 지침: 도입·대사·보여주기·갈등/긴장·완급 (항상)
-  3. <response>   모드 지침(rp | writing) + 스포일러 지침(hide_spoilers=true 일 때만)
+  3. <response>   모드 지침(rp | writing) + 스포일러 지침(fold_spoilers=true 일 때만)
   4. <character>  persona (항상)
   5. <user>       user_persona (있을 때)
   6. <lore>       lore_entries (있을 때)
@@ -44,7 +44,7 @@ persona + (lore_entries) + (summary)  ->  단일 SystemMessage
 
 ## 3. 토글 / 설정 모델
 
-사용자가 제어하는 토글은 **딱 2개**(`mode`, `hide_spoilers`)뿐이다. 그 외 부가 기능
+사용자가 제어하는 토글은 **딱 2개**(`mode`, `fold_spoilers`)뿐이다. 그 외 부가 기능
 토글은 두지 않는다. 토글과 무관한 **base 프롬프트는 항상 포함**한다.
 
 ### 3.1 PromptConfig (신규)
@@ -56,7 +56,7 @@ class PromptMode(str, Enum):
 
 class PromptConfig(BaseModel):
     mode: PromptMode = PromptMode.RP
-    hide_spoilers: bool = False
+    fold_spoilers: bool = False
     # 작문 지침(<writing>)은 토글이 아니라 항상 적용되는 상수다.
 ```
 
@@ -71,12 +71,13 @@ class PromptConfig(BaseModel):
 > 평소 채팅에서 유저 주도권을 지키는 기본값에 맞다. 풀사칭모드는 유저가 전개를 위임할
 > 때를 위한 보완 모드로, AI가 일관되게 강하게 장면을 주도하도록 한다.
 
-### 3.3 히든 스포일러 토글 (`hide_spoilers`)
+### 3.3 스포일러 접기 토글 (`fold_spoilers`)
 
 유저 시점에서 알 수 없는 내용(다른 캐릭터의 내면, 유저가 없는 장소의 사건 등)을 AI가
 묘사하는 일이 잦은데, 그걸 본문에 그대로 노출하면 어색하다. 이 토글은 그런 내용을
 **억제하는 게 아니라, 생성하되 접이식(스포일러)으로 감싸** 화면에서 기본 접힘 →
-유저가 클릭해 펼치게 한다.
+유저가 클릭해 펼치게 한다. (이름이 `hide_`가 아니라 `fold_`인 이유: 숨기는 게 아니라
+생성해서 접어두는 동작이기 때문.)
 
 - `false`(기본): 별도 처리 없음(평소대로 본문에 서술).
 - `true`: 위 "유저가 알 수 없는 내용"을 **`<spoiler>...</spoiler>` 마크업으로 감싸** 출력.

@@ -67,7 +67,7 @@ def writing_section() -> str:
 
 def response_section(config: PromptConfig) -> str:
     parts = [_MODE_WRITING if config.mode is PromptMode.WRITING else _MODE_RP]
-    if config.hide_spoilers:
+    if config.fold_spoilers:
         parts.append(_SPOILERS)
     return _wrap("response", "\n".join(parts))
 

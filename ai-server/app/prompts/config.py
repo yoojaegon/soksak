@@ -16,5 +16,5 @@ class PromptConfig(BaseModel):
     """요청마다 전달되는 프롬프트 조립 설정 (ai-server 는 저장하지 않음)."""
 
     mode: PromptMode = PromptMode.RP
-    hide_spoilers: bool = False
+    fold_spoilers: bool = False  # True: 유저 시점 밖 내용을 <spoiler>로 감싸 노출(접이식)
     # show_dont_tell / 직유우선 은 토글이 아니라 항상 적용되는 상수 -> sections.py 참고.
