@@ -1,6 +1,7 @@
 package com.soksak.soksak.user;
 
 import com.soksak.soksak.common.BaseTimeEntity;
+import com.soksak.soksak.common.Gender;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,11 +29,25 @@ public class User extends BaseTimeEntity {
     @Column(name = "password", nullable = false)
     private String password;
 
+    @Column(name = "name", nullable = false, length = 20)
+    private String name;
+
+    @Column(name = "age", nullable = false)
+    private int age;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", nullable = false)
+    private Gender gender;
+
     @Builder
-    public User(String email,String loginId, String nickname, String password) {
+    public User(String email, String loginId, String nickname, String password,
+                String name, int age, Gender gender) {
         this.email = email;
         this.loginId = loginId;
         this.nickname = nickname;
         this.password = password;
+        this.name = name;
+        this.age = age;
+        this.gender = gender;
     }
 }

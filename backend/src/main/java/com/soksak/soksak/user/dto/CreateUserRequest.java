@@ -1,7 +1,10 @@
 package com.soksak.soksak.user.dto;
 
+import com.soksak.soksak.common.Gender;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -20,6 +23,17 @@ public record CreateUserRequest(
         String nickname,
 
         @NotBlank(message = "비밀번호는 필수입니다.")
-        String password
+        String password,
+
+        @NotBlank(message = "이름은 필수입니다.")
+        @Size(max = 20)
+        String name,
+
+        @NotNull(message = "나이는 필수입니다.")
+        @Min(value = 0, message = "나이는 0 이상이어야 합니다.")
+        Integer age,
+
+        @NotNull(message = "성별은 필수입니다.")
+        Gender gender
 ) {
 }
