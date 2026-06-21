@@ -219,7 +219,6 @@ class ChatRoomCrudE2eTest {
                 .email(email)
                 .nickname(nickname)
                 .password(passwordEncoder.encode(PASSWORD))
-                .name(nickname)
                 .age(20)
                 .gender(com.soksak.soksak.common.Gender.MALE)
                 .build());

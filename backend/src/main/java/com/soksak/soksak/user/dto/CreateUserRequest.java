@@ -25,10 +25,6 @@ public record CreateUserRequest(
         @NotBlank(message = "비밀번호는 필수입니다.")
         String password,
 
-        @NotBlank(message = "이름은 필수입니다.")
-        @Size(max = 20)
-        String name,
-
         @NotNull(message = "나이는 필수입니다.")
         @Min(value = 0, message = "나이는 0 이상이어야 합니다.")
         Integer age,

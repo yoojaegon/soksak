@@ -45,7 +45,6 @@ class AuthReissueE2eTest {
                 .email("test@soksak.com")
                 .nickname("tester")
                 .password(passwordEncoder.encode(PASSWORD))
-                .name("tester")
                 .age(20)
                 .gender(com.soksak.soksak.common.Gender.MALE)
                 .build());

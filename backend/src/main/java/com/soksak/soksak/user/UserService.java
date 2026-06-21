@@ -22,15 +22,15 @@ public class UserService {
                 .loginId(request.loginId())
                 .nickname(request.nickname())
                 .password(passwordEncoder.encode(request.password()))
-                .name(request.name())
                 .age(request.age())
                 .gender(request.gender())
                 .build();
         User saved = userRepository.save(user);
 
         // 가입정보로 기본 유저 페르소나를 함께 생성한다(같은 트랜잭션).
+        // 페르소나 이름의 씨앗은 표시용 닉네임을 쓴다(본명은 수집하지 않음).
         userPersonaService.createDefault(
-                saved.getLoginId(), saved.getName(), saved.getAge(), saved.getGender());
+                saved.getLoginId(), saved.getNickname(), saved.getAge(), saved.getGender());
         return saved;
     }
 }

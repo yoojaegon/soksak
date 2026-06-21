@@ -2,9 +2,19 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
 
+// 성별 코드 ↔ 한글 라벨 (백엔드 Gender enum과 1:1)
+const GENDERS = [
+  { value: 'MALE', label: '남성' },
+  { value: 'FEMALE', label: '여성' },
+  { value: 'OTHER', label: '기타' },
+]
+
 export default function SignupPage() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ email: '', loginId: '', nickname: '', password: '' })
+  // age/gender는 가입 시 기본 페르소나 생성에 쓰여 백엔드에서 필수다.
+  const [form, setForm] = useState({
+    email: '', loginId: '', nickname: '', password: '', age: '', gender: 'MALE',
+  })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -15,7 +25,8 @@ export default function SignupPage() {
     setError('')
     setLoading(true)
     try {
-      await api.signup(form)
+      // age는 숫자로 변환해 보낸다(백엔드 Integer).
+      await api.signup({ ...form, age: Number(form.age) })
       // 가입 성공 → 로그인 페이지로
       navigate('/login')
     } catch (err) {
@@ -41,6 +52,20 @@ export default function SignupPage() {
           닉네임
           <input name="nickname" value={form.nickname} onChange={onChange} />
         </label>
+        <div className="form-row">
+          <label>
+            나이
+            <input name="age" type="number" min="0" value={form.age} onChange={onChange} />
+          </label>
+          <label>
+            성별
+            <select name="gender" value={form.gender} onChange={onChange}>
+              {GENDERS.map((g) => (
+                <option key={g.value} value={g.value}>{g.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
         <label>
           비밀번호
           <input
