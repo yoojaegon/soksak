@@ -58,4 +58,8 @@ public class UserPersona extends BaseTimeEntity {
         this.age = age;
         this.persona = persona;
     }
+
+    public void updateDefault(boolean isDefault) {
+        this.isDefault = isDefault;
+    }
 }

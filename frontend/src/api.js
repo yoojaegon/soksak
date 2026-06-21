@@ -101,6 +101,15 @@ export const api = {
   getCharacter: (id) => request(`/characters/${id}`),
   createCharacter: (body) => request('/characters', { method: 'POST', body }),
 
+  // 유저 페르소나 (대화 시 내가 어떤 사람으로 등장할지)
+  getUserPersonas: () => request('/user-personas'),
+  createUserPersona: (body) => request('/user-personas', { method: 'POST', body }),
+  updateUserPersona: (id, body) => request(`/user-personas/${id}`, { method: 'PUT', body }),
+  // 기본 페르소나로 지정 (대화에 기본으로 쓰임)
+  setDefaultUserPersona: (id) => request(`/user-personas/${id}/default`, { method: 'PATCH' }),
+  // 삭제 (마지막 한 개는 백엔드가 막는다)
+  deleteUserPersona: (id) => request(`/user-personas/${id}`, { method: 'DELETE' }),
+
   // 채팅방
   createChatRoom: (characterId) => request('/chatrooms', { method: 'POST', body: { characterId } }),
   getChatRooms: () => request('/chatrooms'),

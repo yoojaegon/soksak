@@ -58,6 +58,12 @@ export default function Sidebar() {
           ))
         )}
       </nav>
+      <NavLink
+        to="/personas"
+        className={({ isActive }) => `room-item${isActive ? ' active' : ''}`}
+      >
+        내 페르소나
+      </NavLink>
       <button className="link-btn logout" onClick={onLogout}>로그아웃</button>
     </aside>
   )

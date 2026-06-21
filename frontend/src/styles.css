@@ -185,14 +185,17 @@ button:disabled {
   font-size: 13px;
   color: var(--muted);
 }
-.auth-card input {
+.auth-card input,
+.auth-card select {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 15px;
   color: var(--text);
+  background: var(--panel);
 }
-.auth-card input:focus {
+.auth-card input:focus,
+.auth-card select:focus {
   outline: none;
   border-color: var(--primary);
 }
@@ -455,4 +458,73 @@ button:disabled {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 4px;
+}
+
+/* 유저 페르소나 관리 */
+.persona-form {
+  /* 목록 페이지 안에서는 폭을 본문에 맞춰 넓게 */
+  max-width: none;
+  margin: 16px 0;
+}
+.persona-form h2 {
+  font-size: 18px;
+  margin: 0 0 16px;
+}
+.persona-form select {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--text);
+  font-family: inherit;
+  background: var(--panel);
+}
+.persona-form select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+/* 성별 + 나이를 한 줄에 */
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+.form-row label {
+  flex: 1;
+}
+.persona-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.persona-card-head h3 {
+  margin: 0;
+}
+.badge {
+  background: var(--bot);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.persona-text {
+  font-size: 13px;
+  flex: 1;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.persona-actions {
+  display: flex;
+  gap: 12px;
+  align-self: stretch;
+  margin-top: 8px;
+}
+.link-btn.danger {
+  color: #e03131;
+}
+.link-btn.danger:hover:not(:disabled) {
+  color: #c92a2a;
 }

@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage.jsx'
 import SignupPage from './pages/SignupPage.jsx'
 import CharactersPage from './pages/CharactersPage.jsx'
 import NewCharacterPage from './pages/NewCharacterPage.jsx'
+import PersonasPage from './pages/PersonasPage.jsx'
 import ChatPage from './pages/ChatPage.jsx'
 
 // 로그인하지 않았으면 로그인 페이지로 보내는 보호용 래퍼
@@ -46,6 +47,7 @@ export default function App() {
         <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
           <Route path="/" element={<CharactersPage />} />
           <Route path="/characters/new" element={<NewCharacterPage />} />
+          <Route path="/personas" element={<PersonasPage />} />
           <Route path="/chat/:roomId" element={<ChatPage />} />
         </Route>
 

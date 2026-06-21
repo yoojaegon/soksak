@@ -30,7 +30,12 @@ public enum ErrorCode {
 
     // 메시지
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."),
-    MESSAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 방의 메시지가 아닙니다.");
+    MESSAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 방의 메시지가 아닙니다."),
+
+    // 유저 페르소나
+    USER_PERSONA_NOT_FOUND(HttpStatus.NOT_FOUND, "페르소나를 찾을 수 없습니다."),
+    USER_PERSONA_FORBIDDEN(HttpStatus.FORBIDDEN, "본인 페르소나가 아닙니다."),
+    USER_PERSONA_LAST_ONE(HttpStatus.BAD_REQUEST, "마지막 페르소나는 삭제할 수 없습니다.");
 
     private final HttpStatus status;
     private final String message;

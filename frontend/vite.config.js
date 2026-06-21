@@ -14,6 +14,7 @@ export default defineConfig({
       '/me': 'http://localhost:8080',
       '/characters': 'http://localhost:8080',
       '/chatrooms': 'http://localhost:8080',
+      '/user-personas': 'http://localhost:8080',
     },
   },
 })
