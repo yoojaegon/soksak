@@ -19,11 +19,15 @@ import java.util.List;
 public class ChatAiServerClient implements ChatAiClient{
     private final RestClient aiServerRestClient;
     private final UserPersonaRepository userPersonaRepository;
+    private static final int HISTORY_WINDOW = 20;
 
     @Override
     public String reply(ChatRoom room, String content, List<Message> priorHistory) {
+        int from = Math.max(0, priorHistory.size() - HISTORY_WINDOW);
+
         // 이전 대화 -> {role, content} 리스트로 변환
-        List<ChatAiRequest.Turn> recent = priorHistory.stream()
+        List<ChatAiRequest.Turn> recent = priorHistory.subList(from, priorHistory.size())
+                .stream()
                 .map(m -> new ChatAiRequest.Turn(m.getRole().name().toLowerCase(), m.getContent()))
                 .toList();
 
