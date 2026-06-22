@@ -1,9 +1,9 @@
-package com.soksak.soksak.message.aiClient;
+package com.soksak.soksak.aiClient;
 
 import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.message.Message;
-import com.soksak.soksak.message.aiClient.dto.ChatAiRequest;
-import com.soksak.soksak.message.aiClient.dto.ChatAiResponse;
+import com.soksak.soksak.aiClient.dto.ChatAiRequest;
+import com.soksak.soksak.aiClient.dto.ChatAiResponse;
 import com.soksak.soksak.userPersona.UserPersona;
 import com.soksak.soksak.userPersona.UserPersonaRepository;
 import lombok.RequiredArgsConstructor;

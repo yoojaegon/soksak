@@ -1,4 +1,4 @@
-package com.soksak.soksak.message.aiClient.dto;
+package com.soksak.soksak.aiClient.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;

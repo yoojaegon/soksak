@@ -1,4 +1,4 @@
-package com.soksak.soksak.message.aiClient;
+package com.soksak.soksak.aiClient;
 
 import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.message.Message;
