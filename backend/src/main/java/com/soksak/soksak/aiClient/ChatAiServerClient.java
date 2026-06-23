@@ -22,7 +22,6 @@ import java.util.Locale;
 public class ChatAiServerClient implements ChatAiClient{
     private final RestClient aiServerRestClient;
     private final UserPersonaRepository userPersonaRepository;
-    private static final int HISTORY_WINDOW = 20;
 
     @Override
     public String reply(ChatRoom room, String content, List<Message> priorHistory) {
