@@ -4,7 +4,7 @@ import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.chatRoom.ChatRoomService;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
-import com.soksak.soksak.message.aiClient.ChatAiClient;
+import com.soksak.soksak.aiClient.ChatAiClient;
 import com.soksak.soksak.message.dto.MessageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +18,8 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final ChatRoomService chatRoomService;
     private final ChatAiClient chatAiClient;
+    private static final int WINDOW = 20;
+    private static final int BATCH = 10;
 
     @Transactional
     public MessageResponse sendMessage(String loginId, Long roomId, String content) {
@@ -37,6 +39,7 @@ public class MessageService {
                 .role(MessageRole.ASSISTANT)
                 .content(reply)
                 .build());
+        rollSummary(chatRoom,  messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId));
         return MessageResponse.from(aiMessage);
     }
 
@@ -114,5 +117,20 @@ public class MessageService {
         }
 
         messageRepository.deleteAll(messages.subList(idx, messages.size()));
+    }
+
+    private void rollSummary(ChatRoom room, List<Message> all) {
+        Long upTo = room.getSummarizedUpToId() == null ? 0 : room.getSummarizedUpToId();
+        int summarizableEnd = all.size() - WINDOW;
+        if (summarizableEnd <= 0) return;
+
+        List<Message> batch = all.subList(0, summarizableEnd).stream()
+                .filter(m -> m.getId() > upTo)
+                .toList();
+
+        if (batch.size() < BATCH) return;
+
+        String newSummary = chatAiClient.summarize(room.getSummary(), batch);
+        room.applySummary(newSummary, batch.get(batch.size() - 1).getId());
     }
 }

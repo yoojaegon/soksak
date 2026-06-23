@@ -28,6 +28,12 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
+    @Column(name = "summary", columnDefinition = "TEXT")
+    private String summary;
+
+    @Column(name = "summarized_up_to_id")
+    private Long summarizedUpToId;
+
     @Builder
     public ChatRoom(Long id, User user, ChatCharacter character, String title) {
         this.id = id;
@@ -38,5 +44,9 @@ public class ChatRoom extends BaseTimeEntity {
 
     public void update(String title) {
         this.title = title;
+    }
+    public void applySummary(String newSummary, Long upToId) {
+        this.summary = newSummary;
+        this.summarizedUpToId = upToId;
     }
 }

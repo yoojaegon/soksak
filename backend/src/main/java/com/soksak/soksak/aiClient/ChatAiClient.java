@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface ChatAiClient {
     String reply(ChatRoom room, String content, List<Message> priorHistory);
+    String summarize(String existingSummary, List<Message> batch);
 }

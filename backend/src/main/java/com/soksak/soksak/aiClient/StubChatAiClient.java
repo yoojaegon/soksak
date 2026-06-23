@@ -14,4 +14,9 @@ public class StubChatAiClient implements ChatAiClient{
     public String reply(ChatRoom room, String content, List<Message> priorHistory) {
         return "(ai 서버 연결 예정) " + room.getCharacter().getName() + " 응답 자리";
     }
+
+    @Override
+    public String summarize(String existingSummary, List<Message> batch) {
+        return "(요약 stub)";
+    }
 }
