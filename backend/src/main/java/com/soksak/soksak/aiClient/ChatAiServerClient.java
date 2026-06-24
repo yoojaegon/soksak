@@ -39,6 +39,8 @@ public class ChatAiServerClient implements ChatAiClient{
                 .orElse(null);
         String userName = persona != null ? persona.getName() : null;
         String userPersona = persona != null ? persona.getPersona() : null;
+        String mode = room.isWritingToggle() ? "writing" : "rp";
+        ChatAiRequest.Config config = new ChatAiRequest.Config(mode, room.isFoldSpoilerToggle());
 
         ChatAiRequest request = new ChatAiRequest(
                 room.getCharacter().getPersona(),
@@ -48,7 +50,8 @@ public class ChatAiServerClient implements ChatAiClient{
                 room.getSummary(),
                 room.getCharacter().getName(),
                 userName,
-                userPersona
+                userPersona,
+                config
         );
 
         ChatAiResponse response = aiServerRestClient.post()

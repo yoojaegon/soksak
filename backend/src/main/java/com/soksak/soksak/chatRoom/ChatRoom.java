@@ -34,12 +34,20 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(name = "summarized_up_to_id")
     private Long summarizedUpToId;
 
+    @Column(name = "writing_toggle", nullable = false)
+    private boolean writingToggle;
+
+    @Column(name = "fold_spoiler_toggle", nullable = false)
+    private boolean foldSpoilerToggle;
+
     @Builder
     public ChatRoom(Long id, User user, ChatCharacter character, String title) {
         this.id = id;
         this.user = user;
         this.character = character;
         this.title = title;
+        this.writingToggle = false;
+        this.foldSpoilerToggle = false;
     }
 
     public void update(String title) {
@@ -48,5 +56,10 @@ public class ChatRoom extends BaseTimeEntity {
     public void applySummary(String newSummary, Long upToId) {
         this.summary = newSummary;
         this.summarizedUpToId = upToId;
+    }
+
+    public void toggleUpdate(boolean writingToggle, boolean foldSpoilerToggle) {
+        this.writingToggle = writingToggle;
+        this.foldSpoilerToggle = foldSpoilerToggle;
     }
 }

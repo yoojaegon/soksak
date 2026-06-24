@@ -14,7 +14,11 @@ public record ChatAiRequest (
         String summary,
         String charName,
         String userName,
-        String userPersona
+        String userPersona,
+        Config config
 ) {
     public record Turn(String role, String content) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record Config(String mode, boolean foldSpoilers) {}
 }
