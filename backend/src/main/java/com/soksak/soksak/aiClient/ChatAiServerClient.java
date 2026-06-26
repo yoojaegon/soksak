@@ -3,6 +3,8 @@ package com.soksak.soksak.aiClient;
 import com.soksak.soksak.aiClient.dto.SummarizeRequest;
 import com.soksak.soksak.aiClient.dto.SummarizeResponse;
 import com.soksak.soksak.chatRoom.ChatRoom;
+import com.soksak.soksak.lore.LoreRepository;
+import com.soksak.soksak.lore.LoreService;
 import com.soksak.soksak.message.Message;
 import com.soksak.soksak.aiClient.dto.ChatAiRequest;
 import com.soksak.soksak.aiClient.dto.ChatAiResponse;
@@ -22,6 +24,7 @@ import java.util.Locale;
 public class ChatAiServerClient implements ChatAiClient{
     private final RestClient aiServerRestClient;
     private final UserPersonaRepository userPersonaRepository;
+    private final LoreService loreService;
 
     @Override
     public String reply(ChatRoom room, String content, List<Message> priorHistory) {
@@ -42,11 +45,15 @@ public class ChatAiServerClient implements ChatAiClient{
         String mode = room.isWritingToggle() ? "writing" : "rp";
         ChatAiRequest.Config config = new ChatAiRequest.Config(mode, room.isFoldSpoilerToggle());
 
+
+        // 로어북 enabled=true 조회 + 키워드가 최근 메시지와 유저 입력에 매칭되는지 확인
+        List<String> lore = loreService.selectLore(room.getCharacter().getId(), content, recent.stream().map(ChatAiRequest.Turn::content).toList());
+
         ChatAiRequest request = new ChatAiRequest(
                 room.getCharacter().getPersona(),
                 content,
                 recent,
-                List.of(),
+                lore,
                 room.getSummary(),
                 room.getCharacter().getName(),
                 userName,
