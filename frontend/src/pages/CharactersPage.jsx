@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
+import { useAuth } from '../auth.jsx'
 
 export default function CharactersPage() {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const [characters, setCharacters] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -29,6 +31,11 @@ export default function CharactersPage() {
   }, [])
 
   const startChat = async (characterId) => {
+    // 로그인 안 했으면 대화 시작 대신 로그인으로 보낸다.
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
     setStartingId(characterId)
     setError('')
     try {

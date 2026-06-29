@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>속삭 · Reel Theory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Reel Theory — cinematic film-festival. ink #0B0B0C, surface #141416, elevated #1C1C1F,
+     champagne #D4A574 (accents/CTA), crimson #A6192E (reserved: "now speaking"/live),
+     warm off-white #F5F0E6. Playfair(GT Sectra) display serif + Source Serif body italic
+     + Inter sans (credits caps) + JetBrains Mono (meta). Letterbox bars + film grain. */
+  :root{
+    --ink:#0b0b0c; --surf:#141416; --elev:#1c1c1f; --high:#262629;
+    --champ:#d4a574; --champ-hi:#e8c094; --champ-soft:#3a2e1f; --crimson:#a6192e; --crimson-hi:#c8334b;
+    --text:#f5f0e6; --t2:#a8a299; --t3:#6e6962; --outline:#252528; --outline2:#3d3d40;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:#000;color:var(--text);display:flex;justify-content:center;align-items:center;min-height:100vh;padding:24px;}
+  .display{font-family:'Playfair Display','Noto Serif KR',serif;}
+  .cap{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--champ);}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--t3);letter-spacing:.02em;}
+
+  .app{width:1120px;max-width:100%;height:744px;background:var(--ink);overflow:hidden;display:grid;grid-template-columns:248px 1fr 300px;position:relative;}
+  /* film grain overlay */
+  .app::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.06;z-index:30;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+  .rail{background:var(--ink);border-right:1px solid var(--outline);padding:26px 0;}
+  .brand{font-family:'JetBrains Mono',monospace;font-weight:500;font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--text);padding:0 24px 4px;}
+  .brand b{color:var(--champ);}
+  .rail .sub{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;color:var(--t3);padding:0 24px 26px;}
+  .rail .cap{padding:0 24px 14px;color:var(--t3);}
+  .item{padding:14px 24px;cursor:pointer;border-bottom:1px solid var(--outline);}
+  .item:hover{background:var(--surf);}
+  .item.on{background:var(--surf);}
+  .item .ix{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);}
+  .item .nm{font-family:'Playfair Display','Noto Serif KR',serif;font-size:20px;color:var(--text);margin-top:3px;}
+  .item.on .nm{color:var(--champ);}
+  .item .ro{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-top:5px;}
+
+  .main{display:flex;flex-direction:column;position:relative;}
+  /* letterbox bars */
+  .lb{height:28px;background:#000;flex-shrink:0;}
+  .head{padding:22px 36px;border-bottom:1px solid var(--outline);display:flex;align-items:flex-end;gap:8px;}
+  .head .cap{margin-bottom:8px;}
+  .head h1{font-family:'Playfair Display','Noto Serif KR',serif;font-size:40px;font-weight:700;line-height:.95;letter-spacing:-.01em;}
+  .head .meta{margin-top:8px;}
+  .head .sp{flex:1;}
+  .now{display:flex;align-items:center;gap:8px;font-family:'Inter';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--crimson-hi);align-self:flex-start;}
+  .now .d{width:8px;height:8px;border-radius:50%;background:var(--crimson);box-shadow:0 0 8px var(--crimson);animation:blink 1.6s infinite;}
+  @keyframes blink{50%{opacity:.3;}}
+
+  .conv{flex:1;overflow-y:auto;padding:34px 36px;display:flex;flex-direction:column;gap:30px;}
+  .scene{align-self:center;text-align:center;max-width:620px;}
+  .scene .cap{display:block;margin-bottom:12px;color:var(--t3);}
+  .scene .logline{font-family:'Source Serif 4','Noto Serif KR',serif;font-style:italic;font-size:21px;line-height:1.5;color:var(--t2);}
+  .scene::after{content:"";display:block;width:48px;height:1px;background:var(--champ);opacity:.5;margin:16px auto 0;}
+  .turn{max-width:660px;width:100%;align-self:center;}
+  .who{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;}
+  .who .name{font-size:11px;letter-spacing:.16em;text-transform:uppercase;}
+  .them .who .name{color:var(--champ);}
+  .me .who .name{color:var(--t3);}
+  .who .tc{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);}
+  .line{font-family:'Source Serif 4','Noto Serif KR',serif;font-size:19px;font-weight:400;line-height:1.72;}
+  .them .line{color:var(--text);}
+  .me{text-align:right;}
+  .me .who{justify-content:flex-end;}
+  .me .line{font-family:'Inter',sans-serif;font-style:normal;font-size:15px;line-height:1.65;color:var(--t2);}
+  .line em{color:var(--champ);font-style:italic;}
+  .typing{display:flex;gap:8px;align-items:center;height:30px;}
+  .typing span{width:7px;height:7px;border-radius:50%;background:var(--champ);opacity:.4;animation:p 1.3s infinite;}
+  .typing span:nth-child(2){animation-delay:.22s;}.typing span:nth-child(3){animation-delay:.44s;}
+  @keyframes p{30%{opacity:1;}}
+
+  .composer{padding:18px 36px;border-top:1px solid var(--outline);background:var(--ink);}
+  .field{max-width:660px;margin:0 auto;display:flex;align-items:center;gap:14px;border:1px solid var(--outline2);background:var(--surf);height:50px;padding:0 8px 0 18px;border-radius:4px;}
+  .field .ph{flex:1;font-family:'Source Serif 4','Noto Serif KR',serif;font-style:italic;font-size:17px;color:var(--t3);}
+  .send{background:var(--champ);color:var(--ink);border-radius:4px;height:36px;padding:0 22px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;cursor:pointer;}
+  .send:hover{background:var(--champ-hi);}
+
+  .detail{background:var(--surf);border-left:1px solid var(--outline);overflow-y:auto;}
+  .poster{aspect-ratio:2/3;max-height:300px;background:linear-gradient(180deg,#1c1c1f,#0b0b0c);display:flex;align-items:center;justify-content:center;font-size:72px;border-bottom:1px solid var(--outline);}
+  .detail .in{padding:24px;}
+  .detail h2{font-family:'Playfair Display','Noto Serif KR',serif;font-size:26px;font-weight:700;}
+  .credits{margin:16px 0 20px;}
+  .cr{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--outline);}
+  .cr .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);}
+  .cr .v{font-family:'Playfair Display','Noto Serif KR',serif;font-size:15px;color:var(--text);}
+  .detail .syn{font-family:'Source Serif 4','Noto Serif KR',serif;font-size:16px;line-height:1.6;color:var(--t2);border-left:3px solid var(--champ);padding-left:14px;margin-bottom:22px;}
+  .fav{display:block;text-align:center;background:var(--champ);color:var(--ink);border-radius:4px;padding:12px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;}
+  .seg{margin-top:24px;}
+  .seg .cap{display:block;margin-bottom:14px;color:var(--t3);}
+  .tog{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--outline);}
+  .tog .l{font-family:'Playfair Display','Noto Serif KR',serif;font-size:16px;color:var(--text);}
+  .sw{width:42px;height:22px;border:1px solid var(--outline2);position:relative;flex-shrink:0;border-radius:2px;}
+  .sw.on{background:var(--champ-soft);border-color:var(--champ);}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;background:var(--t3);transition:.2s;}
+  .sw.on::after{left:22px;background:var(--champ);}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="rail">
+      <div class="brand">속<b>삭</b> · SOKSAK</div>
+      <div class="sub">A CHARACTER PICTURE</div>
+      <div class="cap">출연 중 · NOW SHOWING</div>
+      <div class="item on"><div class="ix">NO. 01</div><div class="nm">아르카나</div><div class="ro">미스터리 · 마법사</div></div>
+      <div class="item"><div class="ix">NO. 02</div><div class="nm">루나</div><div class="ro">힐링 · 친구</div></div>
+      <div class="item"><div class="ix">NO. 03</div><div class="nm">카이든</div><div class="ro">판타지 · 기사</div></div>
+    </aside>
+
+    <main class="main">
+      <div class="lb"></div>
+      <div class="head">
+        <div><div class="cap">탑의 마지막 마법사 · 미스터리</div><h1>아르카나</h1><div class="mono meta">EP.03 · 1.85:1 · 18.2K VIEWERS</div></div>
+        <div class="sp"></div>
+        <div class="now"><span class="d"></span>NOW SPEAKING</div>
+      </div>
+
+      <div class="conv">
+        <div class="scene"><span class="cap">SCENE · 첨탑 꼭대기 — 밤</span><div class="logline">달빛이 스며드는 첨탑 꼭대기. 아르카나가 푸른 불꽃 위로 손을 뻗고 있다.</div></div>
+        <div class="turn them"><div class="who"><span class="name">아르카나</span><span class="tc">09:14</span></div><div class="line">늦었군. 별이 자리를 옮기기 전에 도착할 줄 알았는데… 그래, 봉인을 풀 각오는 되어 있나?</div></div>
+        <div class="turn me"><div class="who"><span class="name">나</span><span class="tc">09:15</span></div><div class="line">각오는 됐어. 근데 봉인 너머에 뭐가 있는지부터 알려줘.</div></div>
+        <div class="turn them"><div class="who"><span class="name">아르카나</span><span class="tc">09:15</span></div><div class="line">…알면 도망칠 텐데. <em>(그녀가 옅게 웃는다.)</em> 그 안에 잠든 건, 네가 잃어버린 기억이야.</div></div>
+        <div class="turn them"><div class="who"><span class="name">아르카나</span></div><div class="typing"><span></span><span></span><span></span></div></div>
+      </div>
+
+      <div class="composer">
+        <div class="field"><div class="ph">당신의 대사나 행동을 적으세요…</div><div class="send">전하기</div></div>
+      </div>
+      <div class="lb"></div>
+    </main>
+
+    <aside class="detail">
+      <div class="poster">🪄</div>
+      <div class="in">
+        <h2>아르카나</h2>
+        <div class="credits">
+          <div class="cr"><span class="k">제작</span><span class="v">@stardust</span></div>
+          <div class="cr"><span class="k">장르</span><span class="v">미스터리 · RPG</span></div>
+          <div class="cr"><span class="k">함께한 사람</span><span class="v">18,204명</span></div>
+        </div>
+        <div class="syn">탑의 마지막 마법사. 차갑고 비밀스럽지만, 오래된 약속을 지키기 위해 당신을 기다려 왔다.</div>
+        <div class="fav">＋ 보관함에 담기</div>
+        <div class="seg">
+          <span class="cap">대화 설정</span>
+          <div class="tog"><span class="l">스포일러 가리기</span><div class="sw on"></div></div>
+          <div class="tog"><span class="l">로어북 적용</span><div class="sw on"></div></div>
+          <div class="tog"><span class="l">자동 요약</span><div class="sw"></div></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

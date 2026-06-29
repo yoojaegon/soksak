@@ -21,6 +21,36 @@ export function clearTokens() {
   localStorage.removeItem(REFRESH_KEY)
 }
 
+// JWT payload(가운데 조각)를 디코드. 실패하면 null.
+function decodeJwt(token) {
+  try {
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+  } catch {
+    return null
+  }
+}
+
+// 만료되지 않은 accessToken만 돌려준다. 없거나 만료됐으면 null.
+// (localStorage에 남은 옛 토큰으로 "가짜 로그인" 되는 것을 막는다.)
+export function getValidAccessToken() {
+  const token = getAccessToken()
+  if (!token) return null
+  const payload = decodeJwt(token)
+  if (payload && typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now()) {
+    return null
+  }
+  return token
+}
+
+// 앱 시작 시 세션 확인: 유효한 access가 있으면 true,
+// 없지만 refresh가 있으면 재발급을 시도, 둘 다 실패하면 토큰을 비우고 false.
+export async function ensureSession() {
+  if (getValidAccessToken()) return true
+  if (getRefreshToken() && (await tryReissue())) return true
+  clearTokens()
+  return false
+}
+
 // 서버 에러를 다루기 쉽게 감싼 예외 타입
 export class ApiError extends Error {
   constructor(status, message) {
@@ -99,7 +129,24 @@ export const api = {
   // 캐릭터
   getCharacters: (page = 0, size = 20) => request(`/characters?page=${page}&size=${size}`),
   getCharacter: (id) => request(`/characters/${id}`),
+  // 내가 만든 캐릭터 목록 (소유 판별·로어북 진입에 사용)
+  getMyCharacters: () => request('/characters/me'),
   createCharacter: (body) => request('/characters', { method: 'POST', body }),
+  updateCharacter: (id, body) => request(`/characters/${id}`, { method: 'PUT', body }),
+  deleteCharacter: (id) => request(`/characters/${id}`, { method: 'DELETE' }),
+
+  // 로어북 (캐릭터별 설정 지식 — 소유자만 접근)
+  getLores: (characterId) => request(`/characters/${characterId}/lores`),
+  getLore: (characterId, id) => request(`/characters/${characterId}/lores/${id}`),
+  createLore: (characterId, body) =>
+    request(`/characters/${characterId}/lores`, { method: 'POST', body }),
+  updateLore: (characterId, id, body) =>
+    request(`/characters/${characterId}/lores/${id}`, { method: 'PUT', body }),
+  // on/off 토글. boolean은 body가 아니라 query param으로 보낸다.
+  updateLoreEnabled: (characterId, id, enabled) =>
+    request(`/characters/${characterId}/lores/${id}/enabled?enabled=${enabled}`, { method: 'PATCH' }),
+  deleteLore: (characterId, id) =>
+    request(`/characters/${characterId}/lores/${id}`, { method: 'DELETE' }),
 
   // 유저 페르소나 (대화 시 내가 어떤 사람으로 등장할지)
   getUserPersonas: () => request('/user-personas'),
@@ -113,6 +160,17 @@ export const api = {
   // 채팅방
   createChatRoom: (characterId) => request('/chatrooms', { method: 'POST', body: { characterId } }),
   getChatRooms: () => request('/chatrooms'),
+  getChatRoom: (id) => request(`/chatrooms/${id}`),
+  // 채팅방 이름 변경
+  renameChatRoom: (id, title) => request(`/chatrooms/${id}`, { method: 'PATCH', body: { title } }),
+  // 채팅방 삭제
+  deleteChatRoom: (id) => request(`/chatrooms/${id}`, { method: 'DELETE' }),
+  // 대화 설정(프롬프트 모드/스포일러 접기) 변경. boolean 토글은 body가 아니라 query param으로 보낸다.
+  updateConfig: (id, { writingToggle, foldSpoilerToggle }) =>
+    request(
+      `/chatrooms/${id}/config?writingToggle=${writingToggle}&foldSpoilerToggle=${foldSpoilerToggle}`,
+      { method: 'PATCH' },
+    ),
 
   // 메시지 (보내면 AI 응답이 돌아온다)
   getMessages: (roomId) => request(`/chatrooms/${roomId}/messages`),

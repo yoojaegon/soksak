@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>속삭 · 홈 (Prestige Purple)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Prestige Purple homepage — cinematic, premium, cool. */
+  :root{
+    --lav:#b4aff2; --lav-hi:#9c96e8; --royal:#5822b4; --plum:#1e1e2a;
+    --bg:#0a0a12; --surf:#141420; --text:#fff; --muted:#9a9ab0; --border:#2a2a3c;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);}
+  .overline{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+  a{color:inherit;text-decoration:none;}
+  .page{max-width:1280px;margin:0 auto;}
+
+  /* Nav */
+  nav{display:flex;align-items:center;gap:32px;padding:22px 40px;position:sticky;top:0;background:rgba(10,10,18,.82);backdrop-filter:blur(12px);z-index:20;border-bottom:1px solid var(--border);}
+  .brand{font-weight:800;font-size:22px;letter-spacing:-.03em;}
+  .brand b{background:linear-gradient(135deg,var(--royal),var(--lav));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .navlinks{display:flex;gap:26px;font-size:14px;font-weight:500;color:var(--muted);}
+  .navlinks a:hover{color:#fff;}
+  .nav-r{margin-left:auto;display:flex;align-items:center;gap:14px;}
+  .search{width:280px;height:42px;background:var(--surf);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:8px;padding:0 14px;color:var(--muted);font-size:14px;}
+  .btn{height:42px;padding:0 20px;border-radius:10px;background:linear-gradient(135deg,var(--royal),var(--lav));color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;cursor:pointer;}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:#fff;font-weight:600;}
+
+  /* Hero */
+  .hero{position:relative;padding:80px 40px 64px;overflow:hidden;}
+  .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 460px at 78% 18%,rgba(88,34,180,.55),transparent 70%);}
+  .hero::after{content:"🪄";position:absolute;right:60px;top:60px;font-size:300px;opacity:.16;line-height:1;filter:blur(1px);}
+  .hero-in{position:relative;max-width:640px;}
+  .hero .overline{color:var(--lav);margin-bottom:18px;}
+  .hero h1{font-size:64px;font-weight:800;line-height:1.04;letter-spacing:-.03em;margin-bottom:20px;}
+  .hero h1 .grad{background:linear-gradient(120deg,var(--lav),var(--royal));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero p{font-size:18px;line-height:1.65;color:var(--muted);margin-bottom:32px;max-width:520px;}
+  .hero-cta{display:flex;gap:14px;align-items:center;}
+  .hero-cta .big{height:52px;padding:0 30px;font-size:16px;border-radius:12px;}
+  .hero-meta{margin-top:40px;display:flex;gap:40px;}
+  .hero-meta .n{font-size:28px;font-weight:800;letter-spacing:-.02em;}
+  .hero-meta .l{font-size:13px;color:var(--muted);margin-top:2px;}
+
+  /* Section */
+  section.block{padding:24px 40px 12px;}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;}
+  .sec-head h2{font-size:28px;font-weight:800;letter-spacing:-.02em;}
+  .sec-head .overline{margin-bottom:8px;display:block;color:var(--lav);}
+  .sec-head a{font-size:14px;font-weight:600;color:var(--muted);}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px;}
+  .chip{height:34px;padding:0 18px;border-radius:9999px;background:var(--plum);color:var(--muted);font-size:13px;font-weight:600;display:flex;align-items:center;cursor:pointer;}
+  .chip.on{background:linear-gradient(135deg,var(--royal),var(--lav));color:#fff;}
+
+  /* Card grid (poster) */
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;padding-bottom:8px;}
+  .card{background:var(--surf);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s;border:1px solid transparent;}
+  .card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.55);border-color:rgba(180,175,242,.25);}
+  .poster{aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-size:64px;position:relative;}
+  .poster .badge{position:absolute;top:12px;left:12px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(10,10,18,.6);padding:5px 10px;border-radius:9999px;color:var(--lav);}
+  .cbody{padding:16px 18px 18px;}
+  .cbody h3{font-size:18px;font-weight:700;margin-bottom:4px;}
+  .cbody .desc{font-size:13px;color:var(--muted);line-height:1.45;height:37px;overflow:hidden;}
+  .cbody .foot{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--muted);}
+  .cbody .foot .g{margin-left:auto;font-size:11px;font-weight:600;color:var(--lav);background:var(--plum);padding:3px 9px;border-radius:9999px;}
+
+  /* rail of small avatars */
+  .rail{display:grid;grid-template-columns:repeat(6,1fr);gap:20px;}
+  .mini{text-align:center;cursor:pointer;}
+  .mini .ava{width:100%;aspect-ratio:1;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:10px;transition:box-shadow .2s;}
+  .mini:hover .ava{box-shadow:0 0 0 2px var(--lav),0 0 30px rgba(88,34,180,.5);}
+  .mini .nm{font-size:14px;font-weight:600;}
+  .mini .ro{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  footer{margin-top:48px;padding:40px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <nav>
+    <div class="brand">속<b>삭</b></div>
+    <div class="navlinks"><a href="#">탐색</a><a href="#">랭킹</a><a href="#">내 대화</a><a href="#">즐겨찾기</a></div>
+    <div class="nav-r">
+      <div class="search">🔍 캐릭터, 세계관, 태그 검색…</div>
+      <div class="btn ghost">로그인</div>
+      <div class="btn">＋ 캐릭터 만들기</div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-in">
+      <span class="overline">오늘의 캐릭터</span>
+      <h1>당신만을 기다린<br><span class="grad">아르카나</span>와 속삭이다</h1>
+      <p>탑의 마지막 마법사. 잃어버린 기억의 봉인을 함께 풀어나가는 미스터리 롤플레이. 첫 한마디부터 그녀의 세계가 시작됩니다.</p>
+      <div class="hero-cta">
+        <div class="btn big">대화 시작하기</div>
+        <div class="btn ghost big" style="height:52px;padding:0 26px;font-size:16px;border-radius:12px;">미리보기</div>
+      </div>
+      <div class="hero-meta">
+        <div><div class="n">12,400+</div><div class="l">활동 중인 캐릭터</div></div>
+        <div><div class="n">2.1M</div><div class="l">오늘 오간 대화</div></div>
+        <div><div class="n">4.9 ★</div><div class="l">평균 만족도</div></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="block">
+    <div class="sec-head">
+      <div><span class="overline">Trending now</span><h2>지금 인기 있는 캐릭터</h2></div>
+      <a href="#">전체 보기 ›</a>
+    </div>
+    <div class="chips"><span class="chip on">전체</span><span class="chip">판타지</span><span class="chip">로맨스</span><span class="chip">미스터리</span><span class="chip">힐링</span><span class="chip">SF</span><span class="chip">코미디</span></div>
+    <div class="grid">
+      <div class="card"><div class="poster" style="background:linear-gradient(160deg,#5822b4,#141420)">🪄<span class="badge">미스터리</span></div><div class="cbody"><h3>아르카나</h3><div class="desc">탑의 마지막 마법사. 잃어버린 기억을 찾아서…</div><div class="foot">💬 18.2k<span class="g">RPG</span></div></div></div>
+      <div class="card"><div class="poster" style="background:linear-gradient(160deg,#4338ca,#141420)">⚔️<span class="badge">판타지</span></div><div class="cbody"><h3>카이든</h3><div class="desc">왕국을 등진 방랑 기사. 당신을 호위하기로 한다.</div><div class="foot">💬 14.0k<span class="g">기사</span></div></div></div>
+      <div class="card"><div class="poster" style="background:linear-gradient(160deg,#7c3aed,#141420)">🌙<span class="badge">힐링</span></div><div class="cbody"><h3>루나</h3><div class="desc">하루의 끝, 당신의 이야기를 들어주는 친구.</div><div class="foot">💬 21.5k<span class="g">일상</span></div></div></div>
+      <div class="card"><div class="poster" style="background:linear-gradient(160deg,#6d28d9,#141420)">🎭<span class="badge">로맨스</span></div><div class="cbody"><h3>셰린</h3><div class="desc">무대 뒤에서만 진심을 보이는 톱스타 배우.</div><div class="foot">💬 9.4k<span class="g">현대</span></div></div></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="sec-head">
+      <div><span class="overline">New voices</span><h2>새로 등장한 캐릭터</h2></div>
+      <a href="#">전체 보기 ›</a>
+    </div>
+    <div class="rail">
+      <div class="mini"><div class="ava" style="background:linear-gradient(135deg,#5822b4,#b4aff2)">🐉</div><div class="nm">드라코</div><div class="ro">판타지</div></div>
+      <div class="mini"><div class="ava" style="background:linear-gradient(135deg,#4338ca,#818cf8)">🕵️</div><div class="nm">노아</div><div class="ro">스릴러</div></div>
+      <div class="mini"><div class="ava" style="background:linear-gradient(135deg,#7c3aed,#c4b5fd)">🐾</div><div class="nm">모카</div><div class="ro">코미디</div></div>
+      <div class="mini"><div class="ava" style="background:linear-gradient(135deg,#6d28d9,#a78bfa)">🤖</div><div class="nm">제로</div><div class="ro">SF</div></div>
+      <div class="mini"><div class="ava" style="background:linear-gradient(135deg,#5b21b6,#a78bfa)">🌹</div><div class="nm">이자벨</div><div class="ro">로맨스</div></div>
+      <div class="mini"><div class="ava" style="background:linear-gradient(135deg,#4c1d95,#b4aff2)">🦊</div><div class="nm">리네</div><div class="ro">판타지</div></div>
+    </div>
+  </section>
+
+  <footer>
+    <div>속삭 · SOKSAK</div>
+    <div>Prestige Purple 시안 · DESIGNmd</div>
+  </footer>
+</div>
+</body>
+</html>

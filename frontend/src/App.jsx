@@ -5,19 +5,28 @@ import LoginPage from './pages/LoginPage.jsx'
 import SignupPage from './pages/SignupPage.jsx'
 import CharactersPage from './pages/CharactersPage.jsx'
 import NewCharacterPage from './pages/NewCharacterPage.jsx'
+import CharacterEditPage from './pages/CharacterEditPage.jsx'
+import MyCharactersPage from './pages/MyCharactersPage.jsx'
 import PersonasPage from './pages/PersonasPage.jsx'
 import ChatPage from './pages/ChatPage.jsx'
 
 // 로그인하지 않았으면 로그인 페이지로 보내는 보호용 래퍼
 function RequireAuth({ children }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
+  // 시작 시 세션 확인 중에는 잠깐 아무것도 그리지 않아 로그인 화면 깜빡임을 막는다.
+  if (loading) return null
   return isAuthenticated ? children : <Navigate to="/login" replace />
 }
 
 function Header() {
+  const { isAuthenticated } = useAuth()
   return (
     <header className="topbar">
       <Link to="/" className="logo">속삭</Link>
+      {/* 로그인 안 한 사용자에게는 로그인 진입점을 보여준다. */}
+      {!isAuthenticated && (
+        <Link to="/login" className="link-btn">로그인</Link>
+      )}
     </header>
   )
 }
@@ -34,6 +43,18 @@ function AppLayout() {
   )
 }
 
+// 공개 메인(/): 로그인하면 사이드바 포함 레이아웃, 아니면 본문만.
+function HomeLayout() {
+  const { isAuthenticated, loading } = useAuth()
+  if (loading) return null
+  if (isAuthenticated) return <AppLayout />
+  return (
+    <main className="content">
+      <Outlet />
+    </main>
+  )
+}
+
 export default function App() {
   return (
     <div className="app">
@@ -43,10 +64,16 @@ export default function App() {
         <Route path="/login" element={<main className="content"><LoginPage /></main>} />
         <Route path="/signup" element={<main className="content"><SignupPage /></main>} />
 
+        {/* 공개 메인: 로그인 없이도 캐릭터 둘러보기 */}
+        <Route path="/" element={<HomeLayout />}>
+          <Route index element={<CharactersPage />} />
+        </Route>
+
         {/* 로그인 필요 + 사이드바 레이아웃 */}
         <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
-          <Route path="/" element={<CharactersPage />} />
           <Route path="/characters/new" element={<NewCharacterPage />} />
+          <Route path="/characters/:id/edit" element={<CharacterEditPage />} />
+          <Route path="/my-characters" element={<MyCharactersPage />} />
           <Route path="/personas" element={<PersonasPage />} />
           <Route path="/chat/:roomId" element={<ChatPage />} />
         </Route>

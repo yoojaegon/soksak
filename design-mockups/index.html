@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>속삭 · 디자인 목업</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:#0b0b0f;color:#f2f2f5;min-height:100vh;padding:64px 24px;}
+  .wrap{max-width:980px;margin:0 auto;}
+  .eyebrow{color:#b4aff2;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:13px;}
+  h1{font-size:40px;font-weight:800;margin:8px 0 12px;letter-spacing:-.02em;}
+  .sub{color:#9a9ab0;font-size:16px;line-height:1.6;max-width:680px;margin-bottom:40px;}
+  .sech{display:flex;align-items:center;gap:12px;margin:40px 0 16px;}
+  .sech .dot{width:14px;height:14px;border-radius:4px;}
+  .sech h2{font-size:18px;font-weight:700;}
+  .sech .note{font-size:13px;color:#6e6e80;}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;}
+  a.card{display:block;text-decoration:none;color:inherit;background:#15151c;border:1px solid #26262f;border-radius:12px;overflow:hidden;transition:border-color .15s,transform .15s;}
+  a.card:hover{border-color:#b4aff2;transform:translateY(-3px);}
+  .sw{display:flex;height:72px;}
+  .sw span{flex:1;}
+  .cb{padding:18px 20px;}
+  .cb h3{font-size:16px;font-weight:700;margin-bottom:4px;}
+  .cb p{color:#9a9ab0;font-size:13px;line-height:1.5;}
+  .tag{display:inline-block;margin-top:12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:9999px;}
+  footer{margin-top:48px;color:#5f5f6e;font-size:12px;line-height:1.8;}
+  footer a{color:#b4aff2;text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">속삭 · SOKSAK</div>
+  <h1>캐릭터 챗 디자인 목업</h1>
+  <p class="sub">최종 후보 두 방향 — <b>Prestige Purple</b>(시네마틱 퍼플)과 <b>Reel Theory</b>(영화 카탈로그). 각 방향의 메인 홈페이지와 채팅 화면을 비교해보세요.</p>
+
+  <div class="sech"><span class="dot" style="background:linear-gradient(135deg,#5822b4,#b4aff2)"></span><h2>Prestige Purple</h2><span class="note">시네마틱 · 프리미엄 · 쿨톤</span></div>
+  <div class="grid">
+    <a class="card" href="home-prestige-purple.html">
+      <div class="sw"><span style="background:#b4aff2"></span><span style="background:#9c96e8"></span><span style="background:#5822b4"></span><span style="background:#1e1e2a"></span><span style="background:#0a0a12"></span></div>
+      <div class="cb"><h3>메인 홈페이지</h3><p>그라데이션 히어로 + 인기 캐릭터 포스터 그리드 + 신규 캐릭터 레일.</p><span class="tag" style="color:#b4aff2;background:#23232e;">landing</span></div>
+    </a>
+    <a class="card" href="chat-prestige-purple.html">
+      <div class="sw"><span style="background:#b4aff2"></span><span style="background:#9c96e8"></span><span style="background:#5822b4"></span><span style="background:#1e1e2a"></span><span style="background:#0a0a12"></span></div>
+      <div class="cb"><h3>채팅 화면</h3><p>3단 레이아웃 · 대화 + 캐릭터 정보 + 설정 토글.</p><span class="tag" style="color:#b4aff2;background:#23232e;">chat</span></div>
+    </a>
+  </div>
+
+  <div class="sech"><span class="dot" style="background:linear-gradient(135deg,#d4a574,#a6192e)"></span><h2>Reel Theory</h2><span class="note">영화 카탈로그 · 잉크블랙 + 샴페인 골드</span></div>
+  <div class="grid">
+    <a class="card" href="home-reel-theory.html">
+      <div class="sw"><span style="background:#0b0b0c"></span><span style="background:#141416"></span><span style="background:#262629"></span><span style="background:#d4a574"></span><span style="background:#a6192e"></span></div>
+      <div class="cb"><h3>메인 홈페이지</h3><p>레터박스 히어로(상영작) + 에디토리얼 필름 카드 그리드 + 필름그레인.</p><span class="tag" style="color:#d4a574;background:#2a2218;">landing</span></div>
+    </a>
+    <a class="card" href="chat-reel-theory.html">
+      <div class="sw"><span style="background:#0b0b0c"></span><span style="background:#141416"></span><span style="background:#262629"></span><span style="background:#d4a574"></span><span style="background:#a6192e"></span></div>
+      <div class="cb"><h3>채팅 화면</h3><p>대화를 영화 각본처럼 · "NOW SPEAKING" 크림슨 표시 + 크레딧 패널.</p><span class="tag" style="color:#d4a574;background:#2a2218;">chat</span></div>
+    </a>
+  </div>
+
+  <footer>
+    출처: DESIGNmd —
+    <a href="https://designmd.ai/chef/prestige-purple">Prestige Purple</a> ·
+    <a href="https://designmd.ai/duanhdan/reel-theory">Reel Theory</a><br>
+    모든 목업은 데모용 더미 콘텐츠이며 각 디자인 시스템의 토큰(컬러·타이포·라운드·간격)을 반영했습니다.
+  </footer>
+</div>
+</body>
+</html>

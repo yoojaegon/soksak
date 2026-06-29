@@ -8,11 +8,20 @@ export default function LoginPage() {
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
   const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    const errs = {}
+    if (!loginId.trim()) errs.loginId = '아이디를 입력해주세요'
+    if (!password.trim()) errs.password = '비밀번호를 입력해주세요'
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs)
+      return
+    }
+    setFieldErrors({})
     setLoading(true)
     try {
       await login(loginId, password)
@@ -29,21 +38,29 @@ export default function LoginPage() {
       <h1>로그인</h1>
       <form onSubmit={onSubmit}>
         <label>
-          아이디
+          <span className="field-caption">아이디 <span className="req">*</span></span>
           <input
             value={loginId}
-            onChange={(e) => setLoginId(e.target.value)}
+            onChange={(e) => {
+              setLoginId(e.target.value)
+              if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, loginId: undefined }))
+            }}
             autoComplete="username"
           />
+          {fieldErrors.loginId && <p className="field-error">! {fieldErrors.loginId}</p>}
         </label>
         <label>
-          비밀번호
+          <span className="field-caption">비밀번호 <span className="req">*</span></span>
           <input
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (e.target.value.trim()) setFieldErrors((prev) => ({ ...prev, password: undefined }))
+            }}
             autoComplete="current-password"
           />
+          {fieldErrors.password && <p className="field-error">! {fieldErrors.password}</p>}
         </label>
         {error && <p className="error">{error}</p>}
         <button type="submit" disabled={loading}>

@@ -2,9 +2,52 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../api.js'
 
+// 메시지 시각을 HH:MM 타임코드로. createdAt이 없으면(임시 메시지) 빈 문자열.
+function timecode(createdAt) {
+  if (!createdAt) return ''
+  const d = new Date(createdAt)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+// <spoiler>…</spoiler> 구간은 클릭해서 펼치는 가림막으로, 나머지는 그대로 렌더한다.
+function Spoiler({ text }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span
+      className={`spoiler ${open ? 'open' : ''}`}
+      role="button"
+      tabIndex={0}
+      onClick={() => setOpen((v) => !v)}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setOpen((v) => !v)}
+      title={open ? '가리기' : '펼쳐 보기'}
+    >
+      {text}
+    </span>
+  )
+}
+
+function MessageLine({ content }) {
+  const regex = /<spoiler>([\s\S]*?)<\/spoiler>/g
+  const parts = []
+  let last = 0
+  let m
+  let key = 0
+  while ((m = regex.exec(content)) !== null) {
+    if (m.index > last) parts.push(content.slice(last, m.index))
+    parts.push(<Spoiler key={`sp-${key++}`} text={m[1]} />)
+    last = regex.lastIndex
+  }
+  if (last < content.length) parts.push(content.slice(last))
+  return <div className="line">{parts}</div>
+}
+
 export default function ChatPage() {
   const { roomId } = useParams()
+  const [character, setCharacter] = useState(null)
   const [messages, setMessages] = useState([])
+  const [config, setConfig] = useState({ writingToggle: false, foldSpoilerToggle: false })
+  const [showSettings, setShowSettings] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -39,10 +82,47 @@ export default function ChatPage() {
     }
   }, [roomId])
 
+  // 방 정보(설정 토글) + 헤더에 표시할 캐릭터 정보(이름·소개)를 조회한다.
+  useEffect(() => {
+    let alive = true
+    api
+      .getChatRoom(roomId)
+      .then((room) => {
+        if (alive) {
+          setConfig({
+            writingToggle: !!room.writingToggle,
+            foldSpoilerToggle: !!room.foldSpoilerToggle,
+          })
+        }
+        return api.getCharacter(room.characterId)
+      })
+      .then((c) => {
+        if (alive) setCharacter(c)
+      })
+      .catch(() => {
+        // 헤더 정보 로딩 실패는 대화 자체를 막지 않도록 조용히 무시한다.
+      })
+    return () => {
+      alive = false
+    }
+  }, [roomId])
+
   // 메시지가 늘어나면 항상 맨 아래로 스크롤
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, sending])
+
+  // 설정 토글 변경: 화면을 먼저 바꾸고(낙관적) 서버에 반영, 실패하면 되돌린다.
+  const toggleConfig = async (key) => {
+    const next = { ...config, [key]: !config[key] }
+    setConfig(next)
+    try {
+      await api.updateConfig(roomId, next)
+    } catch (err) {
+      setConfig(config) // 롤백
+      setError(err.message)
+    }
+  }
 
   const onSend = async (e) => {
     e.preventDefault()
@@ -129,8 +209,46 @@ export default function ChatPage() {
   const lastUserIdx = messages.map((m) => m.role).lastIndexOf('USER')
 
   return (
-    <div className="chat">
-      <div className="messages">
+    <div className={`chat ${showSettings ? 'with-aside' : ''}`}>
+      <div
+        className="chat-main"
+        onClick={() => showSettings && setShowSettings(false)}
+      >
+        <div className="lb" />
+
+        {character && (
+          <header className="chat-head">
+            <div className="chat-head-main">
+              {character.userName && <span className="cap">@{character.userName} 제작</span>}
+              <h1 className="ch-name">{character.characterName}</h1>
+              {character.description && <p className="ch-sub">{character.description}</p>}
+            </div>
+            {sending && (
+              <span className="now-speaking">
+                <span className="dot" />
+                NOW SPEAKING
+              </span>
+            )}
+            <button
+              type="button"
+              className={`gear-btn ${showSettings ? 'on' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowSettings((v) => !v)
+              }}
+              aria-expanded={showSettings}
+              aria-label="대화 설정"
+              title="대화 설정"
+            >
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </button>
+          </header>
+        )}
+
+      <div className="conv">
         {loading ? (
           <p className="muted">대화를 불러오는 중…</p>
         ) : messages.length === 0 ? (
@@ -138,14 +256,18 @@ export default function ChatPage() {
         ) : (
           messages.map((m, idx) => {
             const isTemp = typeof m.id === 'string' && m.id.startsWith('temp-')
-            const side = m.role === 'USER' ? 'me' : 'bot'
+            const side = m.role === 'USER' ? 'me' : 'them'
+            const who = m.role === 'USER' ? '나' : character?.characterName ?? '캐릭터'
             // 내 마지막 메시지 아래에만 재생성 노출 (응답 대기 중엔 숨김)
             const showRegenerate = idx === lastUserIdx && !isTemp && !sending
 
             // 수정 중인 메시지는 입력창으로 표시
             if (editingId === m.id) {
               return (
-                <div key={m.id} className={`msg-row ${side}`}>
+                <div key={m.id} className={`turn ${side}`}>
+                  <div className="who">
+                    <span className="name">{who}</span>
+                  </div>
                   <div className="edit-box">
                     <textarea
                       value={editText}
@@ -167,8 +289,12 @@ export default function ChatPage() {
             }
 
             return (
-              <div key={m.id} className={`msg-row ${side}`}>
-                <div className={`bubble ${side}`}>{m.content}</div>
+              <div key={m.id} className={`turn ${side}`}>
+                <div className="who">
+                  <span className="name">{who}</span>
+                  {timecode(m.createdAt) && <span className="tc">{timecode(m.createdAt)}</span>}
+                </div>
+                <MessageLine content={m.content} />
                 {!isTemp && (
                   <div className="msg-actions">
                     {showRegenerate && (
@@ -189,11 +315,14 @@ export default function ChatPage() {
           })
         )}
         {sending && (
-          <div className="msg-row bot">
-            <div className="bubble bot typing" aria-label="응답 생성 중">
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
+          <div className="turn them">
+            <div className="who">
+              <span className="name">{character?.characterName ?? '캐릭터'}</span>
+            </div>
+            <div className="typing" aria-label="응답 생성 중">
+              <span />
+              <span />
+              <span />
             </div>
           </div>
         )}
@@ -206,12 +335,47 @@ export default function ChatPage() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="메시지를 입력하세요"
+          placeholder="당신의 대사나 행동을 적으세요…"
         />
         <button type="submit" disabled={sending || !input.trim()}>
-          보내기
+          전하기
         </button>
       </form>
+
+        <div className="lb" />
+      </div>
+
+      {showSettings && (
+        <aside className="chat-aside">
+          <div className="aside-head">
+            <span className="cap">대화 설정</span>
+            <button
+              type="button"
+              className="aside-close"
+              onClick={() => setShowSettings(false)}
+              aria-label="설정 닫기"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="seg">
+            <button type="button" className="tog" onClick={() => toggleConfig('foldSpoilerToggle')}>
+              <span className="tog-l">
+                스포일러 가리기
+                <span className="tog-hint">내 시점 밖 내용을 가림막으로</span>
+              </span>
+              <span className={`sw ${config.foldSpoilerToggle ? 'on' : ''}`} />
+            </button>
+            <button type="button" className="tog" onClick={() => toggleConfig('writingToggle')}>
+              <span className="tog-l">
+                글쓰기 모드
+                <span className="tog-hint">캐릭터가 장면을 주도적으로 전개</span>
+              </span>
+              <span className={`sw ${config.writingToggle ? 'on' : ''}`} />
+            </button>
+          </div>
+        </aside>
+      )}
     </div>
   )
 }
