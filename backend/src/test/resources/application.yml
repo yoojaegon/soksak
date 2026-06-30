@@ -25,3 +25,4 @@ ai-server:
   base-url: http://localhost:8000
   connect-timeout: 3000
   read-timeout: 30000
+  internal-auth-secret: test-internal-secret

@@ -1,4 +1,7 @@
-from fastapi import APIRouter, HTTPException, Request
+import hmac
+import os
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from langchain.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
@@ -7,7 +10,15 @@ from app.chains.chat import chat, chat_stream
 from app.memory.summarizer import ConversationSummarizer
 from app.prompts.config import PromptConfig
 
-router = APIRouter()
+
+def verify_internal_secret(x_internal_auth: str = Header(default="")) -> None:
+    # 백엔드와 공유하는 정적 시크릿. 양쪽 .env의 INTERNAL_AUTH_SECRET이 일치해야 통과.
+    secret = os.environ.get("INTERNAL_AUTH_SECRET", "")
+    if not secret or not hmac.compare_digest(x_internal_auth, secret):
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+
+router = APIRouter(dependencies=[Depends(verify_internal_secret)])
 
 
 class Message(BaseModel):

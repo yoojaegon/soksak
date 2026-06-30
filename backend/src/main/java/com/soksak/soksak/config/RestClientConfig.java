@@ -12,7 +12,8 @@ public class RestClientConfig {
     public RestClient aiServerRestClient(
             @Value("${ai-server.base-url}") String baseUrl,
             @Value("${ai-server.connect-timeout}") int connectTimeout,
-            @Value("${ai-server.read-timeout}") int readTimeout
+            @Value("${ai-server.read-timeout}") int readTimeout,
+            @Value("${ai-server.internal-auth-secret}") String secret
     ) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(connectTimeout);
@@ -20,6 +21,7 @@ public class RestClientConfig {
 
         return RestClient.builder()
                 .baseUrl(baseUrl)
+                .defaultHeader("X-Internal-auth", secret)
                 .requestFactory(factory)
                 .build();
     }
