@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -53,6 +54,10 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/", "/index.html", "/signup", "/auth/**", "/error").permitAll()
+                    // 내 캐릭터 목록은 인증 필요 (아래 공개 규칙보다 먼저 매칭되어야 함)
+                    .requestMatchers(HttpMethod.GET, "/characters/me").authenticated()
+                    // 로그인 없이도 캐릭터 둘러보기(목록/상세) 가능
+                    .requestMatchers(HttpMethod.GET, "/characters", "/characters/*").permitAll()
                     .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtFilter(jwtTokenProvider),

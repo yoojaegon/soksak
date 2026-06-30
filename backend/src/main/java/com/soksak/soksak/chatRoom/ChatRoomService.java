@@ -79,6 +79,14 @@ public class ChatRoomService {
     }
 
     @Transactional
+    public ChatRoomResponse updateConfig(String loginId, Long id, boolean writingToggle, boolean foldSpoilerToggle) {
+        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+        chatRoom.toggleUpdate(writingToggle, foldSpoilerToggle);
+
+        return ChatRoomResponse.from(chatRoom);
+    }
+
+    @Transactional
     public void deleteChatRoom(String loginId, Long id) {
         ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
         chatRoomRepository.delete(chatRoom);

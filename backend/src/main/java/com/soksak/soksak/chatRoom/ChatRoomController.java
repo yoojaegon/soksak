@@ -58,4 +58,16 @@ public class ChatRoomController {
         ChatRoomResponse response = chatRoomService.updateChatRoom(authentication.getName(), id, request);
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{id}/config")
+    public ResponseEntity<ChatRoomResponse> updateConfig(
+            Authentication authentication,
+            @PathVariable Long id,
+            @RequestParam boolean writingToggle,
+            @RequestParam boolean foldSpoilerToggle
+    ) {
+        ChatRoomResponse response = chatRoomService.updateConfig(
+                authentication.getName(), id, writingToggle, foldSpoilerToggle);
+        return ResponseEntity.ok(response);
+    }
 }
