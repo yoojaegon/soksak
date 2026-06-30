@@ -55,7 +55,11 @@ logs/
 *.log
 
 ### Claude Code ###
-.claude/settings.local.json
+.claude/
+!.claude/settings.json
+
+### graphify (code knowledge graph output) ###
+graphify-out/
 
 ### OS ###
 .DS_Store
