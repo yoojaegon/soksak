@@ -8,16 +8,22 @@ import com.soksak.soksak.lore.LoreService;
 import com.soksak.soksak.message.Message;
 import com.soksak.soksak.aiClient.dto.ChatAiRequest;
 import com.soksak.soksak.aiClient.dto.ChatAiResponse;
+import com.soksak.soksak.common.BusinessException;
+import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.userPersona.UserPersona;
 import com.soksak.soksak.userPersona.UserPersonaRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Supplier;
 
+@Slf4j
 @Component
 @Profile("!test")   // test 프로필에서는 StubChatAiClient가 대신 쓰임
 @RequiredArgsConstructor
@@ -61,12 +67,16 @@ public class ChatAiServerClient implements ChatAiClient{
                 config
         );
 
-        ChatAiResponse response = aiServerRestClient.post()
+        ChatAiResponse response = callAiServer(() -> aiServerRestClient.post()
                 .uri("/chat")
                 .body(request)
                 .retrieve()
-                .body(ChatAiResponse.class);
+                .body(ChatAiResponse.class));
 
+        if (response == null || response.answer() == null || response.answer().isBlank()) {
+            log.warn("AI 서버가 빈 응답을 반환함 (roomId={})", room.getId());
+            throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+        }
         return response.answer();
     }
 
@@ -74,13 +84,27 @@ public class ChatAiServerClient implements ChatAiClient{
     public String summarize(String existingSummary, List<Message> batch) {
         SummarizeRequest request = new SummarizeRequest(existingSummary, toTurns(batch));
 
-        SummarizeResponse response = aiServerRestClient.post()
+        SummarizeResponse response = callAiServer(() -> aiServerRestClient.post()
                 .uri("/summarize")
                 .body(request)
                 .retrieve()
-                .body(SummarizeResponse.class);
+                .body(SummarizeResponse.class));
 
+        if (response == null || response.summary() == null || response.summary().isBlank()) {
+            log.warn("AI 서버가 빈 요약을 반환함");
+            throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+        }
         return response.summary();
+    }
+
+    // AI 서버 호출 공통 래퍼: 다운/타임아웃/4xx/5xx(RestClientException)를 503으로 변환하고 원인은 로깅.
+    private <T> T callAiServer(Supplier<T> call) {
+        try {
+            return call.get();
+        } catch (RestClientException e) {
+            log.warn("AI 서버 호출 실패", e);
+            throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
+        }
     }
 
     // Message 목록 -> ai-server가 받는 {role, content} 턴 리스트로 변환
