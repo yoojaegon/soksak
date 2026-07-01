@@ -17,29 +17,14 @@ import java.util.List;
 public class MessageService {
     private final MessageRepository messageRepository;
     private final ChatRoomService chatRoomService;
+    private final ChatTxService chatTxService;
     private final ChatAiClient chatAiClient;
-    private static final int WINDOW = 20;
-    private static final int BATCH = 10;
 
-    @Transactional
+
     public MessageResponse sendMessage(String loginId, Long roomId, String content) {
-        ChatRoom chatRoom = chatRoomService.getOwnedChatRoom(loginId, roomId);
-        List<Message> priorHistory = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
-
-        messageRepository.save(Message.builder()
-                .chatRoom(chatRoom)
-                .role(MessageRole.USER)
-                .content(content)
-                .build());
-
-        String reply = chatAiClient.reply(chatRoom, content, priorHistory);
-
-        Message aiMessage = messageRepository.save(Message.builder()
-                .chatRoom(chatRoom)
-                .role(MessageRole.ASSISTANT)
-                .content(reply)
-                .build());
-        rollSummary(chatRoom,  messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId));
+        PreparedChat preparedChat = chatTxService.prepareAndSaveUser(loginId, roomId, content);
+        String reply = chatAiClient.reply(preparedChat.room(), content, preparedChat.priorHistory());
+        Message aiMessage = chatTxService.saveAssistant(roomId, reply);
         return MessageResponse.from(aiMessage);
     }
 
@@ -119,18 +104,5 @@ public class MessageService {
         messageRepository.deleteAll(messages.subList(idx, messages.size()));
     }
 
-    private void rollSummary(ChatRoom room, List<Message> all) {
-        Long upTo = room.getSummarizedUpToId() == null ? 0 : room.getSummarizedUpToId();
-        int summarizableEnd = all.size() - WINDOW;
-        if (summarizableEnd <= 0) return;
 
-        List<Message> batch = all.subList(0, summarizableEnd).stream()
-                .filter(m -> m.getId() > upTo)
-                .toList();
-
-        if (batch.size() < BATCH) return;
-
-        String newSummary = chatAiClient.summarize(room.getSummary(), batch);
-        room.applySummary(newSummary, batch.get(batch.size() - 1).getId());
-    }
 }

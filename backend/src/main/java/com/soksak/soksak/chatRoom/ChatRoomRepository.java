@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     // 나의 전체 채팅방 목록 조회
@@ -15,4 +16,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     @Query("select r.title from ChatRoom r where r.user.loginId = :loginId and r.character.id = :characterId")
     List<String> findTitlesByUserAndCharacter(@Param("loginId") String loginId,
                                               @Param("characterId") Long characterId);
+
+    @Query("select r from ChatRoom r join fetch r.character join fetch r.user where r.id = :id")
+    Optional<ChatRoom> findByWithDetails(@Param("id") Long id);
 }

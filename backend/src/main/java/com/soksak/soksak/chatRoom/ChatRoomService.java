@@ -101,4 +101,13 @@ public class ChatRoomService {
         }
         return chatRoom;
     }
+
+    public ChatRoom getOwnedChatRoomWithDetails(String loginId, Long chatRoomId) {
+        ChatRoom chatRoom = chatRoomRepository.findByWithDetails(chatRoomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHATROOM_NOT_FOUND));
+        if (!chatRoom.getUser().getLoginId().equals(loginId)) {
+            throw new BusinessException(ErrorCode.CHATROOM_FORBIDDEN);
+        }
+        return chatRoom;
+    }
 }
