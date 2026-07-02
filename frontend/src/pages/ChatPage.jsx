@@ -42,8 +42,14 @@ function MessageLine({ content }) {
   return <div className="line">{parts}</div>
 }
 
+// 방(roomId)이 바뀌면 통째로 새로 마운트해, 이전 방의 지연 응답이 새 방 화면을
+// 덮어쓰지 않도록 한다. 아래 ChatRoom이 실제 대화 화면.
 export default function ChatPage() {
   const { roomId } = useParams()
+  return <ChatRoom key={roomId} roomId={roomId} />
+}
+
+function ChatRoom({ roomId }) {
   const [character, setCharacter] = useState(null)
   const [messages, setMessages] = useState([])
   const [config, setConfig] = useState({ writingToggle: false, foldSpoilerToggle: false })
