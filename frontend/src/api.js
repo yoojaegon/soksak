@@ -72,13 +72,18 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
     body: body != null ? JSON.stringify(body) : undefined,
   })
 
-  // accessToken 만료 → refreshToken으로 한 번만 재발급 시도 후 재요청
-  if (res.status === 401 && auth && retry) {
-    const reissued = await tryReissue()
-    if (reissued) {
-      return request(path, { method, body, auth, retry: false })
+  // accessToken 만료(401) 처리
+  if (res.status === 401 && auth) {
+    // 아직 재시도 전이면 refreshToken으로 한 번 재발급 후 재요청.
+    if (retry) {
+      const reissued = await tryReissue()
+      if (reissued) {
+        return request(path, { method, body, auth, retry: false })
+      }
     }
-    // 재발급까지 실패 → 세션 만료. 토큰을 비우고 앱에 알려 로그인 화면으로 보낸다.
+    // 재발급 실패, 또는 재발급 후 재시도했는데도 여전히 401 → 세션 만료.
+    // (재시도 요청은 retry=false로 들어와 여기서 곧장 정리된다.)
+    // 토큰을 비우고 앱에 알려 로그인 화면으로 보낸다.
     clearTokens()
     window.dispatchEvent(new Event('soksak:unauthorized'))
     throw new ApiError(401, '로그인이 필요합니다.')
@@ -101,7 +106,22 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
   return text ? JSON.parse(text) : null
 }
 
-async function tryReissue() {
+// 진행 중인 재발급 프로미스(single-flight). 동시에 여러 401이 나도
+// 재발급은 한 번만 수행하고 나머지는 그 결과를 함께 기다린다.
+// (백엔드가 리프레시 토큰을 회전시킬 때, 겹친 재발급이 이미 소비된 토큰을
+//  제시해 실패 → 멀쩡한 세션이 로그아웃되는 것을 막는다.)
+let reissuePromise = null
+
+function tryReissue() {
+  if (!reissuePromise) {
+    reissuePromise = doReissue().finally(() => {
+      reissuePromise = null
+    })
+  }
+  return reissuePromise
+}
+
+async function doReissue() {
   const refreshToken = getRefreshToken()
   if (!refreshToken) return false
   try {
