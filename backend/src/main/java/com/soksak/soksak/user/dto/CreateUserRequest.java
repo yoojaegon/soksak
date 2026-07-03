@@ -23,6 +23,11 @@ public record CreateUserRequest(
         String nickname,
 
         @NotBlank(message = "비밀번호는 필수입니다.")
+        @Size(min = 8, max = 64, message = "비밀번호는 8~64자여야 합니다.")
+        @Pattern(
+                regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$",
+                message = "비밀번호는 영문과 숫자를 각각 하나 이상 포함해야 합니다."
+        )
         String password,
 
         @NotNull(message = "나이는 필수입니다.")
