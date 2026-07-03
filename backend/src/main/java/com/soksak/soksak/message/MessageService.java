@@ -1,20 +1,20 @@
 package com.soksak.soksak.message;
 
-import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.chatRoom.ChatRoomService;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.aiClient.ChatAiClient;
 import com.soksak.soksak.message.dto.MessageResponse;
+import com.soksak.soksak.message.dto.RegenTarget;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -23,22 +23,18 @@ public class MessageService {
     private final ChatRoomService chatRoomService;
     private final ChatTxService chatTxService;
     private final ChatAiClient chatAiClient;
-    private final Map<Long, Lock> roomLocks = new ConcurrentHashMap<>();
+    private static final int LOCK_STRIPES = 256;
+    private final Lock[] roomLocks = Stream.generate(ReentrantLock::new)
+            .limit(LOCK_STRIPES).toArray(Lock[]::new);
 
 
     public MessageResponse sendMessage(String loginId, Long roomId, String content) {
-        Lock lock = roomLocks.computeIfAbsent(roomId, k -> new ReentrantLock());
-        if (!lock.tryLock()){
-            throw new BusinessException(ErrorCode.ROOM_BUSY);
-        }
-        try {
+        return withRoomLock(roomId, () -> {
             PreparedChat preparedChat = chatTxService.prepareAndSaveUser(loginId, roomId, content);
             String reply = chatAiClient.reply(preparedChat.room(), content, preparedChat.priorHistory());
             Message aiMessage = chatTxService.saveAssistant(roomId, reply);
             return MessageResponse.from(aiMessage);
-        } finally {
-            lock.unlock();
-        }
+        });
     }
 
     @Transactional
@@ -63,36 +59,13 @@ public class MessageService {
     }
 
     // ai 응답 재생성
-    @Transactional
     public MessageResponse regenerate(String loginId, Long roomId) {
-        ChatRoom chatRoom = chatRoomService.getOwnedChatRoom(loginId, roomId);
-        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
-
-        if (messages.isEmpty()) {
-            throw new BusinessException(ErrorCode.MESSAGE_NOT_FOUND);
-        }
-        Message last = messages.get(messages.size() - 1);
-
-        Message lastUser;
-        List<Message> priorHistory;
-
-        if (last.getRole() == MessageRole.ASSISTANT) {
-            messageRepository.delete(last);
-            lastUser = messages.get(messages.size() - 2);
-            priorHistory = messages.subList(0, messages.size() - 2);
-        } else {
-            lastUser = last;
-            priorHistory = messages.subList(0, messages.size() - 1);
-        }
-
-        String reply = chatAiClient.reply(chatRoom, lastUser.getContent(), priorHistory);
-
-        Message aiMessages = messageRepository.save(Message.builder()
-                .chatRoom(chatRoom)
-                .role(MessageRole.ASSISTANT)
-                .content(reply)
-                .build());
-        return MessageResponse.from(aiMessages);
+        return withRoomLock(roomId, () -> {
+            RegenTarget t = chatTxService.prepareRegenerate(loginId, roomId);
+            String reply = chatAiClient.reply(t.room(), t.lastUserContent(), t.priorHistory());
+            Message ai = chatTxService.saveAssistant(roomId, reply);
+            return MessageResponse.from(ai);
+        });
     }
 
     @Transactional
@@ -117,5 +90,15 @@ public class MessageService {
         messageRepository.deleteAll(messages.subList(idx, messages.size()));
     }
 
-
+    private <T> T withRoomLock(Long roomId, Supplier<T> action) {
+        Lock lock = roomLocks[Math.floorMod(roomId, LOCK_STRIPES)];
+        if (!lock.tryLock()){
+            throw new BusinessException(ErrorCode.ROOM_BUSY);
+        }
+        try {
+            return action.get();
+        } finally {
+            lock.unlock();
+        }
+    }
 }

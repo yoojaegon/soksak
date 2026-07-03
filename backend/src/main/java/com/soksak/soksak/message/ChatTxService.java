@@ -6,6 +6,7 @@ import com.soksak.soksak.chatRoom.ChatRoomRepository;
 import com.soksak.soksak.chatRoom.ChatRoomService;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
+import com.soksak.soksak.message.dto.RegenTarget;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -56,6 +57,31 @@ public class ChatTxService {
         }
         return aiMessage;
     }
+
+    @Transactional
+    public RegenTarget prepareRegenerate(String loginId, Long roomId) {
+        ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(loginId, roomId);
+        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
+        if (messages.isEmpty()) {
+            throw new BusinessException(ErrorCode.MESSAGE_NOT_FOUND);
+        }
+
+        Message last = messages.get(messages.size() - 1);
+        Message lastUser;
+        List<Message> priorHistory;
+
+        if(last.getRole() == MessageRole.ASSISTANT) {
+            messageRepository.delete(last);
+            lastUser = messages.get(messages.size() - 2);
+            priorHistory = messages.subList(0, messages.size() - 2);
+        } else{
+            lastUser = last;
+            priorHistory = messages.subList(0, messages.size() - 1);
+        }
+        return new RegenTarget(room, lastUser.getContent(), List.copyOf(priorHistory));
+    }
+
+
 
     private void rollSummary(ChatRoom room, List<Message> all) {
         Long upTo = room.getSummarizedUpToId() == null ? 0 : room.getSummarizedUpToId();
