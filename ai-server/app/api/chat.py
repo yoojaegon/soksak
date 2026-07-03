@@ -1,4 +1,5 @@
 import hmac
+import logging
 import os
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -9,6 +10,8 @@ from pydantic import BaseModel
 from app.chains.chat import chat, chat_stream
 from app.memory.summarizer import ConversationSummarizer
 from app.prompts.config import PromptConfig
+
+logger = logging.getLogger(__name__)
 
 
 def verify_internal_secret(x_internal_auth: str = Header(default="")) -> None:
@@ -58,8 +61,9 @@ def chat_endpoint(request: ChatRequest, http_request: Request):
             user_persona=request.user_persona,
             char_name=request.char_name,
         )
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        logger.exception("chat 처리 실패")
+        raise HTTPException(status_code=500, detail="internal error")
     return {"answer": reply}
 
 
@@ -84,8 +88,9 @@ def chat_stream_endpoint(request: ChatRequest, http_request: Request):
                     yield f"data: {line}\n"
                 yield "\n"
             yield "data: [DONE]\n\n"
-        except Exception as exc:
-            yield f"event: error\ndata: {exc}\n\n"
+        except Exception:
+            logger.exception("chat stream 처리 실패")
+            yield "event: error\ndata: internal error\n\n"
 
     return StreamingResponse(event_source(), media_type="text/event-stream")
 
@@ -105,6 +110,7 @@ def summarize_endpoint(request: SummarizeRequest, http_request: Request):
             existing_summary=request.existing_summary,
             new_turns=turns,
         )
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        logger.exception("summarize 처리 실패")
+        raise HTTPException(status_code=500, detail="internal error")
     return {"summary": summary}

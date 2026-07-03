@@ -19,5 +19,8 @@ def setup_logging() -> None:
     file_handler.setFormatter(fmt)
 
     root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
+    root.setLevel(logging.INFO)
     root.addHandler(file_handler)
+
+    for noisy in ("openai", "httpx", "httpcore", "urllib3", "langchain"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
