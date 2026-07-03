@@ -3,8 +3,11 @@ package com.soksak.soksak.character;
 import com.soksak.soksak.character.dto.CharacterResponse;
 import com.soksak.soksak.character.dto.CreateCharacterRequest;
 import com.soksak.soksak.character.dto.UpdateCharacterRequest;
+import com.soksak.soksak.chatRoom.ChatRoomRepository;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
+import com.soksak.soksak.lore.LoreRepository;
+import com.soksak.soksak.message.MessageRepository;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,9 @@ import java.util.List;
 public class CharacterService {
     private final CharacterRepository characterRepository;
     private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
+    private final LoreRepository loreRepository;
+    private final ChatRoomRepository chatRoomRepository;
 
     @Transactional
     public ChatCharacter createCharacter(String loginId, CreateCharacterRequest request) {
@@ -65,6 +71,9 @@ public class CharacterService {
     @Transactional
     public void deleteCharacter(String loginId, Long id) {
         ChatCharacter character = getOwnedCharacter(loginId, id);
+        messageRepository.deleteByCharacterId(id);
+        chatRoomRepository.deleteByCharacterId(id);
+        loreRepository.deleteByCharacterId(id);
         characterRepository.delete(character);
     }
     private ChatCharacter getOwnedCharacter(String loginId, Long characterId) {

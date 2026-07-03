@@ -1,6 +1,7 @@
 package com.soksak.soksak.chatRoom;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,4 +20,8 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
 
     @Query("select r from ChatRoom r join fetch r.character join fetch r.user where r.id = :id")
     Optional<ChatRoom> findByWithDetails(@Param("id") Long id);
+
+    @Modifying
+    @Query("delete from ChatRoom r where r.character.id = :characterId")
+    int deleteByCharacterId(@Param("characterId") Long characterId);
 }
