@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
-
-// 성별 코드 ↔ 한글 라벨 (백엔드 Gender enum과 1:1)
-const GENDERS = [
-  { value: 'MALE', label: '남성' },
-  { value: 'FEMALE', label: '여성' },
-  { value: 'OTHER', label: '기타' },
-]
-const genderLabel = (g) => GENDERS.find((x) => x.value === g)?.label ?? g
+import { GENDERS, genderLabel } from '../constants.js'
 
 const EMPTY_FORM = { name: '', gender: 'MALE', age: '', persona: '' }
 

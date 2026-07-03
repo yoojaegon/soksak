@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { api } from '../api.js'
 
 // 메시지 시각을 HH:MM 타임코드로. createdAt이 없으면(임시 메시지) 빈 문자열.
@@ -67,6 +67,8 @@ function ChatRoom({ roomId }) {
   const [editingId, setEditingId] = useState(null) // 현재 수정 중인 메시지 id
   const [editText, setEditText] = useState('')
   const [error, setError] = useState('')
+  // 방 자체를 불러오지 못하면(삭제·잘못된 id) 빈 화면 대신 명확히 안내한다.
+  const [roomError, setRoomError] = useState('')
   const bottomRef = useRef(null)
 
   // 서버에서 대화 내역을 다시 받아와 상태를 맞춘다.
@@ -100,19 +102,22 @@ function ChatRoom({ roomId }) {
     api
       .getChatRoom(roomId)
       .then((room) => {
-        if (alive) {
-          writeConfig({
-            writingToggle: !!room.writingToggle,
-            foldSpoilerToggle: !!room.foldSpoilerToggle,
+        if (!alive) return
+        writeConfig({
+          writingToggle: !!room.writingToggle,
+          foldSpoilerToggle: !!room.foldSpoilerToggle,
+        })
+        // 캐릭터(헤더) 정보 실패는 대화를 막지 않도록 조용히 무시한다.
+        api
+          .getCharacter(room.characterId)
+          .then((c) => {
+            if (alive) setCharacter(c)
           })
-        }
-        return api.getCharacter(room.characterId)
+          .catch(() => {})
       })
-      .then((c) => {
-        if (alive) setCharacter(c)
-      })
-      .catch(() => {
-        // 헤더 정보 로딩 실패는 대화 자체를 막지 않도록 조용히 무시한다.
+      .catch((err) => {
+        // 방 자체를 못 불러오면(삭제·잘못된 id) 빈 화면 대신 안내를 띄운다.
+        if (alive) setRoomError(err.message || '대화방을 찾을 수 없어요.')
       })
     return () => {
       alive = false
@@ -220,6 +225,18 @@ function ChatRoom({ roomId }) {
     } finally {
       setActing(false)
     }
+  }
+
+  // 방을 불러오지 못했으면 빈 대화 화면 대신 명확한 안내를 보여준다.
+  if (roomError) {
+    return (
+      <div className="chat">
+        <div className="chat-main">
+          <p className="error">{roomError}</p>
+          <p className="muted"><Link to="/">← 홈으로 돌아가기</Link></p>
+        </div>
+      </div>
+    )
   }
 
   // 재생성 버튼은 "내 마지막 메시지" 아래에만 보이게 한다.

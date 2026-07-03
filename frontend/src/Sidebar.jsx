@@ -37,27 +37,33 @@ export default function Sidebar() {
     return () => document.removeEventListener('click', close)
   }, [menuId])
 
-  // 경로가 바뀔 때마다 목록을 다시 불러온다.
-  // (새 방을 만들고 /chat/:id 로 이동하면 목록에도 바로 반영된다.)
+  // 목록은 마운트 시 한 번, 그리고 방 생성 신호(soksak:rooms-changed)를 받을 때만
+  // 다시 불러온다. 이름변경·삭제는 아래에서 로컬 상태를 직접 갱신하므로 재요청이 필요 없다.
+  // (매 경로 변경마다 다시 부르지 않아 불필요한 요청을 줄인다.)
   useEffect(() => {
     let alive = true
-    api
-      .getChatRooms()
-      .then((data) => {
-        if (!alive) return
-        // 최신 대화가 위로 오도록 createdAt 내림차순 정렬
-        const sorted = [...(data ?? [])].sort((a, b) =>
-          (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
-        )
-        setRooms(sorted)
-      })
-      .catch(() => {
-        // 사이드바 로딩 실패는 본문 동작을 막지 않도록 조용히 무시한다.
-      })
+    const loadRooms = () => {
+      api
+        .getChatRooms()
+        .then((data) => {
+          if (!alive) return
+          // 최신 대화가 위로 오도록 createdAt 내림차순 정렬
+          const sorted = [...(data ?? [])].sort((a, b) =>
+            (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+          )
+          setRooms(sorted)
+        })
+        .catch(() => {
+          // 사이드바 로딩 실패는 본문 동작을 막지 않도록 조용히 무시한다.
+        })
+    }
+    loadRooms()
+    window.addEventListener('soksak:rooms-changed', loadRooms)
     return () => {
       alive = false
+      window.removeEventListener('soksak:rooms-changed', loadRooms)
     }
-  }, [location.pathname])
+  }, [])
 
   const onLogout = async () => {
     await logout()
@@ -76,6 +82,8 @@ export default function Sidebar() {
     setRenameValue('')
   }
   const submitRename = async (room) => {
+    // 이미 저장 요청이 진행 중이면(입력이 disabled되며 blur가 다시 호출) 중복 PATCH를 막는다.
+    if (busyId === room.id) return
     const title = renameValue.trim()
     // 비었거나 그대로면 저장하지 않고 닫는다.
     if (!title || title === room.title) {

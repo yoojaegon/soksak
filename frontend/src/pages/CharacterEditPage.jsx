@@ -11,15 +11,19 @@ export default function CharacterEditPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState('basic')
   const [character, setCharacter] = useState(null)
+  // 내 캐릭터가 아닌 경우 편집 폼 대신 안내를 보여준다(표시/UX용, 저장은 서버가 소유자만 허용).
+  const [notOwned, setNotOwned] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     let alive = true
-    api
-      .getCharacter(id)
-      .then((c) => {
-        if (alive) setCharacter(c)
+    // 캐릭터 정보와 함께 '내 캐릭터' 목록을 받아, 이 캐릭터가 내 것인지 확인한다.
+    Promise.all([api.getCharacter(id), api.getMyCharacters()])
+      .then(([c, mine]) => {
+        if (!alive) return
+        setCharacter(c)
+        setNotOwned(!(mine ?? []).some((m) => String(m.id) === String(id)))
       })
       .catch((err) => {
         if (alive) setError(err.message || '캐릭터를 불러오지 못했습니다.')
@@ -35,6 +39,14 @@ export default function CharacterEditPage() {
   if (loading) return <p className="muted">불러오는 중…</p>
   if (error) return <p className="error">{error}</p>
   if (!character) return null
+  if (notOwned) {
+    return (
+      <div>
+        <Link to="/my-characters" className="back-link">← 내 캐릭터</Link>
+        <p className="error">내 캐릭터가 아니에요. 수정할 수 없습니다.</p>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -62,6 +74,7 @@ export default function CharacterEditPage() {
 
       {tab === 'basic' ? (
         <CharacterForm
+          key={id}
           initial={{
             name: character.characterName,
             description: character.description ?? '',

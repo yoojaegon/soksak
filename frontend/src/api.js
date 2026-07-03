@@ -62,7 +62,8 @@ export class ApiError extends Error {
 async function request(path, { method = 'GET', body, auth = true, retry = true } = {}) {
   const headers = { 'Content-Type': 'application/json' }
   if (auth) {
-    const token = getAccessToken()
+    // 만료된 토큰은 붙이지 않는다. 없으면 아래 401 흐름에서 refresh로 재발급한다.
+    const token = getValidAccessToken()
     if (token) headers.Authorization = `Bearer ${token}`
   }
 
@@ -178,7 +179,12 @@ export const api = {
   deleteUserPersona: (id) => request(`/user-personas/${id}`, { method: 'DELETE' }),
 
   // 채팅방
-  createChatRoom: (characterId) => request('/chatrooms', { method: 'POST', body: { characterId } }),
+  createChatRoom: async (characterId) => {
+    const room = await request('/chatrooms', { method: 'POST', body: { characterId } })
+    // 사이드바 목록이 새 방을 바로 반영하도록 알린다.
+    window.dispatchEvent(new Event('soksak:rooms-changed'))
+    return room
+  },
   getChatRooms: () => request('/chatrooms'),
   getChatRoom: (id) => request(`/chatrooms/${id}`),
   // 채팅방 이름 변경

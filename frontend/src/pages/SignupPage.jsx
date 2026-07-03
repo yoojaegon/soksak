@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
-
-// 성별 코드 ↔ 한글 라벨 (백엔드 Gender enum과 1:1)
-const GENDERS = [
-  { value: 'MALE', label: '남성' },
-  { value: 'FEMALE', label: '여성' },
-  { value: 'OTHER', label: '기타' },
-]
+import { GENDERS } from '../constants.js'
 
 export default function SignupPage() {
   const navigate = useNavigate()
