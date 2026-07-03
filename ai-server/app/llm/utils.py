@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 
@@ -56,36 +55,4 @@ def response_to_text(response: Any) -> str:
                 if raw_output_text:
                     return raw_output_text
 
-    return content_to_text(getattr(response, "content", None)) or ""
-
-
-def safe_json_parse(raw: str) -> dict[str, Any] | list | None:
-    if not raw:
-        return None
-    try:
-        return json.loads(raw)
-    except Exception:
-        pass
-
-    start_obj = raw.find("{")
-    start_arr = raw.find("[")
-    if start_obj == -1 and start_arr == -1:
-        return None
-
-    if start_obj == -1:
-        start = start_arr
-    elif start_arr == -1:
-        start = start_obj
-    else:
-        start = min(start_obj, start_arr)
-
-    end_char = "}" if raw[start] == "{" else "]"
-    end = raw.rfind(end_char)
-    if end == -1 or end <= start:
-        return None
-
-    snippet = raw[start : end + 1]
-    try:
-        return json.loads(snippet)
-    except Exception:
-        return None
+    return text or ""
