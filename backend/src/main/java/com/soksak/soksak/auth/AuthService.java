@@ -37,11 +37,12 @@ public class AuthService {
         LocalDateTime expiresAt = LocalDateTime.now()
                 .plus(Duration.ofMillis(jwtProperties.getRefreshTokenExpiration()));
 
-        refreshTokenRepository.save(RefreshToken.builder()
-                .user(user)
-                .refreshToken(refreshToken)
-                .expiresAt(expiresAt)
-                .build());
+        refreshTokenRepository.findByUserId(user.getId())
+                        .ifPresentOrElse(
+                                rt -> rt.rotate(refreshToken, expiresAt),
+                                () -> refreshTokenRepository.save(RefreshToken.builder()
+                                        .user(user).refreshToken(refreshToken).expiresAt(expiresAt).build())
+                        );
 
         return new TokenResponse(accessToken, refreshToken);
     }

@@ -17,6 +17,7 @@ import javax.crypto.SecretKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,9 @@ public class JwtTokenProvider {
     private final JwtProperties jwtProperties;
     private SecretKey key;
     public static final String AUTHORITIES_KEY = "auth"; //
+    public static final String TOKEN_TYPE_KEY = "type";
+    public static final String TYPE_ACCESS = "access";
+    public static final String TYPE_REFRESH = "refresh";
 
     //
     @PostConstruct
@@ -34,7 +38,7 @@ public class JwtTokenProvider {
     }
 
     // accessToken 생성
-    public String generateToken(Authentication authentication, Long validTime) {
+    public String generateToken(Authentication authentication, Long validTime, String type) {
         // 권한 목록을 문자열로
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
@@ -45,6 +49,7 @@ public class JwtTokenProvider {
 
         return Jwts.builder()
                 .subject(authentication.getName())
+                .claim(TOKEN_TYPE_KEY, type)
                 .claim(AUTHORITIES_KEY, authorities )
                 .issuer(jwtProperties.getIssuer())
                 .issuedAt(now)
@@ -54,33 +59,25 @@ public class JwtTokenProvider {
                 .compact();
     }
     public String generateAccessToken(Authentication authentication) {
-        return generateToken(authentication, jwtProperties.getAccessTokenExpiration());
+        return generateToken(authentication, jwtProperties.getAccessTokenExpiration(), TYPE_ACCESS);
     }
 
     public String generateRefreshToken(Authentication authentication) {
-        return generateToken(authentication, jwtProperties.getRefreshTokenExpiration());
+        return generateToken(authentication, jwtProperties.getRefreshTokenExpiration(), TYPE_REFRESH);
     }
 
-    public boolean validToken(String token) {
+    // 서명·만료·형식까지 검증하고 Claims를 돌려준다. 실패하면 empty.
+    // (검증과 파싱을 한 번에 처리해 요청당 토큰 재파싱을 없앤다.)
+    public Optional<Claims> parse(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(key) // 비밀키로 서명 검증
-                    .build()
-                    .parseSignedClaims(token); // 서명 만료 형식 검사
-            return true;
+            return Optional.of(parseClaims(token));
         } catch (JwtException | IllegalArgumentException e) {
-            return false; // 만료 위조 형식 오류
+            return Optional.empty(); // 만료 위조 형식 오류
         }
     }
 
-    public Authentication getAuthentication(String token) {
-        // 토큰에서 clamis 꺼내기
-        Claims claims = Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
+    // 검증한 Claims에서 인증 정보를 복원한다.
+    public Authentication getAuthentication(Claims claims) {
         // "auth" claim을 다시 권한 목록으로 복원
         Collection<? extends GrantedAuthority> authorities =
                 Arrays.stream(claims.get(AUTHORITIES_KEY, String.class).split(","))
@@ -88,5 +85,18 @@ public class JwtTokenProvider {
                 .toList();
 
         return new UsernamePasswordAuthenticationToken(claims.getSubject(), "", authorities);
+    }
+
+    public String getTokenType(Claims claims) {
+        return claims.get(TOKEN_TYPE_KEY, String.class);
+    }
+
+    // 토큰에서 claims 꺼내기 (서명 검증 포함, 실패 시 예외)
+    private Claims parseClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

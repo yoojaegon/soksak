@@ -5,7 +5,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -28,9 +27,12 @@ public class JwtFilter extends OncePerRequestFilter {
             token = header.substring(TOKEN_PREFIX.length());   // "Bearer " 뒤만
         }
 
-        if (token != null && jwtTokenProvider.validToken(token)) {
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (token != null) {
+            // 서명 검증+파싱을 한 번만 하고, 그 Claims로 타입 확인·인증 복원까지 재사용한다.
+            jwtTokenProvider.parse(token)
+                    .filter(claims -> JwtTokenProvider.TYPE_ACCESS.equals(jwtTokenProvider.getTokenType(claims)))
+                    .ifPresent(claims -> SecurityContextHolder.getContext()
+                            .setAuthentication(jwtTokenProvider.getAuthentication(claims)));
         }
 
         filterChain.doFilter(request, response);
