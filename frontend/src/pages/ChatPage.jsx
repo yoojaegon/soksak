@@ -53,6 +53,12 @@ function ChatRoom({ roomId }) {
   const [character, setCharacter] = useState(null)
   const [messages, setMessages] = useState([])
   const [config, setConfig] = useState({ writingToggle: false, foldSpoilerToggle: false })
+  // config를 바꿀 땐 ref도 함께 맞춰, 빠른 연속 토글에서도 최신값을 동기적으로 읽는다.
+  const configRef = useRef(config)
+  const writeConfig = (next) => {
+    configRef.current = next
+    setConfig(next)
+  }
   const [showSettings, setShowSettings] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
@@ -95,7 +101,7 @@ function ChatRoom({ roomId }) {
       .getChatRoom(roomId)
       .then((room) => {
         if (alive) {
-          setConfig({
+          writeConfig({
             writingToggle: !!room.writingToggle,
             foldSpoilerToggle: !!room.foldSpoilerToggle,
           })
@@ -120,12 +126,14 @@ function ChatRoom({ roomId }) {
 
   // 설정 토글 변경: 화면을 먼저 바꾸고(낙관적) 서버에 반영, 실패하면 되돌린다.
   const toggleConfig = async (key) => {
-    const next = { ...config, [key]: !config[key] }
-    setConfig(next)
+    const prev = configRef.current[key] // 요청 전 값을 저장해 두었다가 실패 시 그대로 복원
+    const next = { ...configRef.current, [key]: !prev }
+    writeConfig(next)
     try {
       await api.updateConfig(roomId, next)
     } catch (err) {
-      setConfig(config) // 롤백
+      // 실패한 토글만 요청 전 값으로 되돌린다(그새 바뀐 다른 토글의 최신값은 보존)
+      writeConfig({ ...configRef.current, [key]: prev })
       setError(err.message)
     }
   }
@@ -149,6 +157,9 @@ function ChatRoom({ roomId }) {
       // 임시 메시지를 실제 저장본(id 포함)으로 교체 → 재생성/삭제가 바로 동작
       await reload()
     } catch (err) {
+      // 저장 실패 → 낙관적으로 넣었던 임시 USER 버블을 제거하고 입력값을 되돌린다(유령 메시지 방지).
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempUser.id))
+      setInput(content)
       setError(err.message)
     } finally {
       setSending(false)

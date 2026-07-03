@@ -11,5 +11,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findByChatRoomIdOrderByCreatedAtAscIdAsc(Long chatRoomId);
 
     @Modifying
-    @Query("delete from ChatRoom r where r.character.id = :characterId")
-    int deleteByCharacterId(@Param("characterId") Long characterId);}
+    @Query("delete from Message m where m.chatRoom.character.id = :characterId")
+    int deleteByCharacterId(@Param("characterId") Long characterId);
+}
