@@ -1,10 +1,13 @@
 package com.soksak.soksak.lore.dto;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+
 public record UpdateLoreRequest(
-        String title,
+        @NotBlank String title,
         String keys,
-        String content,
+        @NotBlank String content,
         boolean alwaysOn,
-        int priority
+        @Min(1) int priority
 ) {
 }
