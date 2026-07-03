@@ -11,6 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @RequiredArgsConstructor
@@ -19,13 +23,22 @@ public class MessageService {
     private final ChatRoomService chatRoomService;
     private final ChatTxService chatTxService;
     private final ChatAiClient chatAiClient;
+    private final Map<Long, Lock> roomLocks = new ConcurrentHashMap<>();
 
 
     public MessageResponse sendMessage(String loginId, Long roomId, String content) {
-        PreparedChat preparedChat = chatTxService.prepareAndSaveUser(loginId, roomId, content);
-        String reply = chatAiClient.reply(preparedChat.room(), content, preparedChat.priorHistory());
-        Message aiMessage = chatTxService.saveAssistant(roomId, reply);
-        return MessageResponse.from(aiMessage);
+        Lock lock = roomLocks.computeIfAbsent(roomId, k -> new ReentrantLock());
+        if (!lock.tryLock()){
+            throw new BusinessException(ErrorCode.ROOM_BUSY);
+        }
+        try {
+            PreparedChat preparedChat = chatTxService.prepareAndSaveUser(loginId, roomId, content);
+            String reply = chatAiClient.reply(preparedChat.room(), content, preparedChat.priorHistory());
+            Message aiMessage = chatTxService.saveAssistant(roomId, reply);
+            return MessageResponse.from(aiMessage);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Transactional
