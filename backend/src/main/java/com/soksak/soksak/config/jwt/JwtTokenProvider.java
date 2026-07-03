@@ -17,6 +17,7 @@ import javax.crypto.SecretKey;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -79,10 +80,14 @@ public class JwtTokenProvider {
     // 검증한 Claims에서 인증 정보를 복원한다.
     public Authentication getAuthentication(Claims claims) {
         // "auth" claim을 다시 권한 목록으로 복원
+        // auth claim이 없으면 NPE(500) 대신 권한 없는 인증으로 처리한다.
+        String authoritiesClaim = claims.get(AUTHORITIES_KEY, String.class);
         Collection<? extends GrantedAuthority> authorities =
-                Arrays.stream(claims.get(AUTHORITIES_KEY, String.class).split(","))
-                .map(SimpleGrantedAuthority::new)
-                .toList();
+                (authoritiesClaim == null || authoritiesClaim.isBlank())
+                        ? List.of()
+                        : Arrays.stream(authoritiesClaim.split(","))
+                        .map(SimpleGrantedAuthority::new)
+                        .toList();
 
         return new UsernamePasswordAuthenticationToken(claims.getSubject(), "", authorities);
     }
@@ -95,6 +100,8 @@ public class JwtTokenProvider {
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(key)
+                // 발급 시 넣은 issuer와 일치하지 않으면 거부
+                .requireIssuer(jwtProperties.getIssuer())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

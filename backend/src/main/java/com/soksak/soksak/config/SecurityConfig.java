@@ -23,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
     // 비밀번호 해싱, 검증용
     @Bean
@@ -51,6 +52,9 @@ public class SecurityConfig {
             .headers(header -> header
                     .frameOptions(frame -> frame.sameOrigin())
             )
+
+            // 미인증 요청은 기본 403 대신 앱 공통 형태의 401 JSON으로 응답
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
 
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/", "/index.html", "/signup", "/auth/**", "/error").permitAll()

@@ -76,7 +76,7 @@ public class CharacterService {
         loreRepository.deleteByCharacterId(id);
         characterRepository.delete(character);
     }
-    private ChatCharacter getOwnedCharacter(String loginId, Long characterId) {
+    public ChatCharacter getOwnedCharacter(String loginId, Long characterId) {
         ChatCharacter character = characterRepository.findById(characterId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
         if (!character.getUser().getLoginId().equals(loginId)) {

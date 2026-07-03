@@ -1,6 +1,6 @@
 package com.soksak.soksak.lore;
 
-import com.soksak.soksak.character.CharacterRepository;
+import com.soksak.soksak.character.CharacterService;
 import com.soksak.soksak.character.ChatCharacter;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
@@ -19,12 +19,12 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class LoreService {
     private final LoreRepository loreRepository;
-    private final CharacterRepository characterRepository;
+    private final CharacterService characterService;
 
     /** 본인 캐릭터에 로어 엔트리를 추가한다. */
     @Transactional
     public LoreResponse createLore(String loginId, Long characterId, CreateLoreRequest request) {
-        ChatCharacter character = getOwnedCharacter(loginId, characterId);
+        ChatCharacter character = characterService.getOwnedCharacter(loginId, characterId);
         Lore lore = Lore.builder()
                 .character(character)
                 .title(request.title())
@@ -39,7 +39,7 @@ public class LoreService {
     // 로어북 목록을 불러온다.
     @Transactional(readOnly = true)
     public List<LoreResponse> getLoreList(String loginId, Long characterId) {
-        getOwnedCharacter(loginId, characterId);
+        characterService.getOwnedCharacter(loginId, characterId);
         return loreRepository.findByCharacter_IdOrderById(characterId).stream()
                 .map(LoreResponse::from)
                 .toList();
@@ -73,19 +73,9 @@ public class LoreService {
         loreRepository.delete(lore);
     }
 
-    /** 캐릭터가 존재하고 로그인한 본인 소유인지 검증 후 반환한다. */
-    private ChatCharacter getOwnedCharacter(String loginId, Long characterId) {
-        ChatCharacter character = characterRepository.findById(characterId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
-        if (!character.getUser().getLoginId().equals(loginId)) {
-            throw new BusinessException(ErrorCode.CHARACTER_FORBIDDEN);
-        }
-        return character;
-    }
-
     /** 본인 캐릭터 소유를 검증하고, 그 캐릭터에 속한 로어를 찾아 반환한다. */
     private Lore getOwnedLore(String loginId, Long characterId, Long id) {
-        getOwnedCharacter(loginId, characterId);
+        characterService.getOwnedCharacter(loginId, characterId);
         Lore lore = loreRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.LORE_NOT_FOUND));
         if (!lore.getCharacter().getId().equals(characterId)) {

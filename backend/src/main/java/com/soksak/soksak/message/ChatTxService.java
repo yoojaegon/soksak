@@ -71,8 +71,15 @@ public class ChatTxService {
         List<Message> priorHistory;
 
         if(last.getRole() == MessageRole.ASSISTANT) {
-            messageRepository.delete(last);
+            // 직전 메시지가 USER라는 전제를 방어적으로 검증 (언더플로/역할 불일치 시 예외)
+            if (messages.size() < 2) {
+                throw new BusinessException(ErrorCode.MESSAGE_NOT_FOUND);
+            }
             lastUser = messages.get(messages.size() - 2);
+            if (lastUser.getRole() != MessageRole.USER) {
+                throw new BusinessException(ErrorCode.MESSAGE_NOT_FOUND);
+            }
+            messageRepository.delete(last);
             priorHistory = messages.subList(0, messages.size() - 2);
         } else{
             lastUser = last;
