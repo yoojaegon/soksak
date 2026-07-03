@@ -9,6 +9,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.sql.SQLException;
+
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
@@ -37,11 +39,21 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicate(
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(
             DataIntegrityViolationException e,
             HttpServletRequest request
     ) {
-        return build(ErrorCode.DUPLICATE_VALUE, request);
+        String sqlState = extractSqlState(e);
+        ErrorCode code = switch (sqlState == null ? "" : sqlState) {
+            case "23505" -> ErrorCode.DUPLICATE_VALUE;
+            case "23502" -> ErrorCode.INVALID_INPUT;
+            case "23503" -> ErrorCode.DATA_CONSTRAINT_VIOLATION;
+            default -> {
+                log.warn("분류되지 않은 무결성 위반 sqlState={}", sqlState, e);
+                yield ErrorCode.DUPLICATE_VALUE;
+            }
+        };
+        return build(code, request);
     }
 
     @ExceptionHandler(Exception.class)
@@ -51,6 +63,17 @@ public class GlobalExceptionHandler {
     ) {
         log.error("예상치 못한 에러 발생", e);
         return build(ErrorCode.INTERNAL_ERROR, request);
+    }
+
+    private String extractSqlState(Throwable e) {
+        Throwable t = e;
+        while (t != null) {
+            if (t instanceof SQLException sqlException) {
+                return sqlException.getSQLState();
+            }
+            t = t.getCause();
+        }
+        return null;
     }
 
     private ResponseEntity<ErrorResponse> build(ErrorCode errorCode, HttpServletRequest request) {
