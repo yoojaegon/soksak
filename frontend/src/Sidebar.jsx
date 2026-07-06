@@ -42,7 +42,7 @@ export default function Sidebar() {
   // (매 경로 변경마다 다시 부르지 않아 불필요한 요청을 줄인다.)
   useEffect(() => {
     let alive = true
-    const loadRooms = () => {
+    const loadRooms = (retry = true) => {
       api
         .getChatRooms()
         .then((data) => {
@@ -54,14 +54,18 @@ export default function Sidebar() {
           setRooms(sorted)
         })
         .catch(() => {
-          // 사이드바 로딩 실패는 본문 동작을 막지 않도록 조용히 무시한다.
+          // 재요청 트리거가 마운트·방생성뿐이라, 일시적 실패로 목록이 빈 채 고착되지 않도록
+          // 한 번은 잠시 뒤 재시도한다. 그래도 실패하면 조용히 둔다(본문 동작은 막지 않음).
+          if (alive && retry) setTimeout(() => loadRooms(false), 1500)
         })
     }
+    // 이벤트 리스너는 Event 객체를 인자로 넘기므로 retry로 새지 않게 래핑한다.
+    const reload = () => loadRooms()
     loadRooms()
-    window.addEventListener('soksak:rooms-changed', loadRooms)
+    window.addEventListener('soksak:rooms-changed', reload)
     return () => {
       alive = false
-      window.removeEventListener('soksak:rooms-changed', loadRooms)
+      window.removeEventListener('soksak:rooms-changed', reload)
     }
   }, [])
 

@@ -55,4 +55,4 @@ def response_to_text(response: Any) -> str:
                 if raw_output_text:
                     return raw_output_text
 
-    return text or ""
+    return ""
