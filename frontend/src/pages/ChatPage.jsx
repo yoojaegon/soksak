@@ -151,39 +151,75 @@ function ChatRoom({ roomId }) {
     setSending(true)
     setError('')
 
-    // 내 메시지는 서버 응답을 기다리지 않고 바로 화면에 표시한다(낙관적 업데이트).
-    const tempUser = { id: `temp-${Date.now()}`, role: 'USER', content }
-    setMessages((prev) => [...prev, tempUser])
+    // 내 메시지와 빈 AI 버블을 먼저 화면에 올린다(낙관적). AI 버블엔 토큰이 도착하는 대로 이어붙인다.
+    const now = Date.now()
+    const tempUser = { id: `temp-${now}`, role: 'USER', content }
+    const aiId = `temp-ai-${now}`
+    setMessages((prev) => [...prev, tempUser, { id: aiId, role: 'ASSISTANT', content: '' }])
     setInput('')
 
-    try {
-      // 서버는 USER 메시지를 저장하고 AI(ASSISTANT) 응답만 돌려준다.
-      await api.sendMessage(roomId, content)
-      // 임시 메시지를 실제 저장본(id 포함)으로 교체 → 재생성/삭제가 바로 동작
-      await reload()
-    } catch (err) {
-      // 저장 실패 → 낙관적으로 넣었던 임시 USER 버블을 제거하고 입력값을 되돌린다(유령 메시지 방지).
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempUser.id))
+    let failed = null
+    await api.sendMessageStream(roomId, content, {
+      // 토큰 도착 → 해당 AI 버블에 이어붙인다.
+      onToken: (t) =>
+        setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: m.content + t } : m))),
+      onDone: () => {},
+      onError: (err) => {
+        failed = err
+      },
+    })
+
+    if (failed) {
+      // 실패/중단 → 낙관적으로 넣었던 임시 버블들을 제거하고 입력값을 되돌린다(유령 메시지 방지).
+      setMessages((prev) => prev.filter((m) => m.id !== tempUser.id && m.id !== aiId))
       setInput(content)
-      setError(err.message)
-    } finally {
-      setSending(false)
+      setError(failed.message)
+    } else {
+      // 임시 버블들을 실제 저장본(id·시각 포함)으로 교체 → 재생성/수정/삭제가 바로 동작.
+      // reload가 실패해도(토큰 만료·네트워크 순단) 화면은 스트리밍으로 이미 채워져 있으니,
+      // 에러만 표시하고 sending이 true로 멈춰버리는 상황은 피한다.
+      try {
+        await reload()
+      } catch (err) {
+        setError(err.message)
+      }
     }
+    setSending(false)
   }
 
-  // 마지막 AI 응답을 다시 생성
+  // 마지막 AI 응답을 다시 생성(스트리밍)
   const onRegenerate = async () => {
     if (acting || sending) return
     setActing(true)
     setError('')
+
+    // 마지막 AI 버블을 화면에서 비우고, 그 자리에 새 응답을 스트리밍한다.
+    const aiId = `temp-ai-${Date.now()}`
+    setMessages((prev) => {
+      const base = prev[prev.length - 1]?.role === 'ASSISTANT' ? prev.slice(0, -1) : prev
+      return [...base, { id: aiId, role: 'ASSISTANT', content: '' }]
+    })
+
+    let failed = null
+    await api.regenerateStream(roomId, {
+      onToken: (t) =>
+        setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: m.content + t } : m))),
+      onDone: () => {},
+      onError: (err) => {
+        failed = err
+      },
+    })
+
+    // 성공이든 실패든 서버 상태로 동기화(재생성은 서버에서 이전 답을 이미 지웠을 수 있음).
+    // reload가 실패해도 acting이 true로 멈추지 않도록 감싼다. 표시할 스트림 에러가 없으면
+    // reload 에러라도 보여준다.
     try {
-      await api.regenerate(roomId)
       await reload()
     } catch (err) {
-      setError(err.message)
-    } finally {
-      setActing(false)
+      if (!failed) failed = err
     }
+    if (failed) setError(failed.message)
+    setActing(false)
   }
 
   // 메시지 수정 시작 / 저장 / 취소
@@ -328,7 +364,16 @@ function ChatRoom({ roomId }) {
                   <span className="name">{who}</span>
                   {timecode(m.createdAt) && <span className="tc">{timecode(m.createdAt)}</span>}
                 </div>
-                <MessageLine content={m.content} />
+                {isTemp && m.role === 'ASSISTANT' && m.content === '' ? (
+                  // 아직 첫 토큰이 안 온 스트리밍 버블 → 타이핑 점 표시
+                  <div className="typing" aria-label="응답 생성 중">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                ) : (
+                  <MessageLine content={m.content} />
+                )}
                 {!isTemp && (
                   <div className="msg-actions">
                     {showRegenerate && (
@@ -347,18 +392,6 @@ function ChatRoom({ roomId }) {
               </div>
             )
           })
-        )}
-        {sending && (
-          <div className="turn them">
-            <div className="who">
-              <span className="name">{character?.characterName ?? '캐릭터'}</span>
-            </div>
-            <div className="typing" aria-label="응답 생성 중">
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
         )}
         <div ref={bottomRef} />
       </div>

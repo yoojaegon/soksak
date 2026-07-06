@@ -107,6 +107,85 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
   return text ? JSON.parse(text) : null
 }
 
+// SSE(text/event-stream) 응답을 fetch로 직접 소비한다.
+// EventSource는 Authorization 헤더를 못 붙여서, 기존 Bearer/401-재발급 흐름을 유지하려고 fetch를 쓴다.
+// 백엔드 이벤트 계약: token({content}), done(MessageResponse), error({code, message}).
+async function streamRequest(path, { body } = {}, { onToken, onDone, onError } = {}, retry = true) {
+  const headers = { 'Content-Type': 'application/json', Accept: 'text/event-stream' }
+  const token = getValidAccessToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  let res
+  try {
+    res = await fetch(path, {
+      method: 'POST',
+      headers,
+      body: body != null ? JSON.stringify(body) : undefined,
+    })
+  } catch (err) {
+    onError?.(new ApiError(0, '연결에 실패했습니다.'))
+    return
+  }
+
+  // accessToken 만료(401) → 한 번 재발급 후 재시도.
+  if (res.status === 401) {
+    if (retry && (await tryReissue())) {
+      return streamRequest(path, { body }, { onToken, onDone, onError }, false)
+    }
+    clearTokens()
+    window.dispatchEvent(new Event('soksak:unauthorized'))
+    onError?.(new ApiError(401, '로그인이 필요합니다.'))
+    return
+  }
+
+  if (!res.ok || !res.body) {
+    onError?.(new ApiError(res.status, `요청에 실패했습니다 (${res.status})`))
+    return
+  }
+
+  // SSE 파싱: 스트림을 읽어 '\n\n'(이벤트 경계)으로 끊고, event/data 필드를 뽑는다.
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buf = ''
+  try {
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buf += decoder.decode(value, { stream: true })
+
+      let sep
+      while ((sep = buf.indexOf('\n\n')) !== -1) {
+        const raw = buf.slice(0, sep)
+        buf = buf.slice(sep + 2)
+
+        let event = 'message'
+        const dataLines = []
+        for (const line of raw.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim()
+          else if (line.startsWith('data:')) dataLines.push(line.slice(5).replace(/^ /, ''))
+        }
+        if (dataLines.length === 0) continue
+
+        // data는 백엔드가 JSON으로 실어보낸다(개행 안전).
+        let payload
+        try {
+          payload = JSON.parse(dataLines.join('\n'))
+        } catch {
+          continue
+        }
+
+        if (event === 'token') onToken?.(payload.content ?? '')
+        else if (event === 'done') { onDone?.(payload); return }
+        else if (event === 'error') { onError?.(new ApiError(0, payload.message || 'AI 응답 실패')); return }
+      }
+    }
+    // done 이벤트 없이 스트림이 끝남(중단) → 에러로 처리.
+    onError?.(new ApiError(0, 'AI 응답이 중단되었습니다.'))
+  } catch (err) {
+    onError?.(new ApiError(0, 'AI 응답이 중단되었습니다.'))
+  }
+}
+
 // 진행 중인 재발급 프로미스(single-flight). 동시에 여러 401이 나도
 // 재발급은 한 번만 수행하고 나머지는 그 결과를 함께 기다린다.
 // (백엔드가 리프레시 토큰을 회전시킬 때, 겹친 재발급이 이미 소비된 토큰을
@@ -202,6 +281,12 @@ export const api = {
   getMessages: (roomId) => request(`/chatrooms/${roomId}/messages`),
   sendMessage: (roomId, content) =>
     request(`/chatrooms/${roomId}/messages`, { method: 'POST', body: { content } }),
+  // 메시지 전송 → AI 응답을 토큰 단위로 스트리밍(SSE)으로 받는다.
+  sendMessageStream: (roomId, content, handlers) =>
+    streamRequest(`/chatrooms/${roomId}/messages/stream`, { body: { content } }, handlers),
+  // 마지막 AI 응답을 스트리밍으로 다시 생성
+  regenerateStream: (roomId, handlers) =>
+    streamRequest(`/chatrooms/${roomId}/messages/regenerate/stream`, {}, handlers),
   // 메시지 내용 수정
   updateMessage: (roomId, messageId, content) =>
     request(`/chatrooms/${roomId}/messages/${messageId}`, { method: 'PUT', body: { content } }),

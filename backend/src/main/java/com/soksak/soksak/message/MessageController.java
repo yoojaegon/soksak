@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -65,5 +66,15 @@ public class MessageController {
     ) {
         messageService.deleteFrom(authentication.getName(), roomId, messageId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/stream")
+    public SseEmitter sendStream(Authentication authentication, @PathVariable Long roomId, @Valid @RequestBody MessageRequest request) {
+        return messageService.sendMessageStream(authentication.getName(), roomId, request.content());
+    }
+
+    @PostMapping("/regenerate/stream")
+    public SseEmitter regenerateStream(Authentication authentication, @PathVariable Long roomId) {
+        return messageService.regenerateStream(authentication.getName(), roomId);
     }
 }
