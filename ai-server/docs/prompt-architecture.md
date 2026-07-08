@@ -207,6 +207,3 @@ ChatRequest(config, user_name, user_persona, char_name)
 ## 9. 미결 / 추후
 
 - 안전·수위 정책 문구 (정책 확정 후 `<rules>` 또는 별도 섹션에 추가).
-- config 저장 위치 — 채팅방 단위 vs 캐릭터 단위 (백엔드 작업, ai-server 무관).
-- **스포일러 마크업 형식 확정** — `<spoiler>...</spoiler>` vs `||...||` 등. 프론트 접이식
-  렌더러와 한 쌍으로 정해야 함(프론트 작업 동반).
