@@ -1,6 +1,6 @@
 ## What this project is
 
-**soksak (속삭)** is a **character-chat website** — users hold conversations with AI characters. The chat experience is powered by a **Python LangChain chat pipeline** that already exists separately and will be brought into this repo (in `ai-server/`) **as-is** — do not rebuild it from scratch. Any modifications to it are deferred until the Java backend is fully implemented; until then, leave `ai-server/` alone.
+**soksak (속삭)** is a **character-chat website** — users hold conversations with AI characters. The chat experience is powered by a **Python LangChain chat pipeline** that already exists separately and will be brought into this repo (in `ai-server/`) **as-is** — do not rebuild it from scratch. The Java backend is now in place, so the integration phase has begun: `ai-server/` **may be modified when integration requires it**. Still treat the imported pipeline as the baseline — don't rebuild it from scratch; change it only when a concrete need calls for it.
 
 The intended split: `backend/` handles the web/application layer (users, characters, persistence, REST API) while the AI service handles the LLM chat pipeline.
 
@@ -23,7 +23,7 @@ Note: a PostgreSQL datasource is on the classpath but **not configured** in `app
 
 Base package for new code: `com.soksak.soksak`.
 
-Secrets note: config lives in `application.yml`, which already holds values that shouldn't normally be committed (e.g. the DB password). For now, put the JWT `secret-key`/`issuer` directly in `application.yml` too — do **not** bother wiring up env-var injection yet. Moving these secrets out (env vars / `.env`) is a deferred cleanup task to do later.
+Secrets note: DB password and JWT `secret-key` now live in the root `.env` (read by both docker-compose and the backend via `spring-dotenv`) — see "Running locally" below. `application.yml` references them via `${...}` placeholders; don't hard-code secrets back into it.
 
 ## Running locally (full stack)
 
