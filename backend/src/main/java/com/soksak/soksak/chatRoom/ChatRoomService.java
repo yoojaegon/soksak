@@ -35,13 +35,19 @@ public class ChatRoomService {
         ChatCharacter character = characterRepository.findById(request.characterId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
 
-        ChatRoom chatRoom = ChatRoom.builder()
-                .user(user)
-                .character(character)
-                .title(nextRoomTitle(loginId, character))
-                .build();
+        ChatRoom chatRoom = chatRoomRepository.save(
+                ChatRoom.builder()
+                    .user(user)
+                    .character(character)
+                    .title(nextRoomTitle(loginId, character))
+                    .build());
 
-        return chatRoomRepository.save(chatRoom);
+        messageRepository.save(Message.builder()
+                .chatRoom(chatRoom)
+                .role(MessageRole.ASSISTANT)
+                .content(character.getGreeting())
+                .build());
+        return chatRoom;
     }
 
     // 같은 사용자가 같은 캐릭터로 방을 여러 개 만들면 제목을 자동으로 넘버링한다.

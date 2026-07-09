@@ -7,6 +7,7 @@ public record CharacterResponse (
         String characterName,
         String description,
         String persona,
+        String greeting,
         Long userId,
         String userName
 ) {
@@ -16,6 +17,7 @@ public record CharacterResponse (
                 character.getName(),
                 character.getDescription(),
                 character.getPersona(),
+                character.getGreeting(),
                 character.getUser().getId(),
                 character.getUser().getNickname()
         );

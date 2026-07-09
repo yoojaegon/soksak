@@ -37,6 +37,7 @@ public class CharacterService {
                 .name(request.name())
                 .description(request.description())
                 .persona(request.persona())
+                .greeting(request.greeting())
                 .build();
         return characterRepository.save(chatCharacter);
     }
@@ -64,7 +65,7 @@ public class CharacterService {
     @Transactional
     public CharacterResponse updateCharacter(String loginId, Long id, UpdateCharacterRequest request) {
         ChatCharacter character = getOwnedCharacter(loginId, id);
-        character.update(request.name(), request.description(), request.persona());
+        character.update(request.name(), request.description(), request.persona(), request.greeting());
         return CharacterResponse.from(character);
     }
 
