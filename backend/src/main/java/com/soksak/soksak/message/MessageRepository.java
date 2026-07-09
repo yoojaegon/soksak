@@ -13,4 +13,8 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Modifying
     @Query("delete from Message m where m.chatRoom.character.id = :characterId")
     int deleteByCharacterId(@Param("characterId") Long characterId);
+
+    @Modifying
+    @Query("delete from Message m where m.chatRoom.id = :chatRoomId")
+    int deleteByChatRoomId(@Param("chatRoomId") Long chatRoomId);
 }

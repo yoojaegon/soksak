@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.soksak.soksak.auth.RefreshTokenRepository;
 import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.character.ChatCharacter;
+import com.soksak.soksak.message.Message;
+import com.soksak.soksak.message.MessageRepository;
+import com.soksak.soksak.message.MessageRole;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +43,7 @@ class ChatRoomCrudE2eTest {
     @Autowired UserRepository userRepository;
     @Autowired CharacterRepository characterRepository;
     @Autowired ChatRoomRepository chatRoomRepository;
+    @Autowired MessageRepository messageRepository;
     @Autowired RefreshTokenRepository refreshTokenRepository;
     @Autowired PasswordEncoder passwordEncoder;
 
@@ -54,6 +58,7 @@ class ChatRoomCrudE2eTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        messageRepository.deleteAll();
         chatRoomRepository.deleteAll();
         characterRepository.deleteAll();
         refreshTokenRepository.deleteAll();
@@ -197,6 +202,25 @@ class ChatRoomCrudE2eTest {
                 .andExpect(status().isNoContent());
 
         assertThat(chatRoomRepository.findById(id)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("메시지가 있는 챗룸도 삭제되고 메시지도 함께 지워진다")
+    void delete_chatroom_with_messages_cascades() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        messageRepository.save(Message.builder()
+                .chatRoom(room)
+                .role(MessageRole.USER)
+                .content("안녕")
+                .build());
+
+        mockMvc.perform(delete("/chatrooms/{id}", id)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isNoContent());
+
+        assertThat(chatRoomRepository.findById(id)).isEmpty();
+        assertThat(messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(id)).isEmpty();
     }
 
     @Test

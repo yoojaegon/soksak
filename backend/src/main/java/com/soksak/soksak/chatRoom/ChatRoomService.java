@@ -7,6 +7,9 @@ import com.soksak.soksak.chatRoom.dto.CreateChatRoomRequest;
 import com.soksak.soksak.chatRoom.dto.UpdateChatRoomRequest;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
+import com.soksak.soksak.message.Message;
+import com.soksak.soksak.message.MessageRepository;
+import com.soksak.soksak.message.MessageRole;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final UserRepository userRepository;
     private final CharacterRepository characterRepository;
+    private final MessageRepository messageRepository;
 
     @Transactional
     public ChatRoom createChatRoom(String loginId, CreateChatRoomRequest request) {
@@ -89,6 +93,7 @@ public class ChatRoomService {
     @Transactional
     public void deleteChatRoom(String loginId, Long id) {
         ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+        messageRepository.deleteByChatRoomId(id);
         chatRoomRepository.delete(chatRoom);
     }
 
