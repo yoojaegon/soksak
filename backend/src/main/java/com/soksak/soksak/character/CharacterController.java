@@ -1,5 +1,6 @@
 package com.soksak.soksak.character;
 
+import com.soksak.soksak.character.characterLike.CharacterLikeService;
 import com.soksak.soksak.character.dto.CharacterResponse;
 import com.soksak.soksak.character.dto.CreateCharacterRequest;
 import com.soksak.soksak.character.dto.UpdateCharacterRequest;
@@ -21,6 +22,7 @@ import java.util.List;
 @RequestMapping("/characters")
 public class CharacterController {
     private final CharacterService characterService;
+    private final CharacterLikeService characterLikeService;
 
     @PostMapping
     public ResponseEntity<CharacterResponse> createCharacter(
@@ -39,6 +41,11 @@ public class CharacterController {
     @GetMapping("/me")
     public ResponseEntity<List<CharacterResponse>> getMyCharacters(Authentication authentication) {
         return ResponseEntity.ok(characterService.getMyCharacters(authentication.getName()));
+    }
+
+    @GetMapping("/liked")
+    public ResponseEntity<List<CharacterResponse>> getLikedCharacters(Authentication authentication) {
+        return ResponseEntity.ok(characterLikeService.getLikedCharacters(authentication.getName()));
     }
 
     @GetMapping
@@ -61,6 +68,22 @@ public class CharacterController {
             Authentication authentication,
             @PathVariable Long id) {
         characterService.deleteCharacter(authentication.getName(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/like")
+    public ResponseEntity<Void> like(
+            Authentication authentication,
+            @PathVariable Long id) {
+        characterLikeService.like(authentication.getName(), id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/like")
+    public ResponseEntity<Void> unlike(
+            Authentication authentication,
+            @PathVariable Long id) {
+        characterLikeService.unlike(authentication.getName(), id);
         return ResponseEntity.noContent().build();
     }
 }

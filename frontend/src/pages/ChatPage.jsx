@@ -170,9 +170,19 @@ function ChatRoom({ roomId }) {
     })
 
     if (failed) {
-      // 실패/중단 → 낙관적으로 넣었던 임시 버블들을 제거하고 입력값을 되돌린다(유령 메시지 방지).
-      setMessages((prev) => prev.filter((m) => m.id !== tempUser.id && m.id !== aiId))
-      setInput(content)
+      // 실패/중단 → 서버 상태로 동기화한다. USER 메시지는 AI 호출 전에 이미 커밋됐을 수 있어
+      // 임의로 지우면 새로고침 때 되살아나는 '유령'이 된다 → reload로 서버 진실을 그대로 반영.
+      // reload 자체가 실패하면 최소한 임시 버블만 걷어낸다.
+      try {
+        await reload()
+      } catch {
+        setMessages((prev) => prev.filter((m) => m.id !== tempUser.id && m.id !== aiId))
+      }
+      // USER 메시지가 저장되지 않은 게 확실한 실패(방 점유·미인증·연결 실패)에서만 입력값을 되돌린다.
+      // AI 실패 등은 USER가 이미 저장됐을 수 있어 복원하면 중복 전송이 된다.
+      const userNotSaved =
+        failed.status === 401 || failed.code === 'ROOM_BUSY' || failed.code === 'NETWORK'
+      if (userNotSaved) setInput(content)
       setError(failed.message)
     } else {
       // 임시 버블들을 실제 저장본(id·시각 포함)으로 교체 → 재생성/수정/삭제가 바로 동작.

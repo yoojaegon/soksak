@@ -416,6 +416,7 @@ class MessageE2eTest {
                 .name(name)
                 .description("설명")
                 .persona("페르소나")
+                .greeting("안녕하세요")
                 .build());
     }
 

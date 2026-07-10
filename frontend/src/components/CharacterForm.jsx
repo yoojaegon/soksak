@@ -33,7 +33,7 @@ export default function CharacterForm({ heading, initial, submitLabel, savingLab
         {error && <p className="error">{error}</p>}
         <div className="form-actions">
           <Link to={cancelTo} className="link-btn">취소</Link>
-          <button type="submit" disabled={saving || !form.name.trim() || !form.persona.trim()}>
+          <button type="submit" disabled={saving || !form.name.trim() || !form.persona.trim() || !form.greeting.trim()}>
             {saving ? savingLabel : submitLabel}
           </button>
         </div>

@@ -8,6 +8,8 @@ public record CharacterResponse (
         String description,
         String persona,
         String greeting,
+        int likeCount,
+        int chatCount,
         Long userId,
         String userName
 ) {
@@ -18,6 +20,8 @@ public record CharacterResponse (
                 character.getDescription(),
                 character.getPersona(),
                 character.getGreeting(),
+                character.getLikeCount(),
+                character.getChatCount(),
                 character.getUser().getId(),
                 character.getUser().getNickname()
         );

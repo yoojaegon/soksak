@@ -42,6 +42,14 @@ public class ChatCharacter extends BaseTimeEntity {
     @Column(name = "greeting", nullable = false, length = 500)
     private String greeting;
 
+    // 좋아요·대화 수를 매번 집계하지 않도록 캐릭터 행에 들고 있는 비정규화 카운터.
+    // 증감은 동시성 안전을 위해 CharacterRepository의 원자적 update 쿼리로만 한다.
+    @Column(name = "like_count", nullable = false)
+    private int likeCount;
+
+    @Column(name = "chat_count", nullable = false)
+    private int chatCount;
+
     @Builder
     public ChatCharacter(Long id, User user, String name, String description,
                          Integer age, Gender gender, String persona, String greeting) {
@@ -53,6 +61,8 @@ public class ChatCharacter extends BaseTimeEntity {
         this.gender = gender;
         this.persona = persona;
         this.greeting = greeting;
+        this.likeCount = 0;
+        this.chatCount = 0;
     }
 
     public void update(String name, String description, String persona, String greeting) {

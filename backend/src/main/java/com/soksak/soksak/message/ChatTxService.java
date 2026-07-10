@@ -1,6 +1,7 @@
 package com.soksak.soksak.message;
 
 import com.soksak.soksak.aiClient.ChatAiClient;
+import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.chatRoom.ChatRoomRepository;
 import com.soksak.soksak.chatRoom.ChatRoomService;
@@ -21,6 +22,7 @@ public class ChatTxService {
     private final ChatRoomService chatRoomService;
     private final ChatRoomRepository chatRoomRepository;
     private final MessageRepository messageRepository;
+    private final CharacterRepository characterRepository;
     private final ChatAiClient chatAiClient;
     private static final int WINDOW = 20;
     private static final int BATCH = 10;
@@ -35,6 +37,8 @@ public class ChatTxService {
                 .role(MessageRole.USER)
                 .content(content)
                 .build());
+
+        characterRepository.incrementChatCount(room.getCharacter().getId());
 
         return new PreparedChat(room, priorHistory);
     }

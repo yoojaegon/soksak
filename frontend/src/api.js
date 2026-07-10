@@ -51,11 +51,13 @@ export async function ensureSession() {
   return false
 }
 
-// 서버 에러를 다루기 쉽게 감싼 예외 타입
+// 서버 에러를 다루기 쉽게 감싼 예외 타입.
+// code: 백엔드 ErrorCode 이름(ROOM_BUSY 등) 또는 클라이언트측 표식('NETWORK'). 없으면 null.
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, code = null) {
     super(message)
     this.status = status
+    this.code = code
   }
 }
 
@@ -123,7 +125,8 @@ async function streamRequest(path, { body } = {}, { onToken, onDone, onError } =
       body: body != null ? JSON.stringify(body) : undefined,
     })
   } catch (err) {
-    onError?.(new ApiError(0, '연결에 실패했습니다.'))
+    // 요청이 서버에 닿지 못함 → 저장된 것도 없다('NETWORK'로 표식).
+    onError?.(new ApiError(0, '연결에 실패했습니다.', 'NETWORK'))
     return
   }
 
@@ -176,7 +179,7 @@ async function streamRequest(path, { body } = {}, { onToken, onDone, onError } =
 
         if (event === 'token') onToken?.(payload.content ?? '')
         else if (event === 'done') { onDone?.(payload); return }
-        else if (event === 'error') { onError?.(new ApiError(0, payload.message || 'AI 응답 실패')); return }
+        else if (event === 'error') { onError?.(new ApiError(0, payload.message || 'AI 응답 실패', payload.code)); return }
       }
     }
     // done 이벤트 없이 스트림이 끝남(중단) → 에러로 처리.

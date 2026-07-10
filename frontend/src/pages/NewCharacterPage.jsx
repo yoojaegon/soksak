@@ -10,7 +10,7 @@ import LorebookPanel from '../components/LorebookPanel.jsx'
 export default function NewCharacterPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState('basic')
-  const [form, setForm] = useState({ name: '', description: '', persona: '' })
+  const [form, setForm] = useState({ name: '', description: '', persona: '', greeting: '' })
   // 필수 입력 누락 시 각 입력창 아래 빨간 에러
   const [fieldErrors, setFieldErrors] = useState({})
   // 로어북 탭에서 모은 초안 로어들 (탭을 오가도 유지되도록 여기서 보관)
@@ -24,11 +24,12 @@ export default function NewCharacterPage() {
     if (value.trim()) setFieldErrors((prev) => ({ ...prev, [name]: undefined }))
   }
 
-  // 필수 기본정보(이름·페르소나) 검증
+  // 필수 기본정보(이름·페르소나·첫 인사말) 검증
   const validate = () => {
     const errs = {}
     if (!form.name.trim()) errs.name = '캐릭터명을 입력해주세요'
     if (!form.persona.trim()) errs.persona = '페르소나를 입력해주세요'
+    if (!form.greeting.trim()) errs.greeting = '첫 인사말을 입력해주세요'
     return errs
   }
 

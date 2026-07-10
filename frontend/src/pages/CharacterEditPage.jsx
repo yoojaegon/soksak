@@ -82,6 +82,7 @@ export default function CharacterEditPage() {
             name: character.characterName,
             description: character.description ?? '',
             persona: character.persona ?? '',
+            greeting: character.greeting ?? '',
           }}
           submitLabel="저장"
           savingLabel="저장 중…"

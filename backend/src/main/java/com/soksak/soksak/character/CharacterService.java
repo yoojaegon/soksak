@@ -1,5 +1,6 @@
 package com.soksak.soksak.character;
 
+import com.soksak.soksak.character.characterLike.CharacterLikeRepository;
 import com.soksak.soksak.character.dto.CharacterResponse;
 import com.soksak.soksak.character.dto.CreateCharacterRequest;
 import com.soksak.soksak.character.dto.UpdateCharacterRequest;
@@ -26,6 +27,7 @@ public class CharacterService {
     private final MessageRepository messageRepository;
     private final LoreRepository loreRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final CharacterLikeRepository characterLikeRepository;
 
     @Transactional
     public ChatCharacter createCharacter(String loginId, CreateCharacterRequest request) {
@@ -75,6 +77,7 @@ public class CharacterService {
         messageRepository.deleteByCharacterId(id);
         chatRoomRepository.deleteByCharacterId(id);
         loreRepository.deleteByCharacterId(id);
+        characterLikeRepository.deleteByCharacterId(id);
         characterRepository.delete(character);
     }
     public ChatCharacter getOwnedCharacter(String loginId, Long characterId) {

@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,4 +17,17 @@ public interface CharacterRepository extends JpaRepository<ChatCharacter, Long> 
 
     @EntityGraph(attributePaths = "user")
     Page<ChatCharacter> findAll(Pageable pageable);
+
+    // 카운터는 동시 갱신 시 유실되지 않도록 엔티티 읽고-수정-쓰기 대신 DB 원자 연산으로 증감한다.
+    @Modifying
+    @Query("update ChatCharacter c set c.likeCount = c.likeCount + 1 where c.id = :id")
+    void incrementLikeCount(@Param("id") Long id);
+
+    @Modifying
+    @Query("update ChatCharacter c set c.likeCount = c.likeCount - 1 where c.id = :id and c.likeCount > 0")
+    void decrementLikeCount(@Param("id") Long id);
+
+    @Modifying
+    @Query("update ChatCharacter c set c.chatCount = c.chatCount + 1 where c.id = :id")
+    void incrementChatCount(@Param("id") Long id);
 }

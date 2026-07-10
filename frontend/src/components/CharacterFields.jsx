@@ -1,4 +1,4 @@
-// 캐릭터 기본정보 입력 필드들 (이름·소개·페르소나).
+// 캐릭터 기본정보 입력 필드들 (이름·소개·페르소나·첫 인사말).
 // 폼 상태는 부모가 들고, 여기서는 보여주기만 하는 controlled 컴포넌트.
 export default function CharacterFields({ form, onChange, errors = {} }) {
   return (
@@ -27,6 +27,17 @@ export default function CharacterFields({ form, onChange, errors = {} }) {
           placeholder="예: 너는 항상 밝고 친근하게 반말로 대답하는 친구야."
         />
         {errors.persona && <p className="field-error">! {errors.persona}</p>}
+      </label>
+      <label>
+        <span className="field-caption">첫 인사말 <span className="req">*</span> (새 대화를 열 때 캐릭터가 먼저 건네는 말)</span>
+        <textarea
+          name="greeting"
+          value={form.greeting}
+          onChange={onChange}
+          rows={3}
+          placeholder="예: 안녕! 드디어 만났네. 오늘은 무슨 얘기를 해볼까?"
+        />
+        {errors.greeting && <p className="field-error">! {errors.greeting}</p>}
       </label>
     </>
   )
