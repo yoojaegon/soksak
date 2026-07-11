@@ -50,8 +50,10 @@ public class CharacterController {
 
     @GetMapping
     public ResponseEntity<Page<CharacterResponse>> getCharacters(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(characterService.getCharacters(pageable));
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Genre tag) {
+        return ResponseEntity.ok(characterService.getCharacters(q, tag, pageable));
     }
 
     @PutMapping("/{id}")

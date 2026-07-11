@@ -230,7 +230,14 @@ export const api = {
     request('/auth/logout', { method: 'POST', body: { refreshToken }, auth: false }),
 
   // 캐릭터
-  getCharacters: (page = 0, size = 20) => request(`/characters?page=${page}&size=${size}`),
+  // sort는 스프링 페이징 규약 그대로 "<field>,<dir>" (예: likeCount,desc).
+  // q(키워드)는 비어 있으면 아예 안 붙여서 백엔드가 전체 목록으로 처리하게 둔다.
+  getCharacters: ({ page = 0, size = 20, sort = 'createdAt,desc', q = '', tag = '' } = {}) => {
+    const params = new URLSearchParams({ page, size, sort })
+    if (q.trim()) params.set('q', q.trim())
+    if (tag) params.set('tag', tag) // 선택된 장르 enum 이름. 없으면 안 붙여 전체 조회.
+    return request(`/characters?${params.toString()}`)
+  },
   getCharacter: (id) => request(`/characters/${id}`),
   // 내가 만든 캐릭터 목록 (소유 판별·로어북 진입에 사용)
   getMyCharacters: () => request('/characters/me'),

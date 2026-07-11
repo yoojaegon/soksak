@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import CharacterFields from '../components/CharacterFields.jsx'
 import LorebookPanel from '../components/LorebookPanel.jsx'
+import { toggleTag } from '../genres.js'
 
 // 캐릭터 생성 페이지. 수정 페이지처럼 상단 탭(기본정보 / 로어북)을 두고,
 // '만들기' 버튼은 탭 아래 공용 하단 바에 둬서 어느 탭에서든 누를 수 있게 한다.
@@ -10,7 +11,7 @@ import LorebookPanel from '../components/LorebookPanel.jsx'
 export default function NewCharacterPage() {
   const navigate = useNavigate()
   const [tab, setTab] = useState('basic')
-  const [form, setForm] = useState({ name: '', description: '', persona: '', greeting: '' })
+  const [form, setForm] = useState({ name: '', description: '', tags: [], persona: '', greeting: '' })
   // 필수 입력 누락 시 각 입력창 아래 빨간 에러
   const [fieldErrors, setFieldErrors] = useState({})
   // 로어북 탭에서 모은 초안 로어들 (탭을 오가도 유지되도록 여기서 보관)
@@ -23,6 +24,9 @@ export default function NewCharacterPage() {
     setForm((f) => ({ ...f, [name]: value }))
     if (value.trim()) setFieldErrors((prev) => ({ ...prev, [name]: undefined }))
   }
+
+  // 장르 칩 토글: 이미 있으면 빼고 없으면 넣는다.
+  const onToggleTag = (value) => setForm((f) => ({ ...f, tags: toggleTag(f.tags, value) }))
 
   // 필수 기본정보(이름·페르소나·첫 인사말) 검증
   const validate = () => {
@@ -100,7 +104,7 @@ export default function NewCharacterPage() {
 
       {tab === 'basic' ? (
         <div className="form-card create-card">
-          <CharacterFields form={form} onChange={onChange} errors={fieldErrors} />
+          <CharacterFields form={form} onChange={onChange} onToggleTag={onToggleTag} errors={fieldErrors} />
         </div>
       ) : (
         <LorebookPanel draft lores={draftLores} onChange={setDraftLores} />

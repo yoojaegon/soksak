@@ -7,6 +7,10 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "characters")
@@ -50,9 +54,16 @@ public class ChatCharacter extends BaseTimeEntity {
     @Column(name = "chat_count", nullable = false)
     private int chatCount;
 
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "character_tags", joinColumns = @JoinColumn(name = "character_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tags")
+    @BatchSize(size = 100)
+    private Set<Genre> tags = new HashSet<>();
+
     @Builder
     public ChatCharacter(Long id, User user, String name, String description,
-                         Integer age, Gender gender, String persona, String greeting) {
+                         Integer age, Gender gender, String persona, String greeting, Set<Genre> tags) {
         this.id = id;
         this.user = user;
         this.name = name;
@@ -63,12 +74,15 @@ public class ChatCharacter extends BaseTimeEntity {
         this.greeting = greeting;
         this.likeCount = 0;
         this.chatCount = 0;
+        this.tags = (tags != null) ? tags : new HashSet<>();
     }
 
-    public void update(String name, String description, String persona, String greeting) {
+    public void update(String name, String description, String persona, String greeting, Set<Genre> tags) {
         this.name = name;
         this.description = description;
         this.persona = persona;
         this.greeting = greeting;
+        this.tags.clear();
+        if (tags != null) this.tags.addAll(tags);
     }
 }

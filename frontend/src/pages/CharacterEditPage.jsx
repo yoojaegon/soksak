@@ -81,6 +81,7 @@ export default function CharacterEditPage() {
           initial={{
             name: character.characterName,
             description: character.description ?? '',
+            tags: character.tags ?? [],
             persona: character.persona ?? '',
             greeting: character.greeting ?? '',
           }}

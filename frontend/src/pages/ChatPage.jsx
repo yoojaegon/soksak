@@ -204,6 +204,8 @@ function ChatRoom({ roomId }) {
     setError('')
 
     // 마지막 AI 버블을 화면에서 비우고, 그 자리에 새 응답을 스트리밍한다.
+    // 서버 동기화(reload)까지 실패하면 되돌릴 수 있도록 원본을 스냅샷해 둔다.
+    const snapshot = messages
     const aiId = `temp-ai-${Date.now()}`
     setMessages((prev) => {
       const base = prev[prev.length - 1]?.role === 'ASSISTANT' ? prev.slice(0, -1) : prev
@@ -226,7 +228,12 @@ function ChatRoom({ roomId }) {
     try {
       await reload()
     } catch (err) {
-      if (!failed) failed = err
+      // 스트리밍 자체가 실패한 경우에만 낙관적 변경을 원복한다. 안 그러면 비운 AI 버블이
+      // 타이핑 점으로 영영 남고 지웠던 이전 답변도 사라진다.
+      // 스트리밍은 성공했는데 reload만 실패한 경우엔 화면의 새 답변이 이미 서버 진실과 같으므로
+      // 그대로 두고(원복하면 방금 받은 답을 버리게 됨) reload 에러만 표시한다.
+      if (failed) setMessages(snapshot)
+      else failed = err
     }
     if (failed) setError(failed.message)
     setActing(false)

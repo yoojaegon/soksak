@@ -1,6 +1,10 @@
-// 캐릭터 기본정보 입력 필드들 (이름·소개·페르소나·첫 인사말).
+import { GENRES } from '../genres.js'
+
+// 캐릭터 기본정보 입력 필드들 (이름·소개·장르·페르소나·첫 인사말).
 // 폼 상태는 부모가 들고, 여기서는 보여주기만 하는 controlled 컴포넌트.
-export default function CharacterFields({ form, onChange, errors = {} }) {
+// onToggleTag(value): 장르 칩 토글(부모가 form.tags 배열을 갱신).
+export default function CharacterFields({ form, onChange, onToggleTag, errors = {} }) {
+  const tags = form.tags ?? []
   return (
     <>
       <label>
@@ -17,6 +21,22 @@ export default function CharacterFields({ form, onChange, errors = {} }) {
           placeholder="목록에 보일 한 줄 소개"
         />
       </label>
+      <div className="field-block">
+        <span className="field-caption">장르 (선택 · 여러 개 가능)</span>
+        <div className="chip-picker">
+          {GENRES.map((g) => (
+            <button
+              key={g.value}
+              type="button"
+              className={`chip${tags.includes(g.value) ? ' active' : ''}`}
+              aria-pressed={tags.includes(g.value)}
+              onClick={() => onToggleTag?.(g.value)}
+            >
+              {g.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <label>
         <span className="field-caption">페르소나 <span className="req">*</span> (성격·말투)</span>
         <textarea

@@ -412,6 +412,93 @@ button:disabled {
   margin-top: 6px;
 }
 
+/* 카탈로그 상단 검색·정렬 툴바 */
+.catalog-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.catalog-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 11px 14px;
+  border: 1px solid var(--outline-strong);
+  border-radius: var(--r-btn);
+  font-size: 15px;
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--ink);
+}
+.catalog-sort {
+  padding: 11px 14px;
+  border: 1px solid var(--outline-strong);
+  border-radius: var(--r-btn);
+  font-size: 15px;
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--ink);
+}
+.catalog-search:focus,
+.catalog-sort:focus {
+  outline: none;
+  border-color: var(--champ);
+}
+.catalog-search::placeholder {
+  color: var(--text-3);
+}
+
+/* 칩 선택기 — 캐릭터 폼의 장르 다중선택 + 카탈로그 장르 필터 공용 */
+.chip-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  padding: 7px 14px;
+  border: 1px solid var(--outline-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.chip:hover {
+  border-color: var(--champ);
+  color: var(--text);
+}
+.chip.active {
+  border-color: var(--champ);
+  background: var(--champ);
+  color: var(--ink);
+}
+.filter-chips {
+  margin-bottom: 24px;
+}
+
+/* 장르 라벨을 가진 폼 필드 블록 (label이 아니라서 별도 간격) */
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 카드 위 장르 태그 (읽기 전용, 클릭 불가) */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.card-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--outline);
+  color: var(--text-3);
+}
+
 /* 캐릭터 카드 그리드 (영화 카탈로그식) */
 .page-head {
   display: flex;
@@ -471,6 +558,19 @@ button:disabled {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+/* 카드 하단 지표 — 좋아요·대화수 */
+.card-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.card-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
 }
 .char-card button {
   align-self: stretch;

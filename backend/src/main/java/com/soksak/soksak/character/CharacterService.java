@@ -40,6 +40,7 @@ public class CharacterService {
                 .description(request.description())
                 .persona(request.persona())
                 .greeting(request.greeting())
+                .tags(request.tags())
                 .build();
         return characterRepository.save(chatCharacter);
     }
@@ -59,15 +60,22 @@ public class CharacterService {
     }
 
     @Transactional(readOnly = true)
-    public Page<CharacterResponse> getCharacters(Pageable pageable) {
-        return characterRepository.findAll(pageable)
+    public Page<CharacterResponse> getCharacters(String q, Genre tag, Pageable pageable) {
+        String keyword = (q == null || q.isBlank()) ? null : escapeLike(q);
+        return characterRepository.search(keyword, tag, pageable)
                 .map(CharacterResponse::from);
+    }
+
+    // LIKE 메타문자(%,_)와 이스케이프 문자(\) 자체를 리터럴로 다루도록 '\'로 이스케이프한다.
+    // (쿼리의 escape '\'와 짝. \를 먼저 치환해야 뒤에 붙는 \가 다시 이스케이프되지 않는다.)
+    private static String escapeLike(String raw) {
+        return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     @Transactional
     public CharacterResponse updateCharacter(String loginId, Long id, UpdateCharacterRequest request) {
         ChatCharacter character = getOwnedCharacter(loginId, id);
-        character.update(request.name(), request.description(), request.persona(), request.greeting());
+        character.update(request.name(), request.description(), request.persona(), request.greeting(), request.tags());
         return CharacterResponse.from(character);
     }
 

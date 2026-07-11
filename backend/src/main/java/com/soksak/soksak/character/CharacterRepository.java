@@ -30,4 +30,14 @@ public interface CharacterRepository extends JpaRepository<ChatCharacter, Long> 
     @Modifying
     @Query("update ChatCharacter c set c.chatCount = c.chatCount + 1 where c.id = :id")
     void incrementChatCount(@Param("id") Long id);
+
+    // q가 null일 때 Postgres가 파라미터를 bytea로 추론해 lower(bytea) 에러가 나므로
+    // concat 안의 :q는 cast(:q as string)으로 타입을 명시해 준다.
+    // :q 안의 LIKE 메타문자(%,_,\)는 서비스에서 '\'로 이스케이프해 넘기므로 escape '\'로 리터럴 취급한다.
+    @EntityGraph(attributePaths = "user")
+    @Query("select c from ChatCharacter c where (:q is null " +
+            "or lower(c.name) like lower(concat('%', cast(:q as string), '%')) escape '\\' " +
+            "or lower(c.description) like lower(concat('%', cast(:q as string), '%')) escape '\\') " +
+            "and (:tag is null or :tag member of c.tags)")
+    Page<ChatCharacter> search(@Param("q") String q, @Param("tag") Genre tag, Pageable pageable);
 }

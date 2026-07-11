@@ -2,6 +2,8 @@ package com.soksak.soksak.character.dto;
 
 import com.soksak.soksak.character.ChatCharacter;
 
+import java.util.List;
+
 public record CharacterResponse (
         Long id,
         String characterName,
@@ -10,6 +12,7 @@ public record CharacterResponse (
         String greeting,
         int likeCount,
         int chatCount,
+        List<String> tags,
         Long userId,
         String userName
 ) {
@@ -22,6 +25,7 @@ public record CharacterResponse (
                 character.getGreeting(),
                 character.getLikeCount(),
                 character.getChatCount(),
+                character.getTags().stream().sorted().map(Enum::name).toList(),
                 character.getUser().getId(),
                 character.getUser().getNickname()
         );
