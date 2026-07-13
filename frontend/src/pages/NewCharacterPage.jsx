@@ -25,15 +25,19 @@ export default function NewCharacterPage() {
     if (value.trim()) setFieldErrors((prev) => ({ ...prev, [name]: undefined }))
   }
 
-  // 장르 칩 토글: 이미 있으면 빼고 없으면 넣는다.
-  const onToggleTag = (value) => setForm((f) => ({ ...f, tags: toggleTag(f.tags, value) }))
+  // 장르 칩 토글: 이미 있으면 빼고 없으면 넣는다. 토글하면 장르 필수 에러는 지운다.
+  const onToggleTag = (value) => {
+    setForm((f) => ({ ...f, tags: toggleTag(f.tags ?? [], value) }))
+    setFieldErrors((prev) => ({ ...prev, tags: undefined }))
+  }
 
-  // 필수 기본정보(이름·페르소나·첫 인사말) 검증
+  // 필수 기본정보(이름·페르소나·첫 인사말·장르 최소 1개) 검증
   const validate = () => {
     const errs = {}
     if (!form.name.trim()) errs.name = '캐릭터명을 입력해주세요'
     if (!form.persona.trim()) errs.persona = '페르소나를 입력해주세요'
     if (!form.greeting.trim()) errs.greeting = '첫 인사말을 입력해주세요'
+    if (!form.tags?.length) errs.tags = '장르를 하나 이상 선택해주세요'
     return errs
   }
 

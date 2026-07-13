@@ -22,7 +22,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, errors = 
         />
       </label>
       <div className="field-block">
-        <span className="field-caption">장르 (선택 · 여러 개 가능)</span>
+        <span className="field-caption">장르 <span className="req">*</span> (하나 이상)</span>
         <div className="chip-picker">
           {GENRES.map((g) => (
             <button
@@ -36,6 +36,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, errors = 
             </button>
           ))}
         </div>
+        {errors.tags && <p className="field-error">! {errors.tags}</p>}
       </div>
       <label>
         <span className="field-caption">페르소나 <span className="req">*</span> (성격·말투)</span>
