@@ -117,12 +117,12 @@ class MessageE2eTest {
     }
 
     @Test
-    @DisplayName("토큰 없이 전송하면 403을 반환한다")
-    void send_without_token_returns_403() throws Exception {
+    @DisplayName("토큰 없이 전송하면 401을 반환한다")
+    void send_without_token_returns_401() throws Exception {
         mockMvc.perform(post("/chatrooms/{roomId}/messages", roomId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("content", "안녕"))))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -178,10 +178,10 @@ class MessageE2eTest {
     }
 
     @Test
-    @DisplayName("토큰 없이 조회하면 403을 반환한다")
-    void get_without_token_returns_403() throws Exception {
+    @DisplayName("토큰 없이 조회하면 401을 반환한다")
+    void get_without_token_returns_401() throws Exception {
         mockMvc.perform(get("/chatrooms/{roomId}/messages", roomId))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ---------- UPDATE ----------
@@ -270,12 +270,12 @@ class MessageE2eTest {
     }
 
     @Test
-    @DisplayName("토큰 없이 수정하면 403을 반환한다")
-    void update_without_token_returns_403() throws Exception {
+    @DisplayName("토큰 없이 수정하면 401을 반환한다")
+    void update_without_token_returns_401() throws Exception {
         mockMvc.perform(put("/chatrooms/{roomId}/messages/{messageId}", roomId, 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("content", "x"))))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ---------- REGENERATE ----------
@@ -323,10 +323,10 @@ class MessageE2eTest {
     }
 
     @Test
-    @DisplayName("토큰 없이 재생성하면 403을 반환한다")
-    void regenerate_without_token_returns_403() throws Exception {
+    @DisplayName("토큰 없이 재생성하면 401을 반환한다")
+    void regenerate_without_token_returns_401() throws Exception {
         mockMvc.perform(post("/chatrooms/{roomId}/messages/regenerate", roomId))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ---------- DELETE (이후 전부) ----------
@@ -391,10 +391,10 @@ class MessageE2eTest {
     }
 
     @Test
-    @DisplayName("토큰 없이 삭제하면 403을 반환한다")
-    void delete_without_token_returns_403() throws Exception {
+    @DisplayName("토큰 없이 삭제하면 401을 반환한다")
+    void delete_without_token_returns_401() throws Exception {
         mockMvc.perform(delete("/chatrooms/{roomId}/messages/{messageId}/after", roomId, 1L))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ---------- helpers ----------

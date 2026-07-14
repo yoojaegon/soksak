@@ -100,12 +100,12 @@ class ChatRoomCrudE2eTest {
     }
 
     @Test
-    @DisplayName("토큰 없이 생성하면 403을 반환한다")
-    void create_without_token_returns_403() throws Exception {
+    @DisplayName("토큰 없이 생성하면 401을 반환한다")
+    void create_without_token_returns_401() throws Exception {
         mockMvc.perform(post("/chatrooms")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("characterId", ownerCharacterId))))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ---------- READ ----------
