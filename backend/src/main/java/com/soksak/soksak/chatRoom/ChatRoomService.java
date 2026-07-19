@@ -1,10 +1,12 @@
 package com.soksak.soksak.chatRoom;
 
+import com.soksak.soksak.aiClient.ModelCatalog;
 import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.character.ChatCharacter;
 import com.soksak.soksak.chatRoom.dto.ChatRoomResponse;
 import com.soksak.soksak.chatRoom.dto.CreateChatRoomRequest;
 import com.soksak.soksak.chatRoom.dto.UpdateChatRoomRequest;
+import com.soksak.soksak.chatRoom.dto.UpdateModelRequest;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.message.Message;
@@ -84,6 +86,15 @@ public class ChatRoomService {
     public ChatRoomResponse updateChatRoom(String loginId, Long id, UpdateChatRoomRequest request) {
         ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
         chatRoom.update(request.title());
+
+        return ChatRoomResponse.from(chatRoom);
+    }
+
+    @Transactional
+    public ChatRoomResponse updateModels(String loginId, Long id, UpdateModelRequest request) {
+        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+        if (!ModelCatalog.contains(request.model())) throw new BusinessException(ErrorCode.INVALID_INPUT);
+        chatRoom.updateModel(request.model());
 
         return ChatRoomResponse.from(chatRoom);
     }

@@ -393,8 +393,11 @@ button:disabled {
   text-transform: uppercase;
   color: var(--text-3);
 }
+/* 공용 폼 필드 스타일 — auth 카드·페르소나 폼·모델 픽커가 함께 쓴다 */
 .auth-card input,
-.auth-card select {
+.auth-card select,
+.persona-form select,
+.model-select {
   padding: 11px 14px;
   border: 1px solid var(--outline-strong);
   border-radius: var(--r-btn);
@@ -404,7 +407,9 @@ button:disabled {
   background: var(--ink);
 }
 .auth-card input:focus,
-.auth-card select:focus {
+.auth-card select:focus,
+.persona-form select:focus,
+.model-select:focus {
   outline: none;
   border-color: var(--champ);
 }
@@ -808,6 +813,40 @@ button:disabled {
   background: var(--champ);
 }
 
+/* 설정 패널의 모델 선택 필드 */
+.aside-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 16px;
+  border-bottom: 1px solid var(--outline);
+  margin-bottom: 6px;
+}
+.aside-field .field-caption {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--text);
+}
+/* 공용 폼 필드 스타일(.auth-card 쪽 규칙)에 함께 묶여 있고, 여기엔 고유 속성만 둔다 */
+.model-select {
+  width: 100%;
+}
+.model-select:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 헤더의 눈에 띄지 않는 현재 모델 표시 */
+.model-badge {
+  display: inline-block;
+  margin-top: 12px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
 /* 대화 영역 — 가운데 정렬된 읽기 칼럼 */
 .conv {
   flex: 1;
@@ -1106,19 +1145,7 @@ button:disabled {
   font-size: 20px;
   margin: 0 0 16px;
 }
-.persona-form select {
-  padding: 11px 14px;
-  border: 1px solid var(--outline-strong);
-  border-radius: var(--r-btn);
-  font-size: 15px;
-  background: var(--ink);
-  color: var(--text);
-  font-family: var(--font-sans);
-}
-.persona-form select:focus {
-  outline: none;
-  border-color: var(--champ);
-}
+/* select 스타일은 공용 폼 필드 규칙(.auth-card 쪽)에 함께 묶여 있다 */
 /* 성별 + 나이를 한 줄에 */
 .form-row {
   display: flex;

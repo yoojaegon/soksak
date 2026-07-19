@@ -40,6 +40,9 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(name = "fold_spoiler_toggle", nullable = false)
     private boolean foldSpoilerToggle;
 
+    @Column(name = "model")
+    private String model;
+
     @Builder
     public ChatRoom(Long id, User user, ChatCharacter character, String title) {
         this.id = id;
@@ -62,4 +65,6 @@ public class ChatRoom extends BaseTimeEntity {
         this.writingToggle = writingToggle;
         this.foldSpoilerToggle = foldSpoilerToggle;
     }
+
+    public void updateModel(String model) {this.model = model;}
 }

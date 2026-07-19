@@ -15,6 +15,7 @@ public record ChatAiRequest (
         String charName,
         String userName,
         String userPersona,
+        String model,
         Config config
 ) {
     public record Turn(String role, String content) {}

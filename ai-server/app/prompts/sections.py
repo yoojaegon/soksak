@@ -49,6 +49,13 @@ _SPOILERS = """\
 벌어지는 사건 등)을 생략하지 말고, 그 부분을 <spoiler>...</spoiler> 태그로 감싸서 \
 작성한다. 태그로 감싼 내용은 화면에서 접힌 채로 표시되어 {{user}}가 직접 펼쳐 볼 수 있다."""
 
+# 수위 정책과 무관하게 항상 적용되는 하드라인. 향후 수위 토글이 생기면 조건부
+# 규칙을 이 섹션 옆에 얹는다.
+_SAFETY = """\
+- 미성년자로 인식되는 대상을 성적으로 묘사하거나 성적 맥락에 두지 않는다. 나이 설정을 \
+바꾸는 방식(외형은 미성년이나 실제론 성인 등)으로도 우회하지 않는다. 그 외의 등장·서사\
+(학원물·로맨스 등)에는 제한을 두지 않는다."""
+
 
 def _wrap(tag: str, body: str) -> str:
     body = body.strip()
@@ -59,6 +66,10 @@ def _wrap(tag: str, body: str) -> str:
 
 def rules_section() -> str:
     return _wrap("rules", _CORE_RULES)
+
+
+def safety_section() -> str:
+    return _wrap("safety", _SAFETY)
 
 
 def writing_section() -> str:

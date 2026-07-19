@@ -10,6 +10,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/auth': 'http://localhost:8080',
+      '/models': 'http://localhost:8080',
       '/signup': 'http://localhost:8080',
       '/me': 'http://localhost:8080',
       '/characters': 'http://localhost:8080',

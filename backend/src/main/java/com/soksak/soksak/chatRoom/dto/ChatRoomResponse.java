@@ -10,6 +10,7 @@ public record ChatRoomResponse(
         Long characterId,
         boolean writingToggle,
         boolean foldSpoilerToggle,
+        String model,
         LocalDateTime createdAt
 ) {
     public static ChatRoomResponse from(ChatRoom chatRoom) {
@@ -19,6 +20,7 @@ public record ChatRoomResponse(
                 chatRoom.getCharacter().getId(),
                 chatRoom.isWritingToggle(),
                 chatRoom.isFoldSpoilerToggle(),
+                chatRoom.getModel(),
                 chatRoom.getCreatedAt()
         );
     }

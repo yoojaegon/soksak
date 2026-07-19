@@ -10,6 +10,7 @@ from app.prompts.sections import (
     memory_section,
     response_section,
     rules_section,
+    safety_section,
     user_section,
     writing_section,
 )
@@ -28,6 +29,7 @@ def build_system_message(
 
     sections = [
         rules_section(),
+        safety_section(),
         writing_section(),
         response_section(config),
         character_section(persona),

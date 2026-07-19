@@ -8,6 +8,7 @@ from langchain.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 
 from app.chains.chat import chat, chat_stream
+from app.llm import get_chat_llm
 from app.memory.summarizer import ConversationSummarizer
 from app.prompts.config import PromptConfig
 
@@ -39,6 +40,9 @@ class ChatRequest(BaseModel):
     char_name: str | None = None
     user_name: str | None = None
     user_persona: str | None = None
+    # 백엔드가 카탈로그에서 검증해 확정한 모델 slug. 카탈로그(선택지·기본값)의 단일 출처는
+    # 자바 백엔드다. None이면 CHAT_MODEL 프로필 기본값(개발/전환기용 폴백, get_chat_llm 참고).
+    model: str | None = None
 
 
 class SummarizeRequest(BaseModel):
@@ -50,7 +54,7 @@ class SummarizeRequest(BaseModel):
 def chat_endpoint(request: ChatRequest, http_request: Request):
     try:
         reply = chat(
-            llm=http_request.app.state.chat_llm,
+            llm=get_chat_llm(http_request.app, request.model),
             persona=request.persona,
             user_text=request.user_message,
             recent_messages=[m.model_dump() for m in request.recent_messages],
@@ -72,7 +76,7 @@ def chat_stream_endpoint(request: ChatRequest, http_request: Request):
     def event_source():
         try:
             for token in chat_stream(
-                llm=http_request.app.state.chat_llm,
+                llm=get_chat_llm(http_request.app, request.model),
                 persona=request.persona,
                 user_text=request.user_message,
                 recent_messages=[m.model_dump() for m in request.recent_messages],

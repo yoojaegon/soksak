@@ -29,7 +29,7 @@ Secrets note: DB password and JWT `secret-key` now live in the root `.env` (read
 
 Start order: **Postgres → backend → AI server → frontend**. Commands shown for Windows PowerShell (use `.\gradlew`); on macOS/Linux use `./gradlew`.
 
-Prerequisite (once): copy `.env.example` to `.env` at the repo root and fill `DB_PASSWORD` / `JWT_SECRET_KEY` (e.g. `openssl rand -hex 16` / `openssl rand -base64 48`). Both docker-compose and the backend (`spring-dotenv`) read this root `.env`. The AI server reads its own `ai-server/.env` (needs `OPENAI_API_KEY`).
+Prerequisite (once): copy `.env.example` to `.env` at the repo root and fill `DB_PASSWORD` / `JWT_SECRET_KEY` (e.g. `openssl rand -hex 16` / `openssl rand -base64 48`). Both docker-compose and the backend (`spring-dotenv`) read this root `.env`. The AI server reads its own `ai-server/.env` (needs `AI_GATEWAY_API_KEY` and `AI_GATEWAY_BASE_URL` — LLM calls go through the Vercel AI Gateway; see `ai-server/.env.example`).
 
 ```bash
 # 1) Postgres (Docker) — from repo root

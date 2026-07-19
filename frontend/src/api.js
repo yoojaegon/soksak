@@ -223,6 +223,10 @@ async function doReissue() {
 }
 
 export const api = {
+  // 모델 카탈로그(선택지·라벨·기본값)의 단일 출처는 백엔드.
+  // 응답 계약: { models: [{ id, label }...], default }
+  getModels: () => request('/models'),
+
   // 인증
   signup: (body) => request('/signup', { method: 'POST', body, auth: false }),
   login: (body) => request('/auth/login', { method: 'POST', body, auth: false }),
@@ -268,6 +272,8 @@ export const api = {
   deleteUserPersona: (id) => request(`/user-personas/${id}`, { method: 'DELETE' }),
 
   // 채팅방
+  // 생성 시 모델은 안 보낸다 — room.model이 null이면 "기본 모델 따라감"이고,
+  // 기본값이 뭔지는 백엔드 카탈로그가 정한다(대화 중 updateModel로 변경).
   createChatRoom: async (characterId) => {
     const room = await request('/chatrooms', { method: 'POST', body: { characterId } })
     // 사이드바 목록이 새 방을 바로 반영하도록 알린다.
@@ -278,6 +284,9 @@ export const api = {
   getChatRoom: (id) => request(`/chatrooms/${id}`),
   // 채팅방 이름 변경
   renameChatRoom: (id, title) => request(`/chatrooms/${id}`, { method: 'PATCH', body: { title } }),
+  // 대화 중 사용할 모델 변경. model은 문자열이라 토글과 달리 body로 보낸다(rename과 동일 패턴).
+  updateModel: (id, model) =>
+    request(`/chatrooms/${id}/model`, { method: 'PATCH', body: { model } }),
   // 채팅방 삭제
   deleteChatRoom: (id) => request(`/chatrooms/${id}`, { method: 'DELETE' }),
   // 대화 설정(프롬프트 모드/스포일러 접기) 변경. boolean 토글은 body가 아니라 query param으로 보낸다.

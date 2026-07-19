@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../api.js'
+import ModelPicker from '../components/ModelPicker.jsx'
+import { modelLabel } from '../models.js'
 
 // 메시지 시각을 HH:MM 타임코드로. createdAt이 없으면(임시 메시지) 빈 문자열.
 function timecode(createdAt) {
@@ -59,6 +61,12 @@ function ChatRoom({ roomId }) {
     configRef.current = next
     setConfig(next)
   }
+  // 이 방에서 답할 LLM 모델(슬러그). null이면 "백엔드 기본 모델 따라감"(방에 저장된 선택 없음).
+  const [model, setModel] = useState(null)
+  // 모델 카탈로그(선택지·라벨·기본값). 단일 출처는 백엔드 GET /models — 프론트 폴백 카탈로그는 없다.
+  // modelList가 null이면 아직 못 받은 상태(픽커 비활성화, 배지는 저장된 슬러그 그대로).
+  const [modelList, setModelList] = useState(null)
+  const [defaultModel, setDefaultModel] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
@@ -107,6 +115,7 @@ function ChatRoom({ roomId }) {
           writingToggle: !!room.writingToggle,
           foldSpoilerToggle: !!room.foldSpoilerToggle,
         })
+        setModel(room.model || null)
         // 캐릭터(헤더) 정보 실패는 대화를 막지 않도록 조용히 무시한다.
         api
           .getCharacter(room.characterId)
@@ -124,6 +133,23 @@ function ChatRoom({ roomId }) {
     }
   }, [roomId])
 
+  // 모델 카탈로그는 마운트 시 한 번만 받아온다(설정 패널을 열기 전에도 헤더 배지가 맞도록).
+  // 실패해도 대화는 막지 않는다 — 픽커만 비활성화된 채로 남는다.
+  useEffect(() => {
+    let alive = true
+    api
+      .getModels()
+      .then((data) => {
+        if (!alive || !data?.models?.length) return
+        setModelList(data.models)
+        setDefaultModel(data.default ?? null)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
   // 메시지가 늘어나면 항상 맨 아래로 스크롤
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -139,6 +165,19 @@ function ChatRoom({ roomId }) {
     } catch (err) {
       // 실패한 토글만 요청 전 값으로 되돌린다(그새 바뀐 다른 토글의 최신값은 보존)
       writeConfig({ ...configRef.current, [key]: prev })
+      setError(err.message)
+    }
+  }
+
+  // 모델 변경: 화면을 먼저 바꾸고(낙관적) 서버에 반영, 실패하면 되돌린다.
+  const changeModel = async (next) => {
+    const prev = model
+    if (next === prev) return
+    setModel(next)
+    try {
+      await api.updateModel(roomId, next)
+    } catch (err) {
+      setModel(prev)
       setError(err.message)
     }
   }
@@ -309,6 +348,11 @@ function ChatRoom({ roomId }) {
               {character.userName && <span className="cap">@{character.userName} 제작</span>}
               <h1 className="ch-name">{character.characterName}</h1>
               {character.description && <p className="ch-sub">{character.description}</p>}
+              {(model ?? defaultModel) && (
+                <span className="model-badge">
+                  MODEL · {modelLabel(modelList ?? [], model ?? defaultModel)}
+                </span>
+              )}
             </div>
             {sending && (
               <span className="now-speaking">
@@ -441,6 +485,17 @@ function ChatRoom({ roomId }) {
             >
               ✕
             </button>
+          </div>
+          <div className="aside-field">
+            <label className="field-caption" htmlFor="chat-model">대화 모델</label>
+            <ModelPicker
+              id="chat-model"
+              models={modelList}
+              defaultModel={defaultModel}
+              value={model}
+              onChange={changeModel}
+            />
+            <span className="tog-hint">이 대화에 답할 AI 모델</span>
           </div>
           <div className="seg">
             <button type="button" className="tog" onClick={() => toggleConfig('foldSpoilerToggle')}>
