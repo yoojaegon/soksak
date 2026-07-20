@@ -117,13 +117,7 @@ public class ChatAiServerClient implements ChatAiClient{
         // 로어북 enabled=true 조회 + 키워드가 최근 메시지와 유저 입력에 매칭되는지 확인
         List<String> lore = loreService.selectLore(room.getCharacter().getId(), content, recent.stream().map(ChatAiRequest.Turn::content).toList());
 
-        String model = room.getModel();
-        if (model == null) {
-            model = ModelCatalog.defaultId();
-        } else if (!ModelCatalog.contains(model)) {
-            log.warn("카탈로그에 없는 모델이라 기본값으로 폴백: roomId={}, model={}", room.getId(), model);
-            model = ModelCatalog.defaultId();
-        }
+        String model = ModelCatalog.resolve(room.getModel());
 
         return new ChatAiRequest(
                 room.getCharacter().getPersona(),

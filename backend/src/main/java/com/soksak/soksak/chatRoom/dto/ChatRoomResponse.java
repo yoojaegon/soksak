@@ -1,5 +1,6 @@
 package com.soksak.soksak.chatRoom.dto;
 
+import com.soksak.soksak.aiClient.ModelCatalog;
 import com.soksak.soksak.chatRoom.ChatRoom;
 
 import java.time.LocalDateTime;
@@ -20,7 +21,7 @@ public record ChatRoomResponse(
                 chatRoom.getCharacter().getId(),
                 chatRoom.isWritingToggle(),
                 chatRoom.isFoldSpoilerToggle(),
-                chatRoom.getModel(),
+                ModelCatalog.orNull(chatRoom.getModel()),
                 chatRoom.getCreatedAt()
         );
     }
