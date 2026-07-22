@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
+import { useConfirm } from '../confirm.jsx'
 
 // priority(@Min 1)·alwaysOn 기본값을 한 곳에 둔다.
 const EMPTY_FORM = { title: '', keys: '', content: '', alwaysOn: false, priority: '1' }
@@ -9,6 +10,7 @@ const EMPTY_FORM = { title: '', keys: '', content: '', alwaysOn: false, priority
 // - 초안 모드(draft): 아직 캐릭터가 없으므로 부모가 가진 lores 리스트만 갱신한다.
 //   부모(캐릭터 만들기)가 '만들기' 시 캐릭터를 만든 뒤 이 초안들을 한꺼번에 저장한다.
 export default function LorebookPanel({ characterId, draft = false, lores: loresProp, onChange }) {
+  const confirm = useConfirm()
   // 편집 모드는 내부 상태로, 초안 모드는 부모가 넘긴 lores를 그대로 쓴다.
   const [internalLores, setInternalLores] = useState([])
   const lores = draft ? (loresProp ?? []) : internalLores
@@ -93,7 +95,9 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
     const errs = {}
     if (!form.title.trim()) errs.title = '제목을 입력해주세요'
     if (!form.content.trim()) errs.content = '내용을 입력해주세요'
-    if (Number(form.priority) < 1) errs.priority = '우선순위는 1 이상이어야 합니다'
+    // noValidate라 네이티브 min/step 검증이 없다. 서버 int(@Min 1)에 맞춰 정수인지도 여기서 본다.
+    if (!Number.isInteger(Number(form.priority))) errs.priority = '우선순위는 정수로 입력해주세요'
+    else if (Number(form.priority) < 1) errs.priority = '우선순위는 1 이상이어야 합니다'
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs)
       return
@@ -153,7 +157,13 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
   }
 
   const remove = async (lore) => {
-    if (!window.confirm(`'${lore.title}' 로어를 삭제할까요?`)) return
+    const ok = await confirm({
+      title: '이 로어를 삭제할까요?',
+      message: `'${lore.title}'을(를) 로어북에서 지웁니다.`,
+      confirmLabel: '삭제',
+      danger: true,
+    })
+    if (!ok) return
     if (draft) {
       writeLores((prev) => prev.filter((l) => l.id !== lore.id))
       if (editing === lore.id) closeForm()
@@ -193,7 +203,9 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
       {editing !== null && (
         <div className="form-card lore-form">
           <h2>{editing === 'new' ? '로어 추가' : '로어 수정'}</h2>
-          <form onSubmit={onSubmit}>
+          {/* noValidate: 브라우저 기본 검증 말풍선 대신 앱 스타일 field-error로 보여준다.
+              (네이티브 min="1"이 submit을 먼저 막아 아래 priority 검증이 실행되지 않았다) */}
+          <form onSubmit={onSubmit} noValidate>
             <label>
               <span className="field-caption">제목 <span className="req">*</span></span>
               <input name="title" value={form.title} onChange={onFormChange} placeholder="예: 주인공의 과거" />

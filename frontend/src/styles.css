@@ -1433,6 +1433,85 @@ button:disabled {
   margin-top: 14px;
 }
 
+/* 공용 확인 다이얼로그 — window.confirm 대체. 위아래 레터박스 바로 필름 프레임을 흉내낸다. */
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;              /* chat-aside(40) 위. 필름그레인(9999)은 그대로 위에 얹힌다 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(2px);
+  animation: confirm-fade 0.18s ease-out;
+}
+.confirm-panel {
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  background: var(--surface-elev);
+  border: 1px solid var(--outline-strong);
+  border-radius: var(--r-modal);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  animation: confirm-in 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+/* 포커스가 새지 않게 tabIndex=-1을 줬을 뿐, 키보드로 닿는 곳은 아니라 링은 감춘다 */
+.confirm-panel:focus {
+  outline: none;
+}
+.confirm-bar {
+  height: 10px;
+  background: var(--letterbox);
+}
+.confirm-body {
+  padding: 22px 24px 20px;
+}
+.confirm-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 8px 0 0;
+}
+.confirm-msg {
+  font-family: var(--font-kr-serif);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-2);
+  margin: 10px 0 0;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 24px 22px;
+}
+.confirm-actions button.ghost {
+  background: none;
+  color: var(--text-2);
+  border: 1px solid var(--outline-strong);
+}
+.confirm-actions button.ghost:hover:not(:disabled) {
+  background: var(--surface-high);
+  color: var(--text);
+}
+.confirm-actions button.danger {
+  background: var(--crimson);
+  color: var(--text);
+}
+.confirm-actions button.danger:hover:not(:disabled) {
+  background: var(--crimson-bright);
+}
+@keyframes confirm-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes confirm-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

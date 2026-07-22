@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 import { GENDERS, genderLabel } from '../constants.js'
+import { useConfirm } from '../confirm.jsx'
 
 const EMPTY_FORM = { name: '', gender: 'MALE', age: '', persona: '' }
 
 export default function PersonasPage() {
+  const confirm = useConfirm()
   const [personas, setPersonas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -79,7 +81,10 @@ export default function PersonasPage() {
     // 필수 입력 검증 (성별은 항상 기본값이 선택돼 있어 제외)
     const errs = {}
     if (!form.name.trim()) errs.name = '이름을 입력해주세요'
+    // type=number라도 noValidate라 소수점(step 위반)이 그대로 넘어온다. 서버 Integer에 맞춰 여기서 막는다.
     if (form.age === '') errs.age = '나이를 입력해주세요'
+    else if (!Number.isInteger(Number(form.age))) errs.age = '나이는 정수로 입력해주세요'
+    else if (Number(form.age) < 0) errs.age = '나이는 0 이상이어야 합니다'
     if (!form.persona.trim()) errs.persona = '페르소나를 입력해주세요'
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs)
@@ -126,7 +131,13 @@ export default function PersonasPage() {
 
   const remove = async (p) => {
     setMenuId(null)
-    if (!window.confirm(`'${p.name}' 페르소나를 삭제할까요?`)) return
+    const ok = await confirm({
+      title: '이 페르소나를 삭제할까요?',
+      message: `'${p.name}'을(를) 지웁니다. 되돌릴 수 없어요.`,
+      confirmLabel: '삭제',
+      danger: true,
+    })
+    if (!ok) return
     setDeletingId(p.id)
     setError('')
     try {
@@ -159,7 +170,9 @@ export default function PersonasPage() {
       {editing !== null && (
         <div className="form-card persona-form">
           <h2>{editing === 'new' ? '페르소나 만들기' : '페르소나 수정'}</h2>
-          <form onSubmit={onSubmit}>
+          {/* noValidate: 브라우저 기본 검증 말풍선 대신 앱 스타일 field-error로 보여준다.
+              (네이티브 검증은 submit보다 먼저 돌아 onSubmit 자체를 막는다) */}
+          <form onSubmit={onSubmit} noValidate>
             <label>
               <span className="field-caption">이름 <span className="req">*</span></span>
               <input name="name" value={form.name} onChange={onChange} placeholder="예: 지민" />

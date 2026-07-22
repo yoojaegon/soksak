@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api.js'
 import { useAuth } from './auth.jsx'
+import { useConfirm } from './confirm.jsx'
 
 export default function Sidebar() {
   const [rooms, setRooms] = useState([])
@@ -24,6 +25,7 @@ export default function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { logout } = useAuth()
+  const confirm = useConfirm()
 
   useEffect(() => {
     localStorage.setItem('soksak_sidebar_collapsed', collapsed ? '1' : '0')
@@ -109,7 +111,13 @@ export default function Sidebar() {
   // ⋮ → 삭제
   const removeRoom = async (room) => {
     setMenuId(null)
-    if (!window.confirm(`'${room.title}' 대화를 삭제할까요? 대화 내용도 함께 사라집니다.`)) return
+    const ok = await confirm({
+      title: '이 대화를 삭제할까요?',
+      message: `'${room.title}'의 대화 내용도 함께 사라집니다. 되돌릴 수 없어요.`,
+      confirmLabel: '삭제',
+      danger: true,
+    })
+    if (!ok) return
     setBusyId(room.id)
     try {
       await api.deleteChatRoom(room.id)

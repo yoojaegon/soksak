@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
+import { useConfirm } from '../confirm.jsx'
 
 // 내가 만든 캐릭터만 모아 보여주는 페이지.
 // 각 카드에서 바로 대화를 시작하거나 로어북으로 들어갈 수 있고,
 // ⋮ 메뉴로 수정·삭제할 수 있다.
 export default function MyCharactersPage() {
   const navigate = useNavigate()
+  const confirm = useConfirm()
   const [characters, setCharacters] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -55,7 +57,13 @@ export default function MyCharactersPage() {
 
   const remove = async (c) => {
     setMenuId(null)
-    if (!window.confirm(`'${c.characterName}' 캐릭터를 삭제할까요? 관련 대화도 함께 사라질 수 있어요.`)) return
+    const ok = await confirm({
+      title: '이 캐릭터를 삭제할까요?',
+      message: `'${c.characterName}'와(과) 나눈 대화도 함께 사라질 수 있어요. 되돌릴 수 없습니다.`,
+      confirmLabel: '삭제',
+      danger: true,
+    })
+    if (!ok) return
     setDeletingId(c.id)
     setError('')
     try {

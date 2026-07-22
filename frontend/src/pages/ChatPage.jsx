@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import ModelPicker from '../components/ModelPicker.jsx'
 import { modelLabel } from '../models.js'
+import { useConfirm } from '../confirm.jsx'
 
 // 메시지 시각을 HH:MM 타임코드로. createdAt이 없으면(임시 메시지) 빈 문자열.
 function timecode(createdAt) {
@@ -52,6 +53,7 @@ export default function ChatPage() {
 }
 
 function ChatRoom({ roomId }) {
+  const confirm = useConfirm()
   const [character, setCharacter] = useState(null)
   const [messages, setMessages] = useState([])
   const [config, setConfig] = useState({ writingToggle: false, foldSpoilerToggle: false })
@@ -306,7 +308,13 @@ function ChatRoom({ roomId }) {
   // 이 메시지부터 이후 대화를 모두 삭제
   const onDeleteFrom = async (messageId) => {
     if (acting || sending) return
-    if (!window.confirm('이 메시지부터 이후 대화가 모두 삭제됩니다. 계속할까요?')) return
+    const ok = await confirm({
+      title: '여기서부터 대화를 지울까요?',
+      message: '이 메시지와 그 뒤의 대화가 모두 삭제됩니다. 되돌릴 수 없어요.',
+      confirmLabel: '삭제',
+      danger: true,
+    })
+    if (!ok) return
     setActing(true)
     setError('')
     try {

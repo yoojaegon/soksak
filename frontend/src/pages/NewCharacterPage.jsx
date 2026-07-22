@@ -4,12 +4,14 @@ import { api } from '../api.js'
 import CharacterFields from '../components/CharacterFields.jsx'
 import LorebookPanel from '../components/LorebookPanel.jsx'
 import { toggleTag } from '../genres.js'
+import { useAlert } from '../confirm.jsx'
 
 // 캐릭터 생성 페이지. 수정 페이지처럼 상단 탭(기본정보 / 로어북)을 두고,
 // '만들기' 버튼은 탭 아래 공용 하단 바에 둬서 어느 탭에서든 누를 수 있게 한다.
 // 로어북은 아직 캐릭터가 없으므로 초안으로 모아 두었다가, 만들기 시 캐릭터를 만든 직후 함께 저장한다.
 export default function NewCharacterPage() {
   const navigate = useNavigate()
+  const alert = useAlert()
   const [tab, setTab] = useState('basic')
   const [form, setForm] = useState({ name: '', description: '', tags: [], persona: '', greeting: '' })
   // 필수 입력 누락 시 각 입력창 아래 빨간 에러
@@ -75,7 +77,11 @@ export default function NewCharacterPage() {
           })
         }
       } catch {
-        alert('캐릭터는 만들어졌지만 일부 로어 저장에 실패했어요. 캐릭터 수정에서 다시 추가해 주세요.')
+        // 확인을 누를 때까지 기다렸다가 이동한다 — 바로 넘어가면 알림을 못 본다.
+        await alert({
+          title: '로어 일부를 저장하지 못했어요',
+          message: '캐릭터는 만들어졌습니다. 남은 로어는 캐릭터 수정 › 로어북에서 다시 추가해 주세요.',
+        })
       }
       navigate('/my-characters')
     } catch (err) {
