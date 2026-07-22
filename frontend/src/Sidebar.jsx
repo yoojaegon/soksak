@@ -22,6 +22,9 @@ export default function Sidebar() {
   const [busyId, setBusyId] = useState(null)
   // Esc 취소 직후 blur가 다시 저장을 부르는 것을 막는 플래그
   const skipBlurSave = useRef(false)
+  // 삭제하면 포커스가 있던 버튼이 행째 사라져 포커스가 body로 떨어진다. 여기로 옮겨준다.
+  // (접혀 있으면 ⋮ 메뉴 자체가 없어 삭제에 닿을 수 없으므로, 삭제 흐름에선 항상 렌더돼 있다)
+  const newChatRef = useRef(null)
   const location = useLocation()
   const navigate = useNavigate()
   const { logout } = useAuth()
@@ -116,12 +119,15 @@ export default function Sidebar() {
       message: `'${room.title}'의 대화 내용도 함께 사라집니다. 되돌릴 수 없어요.`,
       confirmLabel: '삭제',
       danger: true,
+      // ⋮ 메뉴를 닫으면서 눌렀던 버튼이 사라진다 → 취소해도 돌아갈 곳이 없다.
+      focusFallback: newChatRef,
     })
     if (!ok) return
     setBusyId(room.id)
     try {
       await api.deleteChatRoom(room.id)
       setRooms((prev) => prev.filter((r) => r.id !== room.id))
+      newChatRef.current?.focus()
       // 지금 보고 있던 방을 지웠으면 홈으로 보낸다.
       if (location.pathname === `/chat/${room.id}`) navigate('/')
     } catch {
@@ -146,7 +152,7 @@ export default function Sidebar() {
       {!collapsed && (
         <>
           {/* 1) 채팅방 목록 */}
-          <NavLink to="/" end className="new-chat">+ 새 대화</NavLink>
+          <NavLink to="/" end className="new-chat" ref={newChatRef}>+ 새 대화</NavLink>
           <nav className="room-list">
             {rooms.length === 0 ? (
               <p className="muted">아직 대화가 없어요.</p>

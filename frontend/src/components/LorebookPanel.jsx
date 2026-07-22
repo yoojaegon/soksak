@@ -16,6 +16,9 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
   const lores = draft ? (loresProp ?? []) : internalLores
   // 초안 로어의 임시 id (음수로 부여해 실제 id와 겹치지 않게)
   const tempId = useRef(-1)
+  // 삭제하면 포커스가 있던 버튼이 카드째 사라져 포커스가 body로 떨어진다. 여기로 옮겨준다.
+  // 폼이 열려 있으면 '로어 추가' 버튼은 렌더되지 않으므로, 착지점은 항상 있는 패널 머리여야 한다.
+  const landingRef = useRef(null)
 
   const [loading, setLoading] = useState(!draft)
   const [error, setError] = useState('')
@@ -162,11 +165,13 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
       message: `'${lore.title}'을(를) 로어북에서 지웁니다.`,
       confirmLabel: '삭제',
       danger: true,
+      focusFallback: landingRef,
     })
     if (!ok) return
     if (draft) {
       writeLores((prev) => prev.filter((l) => l.id !== lore.id))
       if (editing === lore.id) closeForm()
+      landingRef.current?.focus()
       return
     }
     setDeletingId(lore.id)
@@ -175,6 +180,8 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
       await api.deleteLore(characterId, lore.id)
       writeLores((prev) => prev.filter((l) => l.id !== lore.id))
       if (editing === lore.id) closeForm()
+      // 삭제 버튼은 카드째 사라지므로 다이얼로그가 돌려줄 곳이 없다. 여기서 착지시킨다.
+      landingRef.current?.focus()
     } catch (err) {
       setError(err.message || '삭제에 실패했습니다.')
     } finally {
@@ -189,7 +196,8 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
 
   return (
     <div>
-      <div className="lore-panel-head">
+      {/* tabIndex=-1: Tab으로는 닿지 않고, 삭제 후 포커스가 착지할 자리로만 쓴다 */}
+      <div className="lore-panel-head" tabIndex={-1} ref={landingRef}>
         <p className="muted">
           캐릭터가 알아야 할 설정·세계관을 적어 둬요. 키워드가 대화에 등장하면 자동으로 끼워 넣고, ‘항상 적용’은 늘 주입합니다.
           {draft && ' 여기서 추가한 로어는 ‘만들기’를 누르면 캐릭터와 함께 저장됩니다.'}

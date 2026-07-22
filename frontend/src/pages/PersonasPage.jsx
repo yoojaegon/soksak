@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
 import { GENDERS, genderLabel } from '../constants.js'
 import { useConfirm } from '../confirm.jsx'
@@ -22,6 +22,9 @@ export default function PersonasPage() {
   const [deletingId, setDeletingId] = useState(null)
   // ⋮ 메뉴가 열려 있는 카드 id (null = 모두 닫힘)
   const [menuId, setMenuId] = useState(null)
+  // 삭제하면 포커스가 있던 버튼이 카드째 사라져 포커스가 body로 떨어진다. 여기로 옮겨준다.
+  // 폼이 열려 있으면 '만들기' 버튼은 렌더되지 않으므로, 착지점은 항상 있는 제목이어야 한다.
+  const landingRef = useRef(null)
 
   useEffect(() => {
     let alive = true
@@ -136,6 +139,8 @@ export default function PersonasPage() {
       message: `'${p.name}'을(를) 지웁니다. 되돌릴 수 없어요.`,
       confirmLabel: '삭제',
       danger: true,
+      // ⋮ 메뉴를 닫으면서 눌렀던 버튼이 사라진다 → 취소해도 돌아갈 곳이 없다.
+      focusFallback: landingRef,
     })
     if (!ok) return
     setDeletingId(p.id)
@@ -147,6 +152,8 @@ export default function PersonasPage() {
       setPersonas(data ?? [])
       // 수정 중이던 게 삭제 대상이면 폼을 닫는다.
       if (editing === p.id) closeForm()
+      // 다이얼로그가 닫히며 이미 여기로 보냈지만, 삭제로 카드가 사라진 뒤에도 확실히 맞춰 둔다.
+      landingRef.current?.focus()
     } catch (err) {
       setError(err.message || '삭제에 실패했습니다.')
     } finally {
@@ -159,7 +166,8 @@ export default function PersonasPage() {
   return (
     <div>
       <div className="page-head">
-        <h1>내 페르소나</h1>
+        {/* tabIndex=-1: Tab으로는 닿지 않고, 삭제 후 포커스가 착지할 자리로만 쓴다 */}
+        <h1 tabIndex={-1} ref={landingRef}>내 페르소나</h1>
         {editing === null && (
           <button className="btn-link" onClick={openNew}>+ 페르소나 만들기</button>
         )}

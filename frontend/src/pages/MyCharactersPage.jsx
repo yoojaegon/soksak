@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import { useConfirm } from '../confirm.jsx'
@@ -10,6 +10,8 @@ export default function MyCharactersPage() {
   const navigate = useNavigate()
   const confirm = useConfirm()
   const [characters, setCharacters] = useState([])
+  // 삭제하면 포커스가 있던 버튼이 카드째 사라져 포커스가 body로 떨어진다. 여기로 옮겨준다.
+  const landingRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [startingId, setStartingId] = useState(null)
@@ -62,6 +64,8 @@ export default function MyCharactersPage() {
       message: `'${c.characterName}'와(과) 나눈 대화도 함께 사라질 수 있어요. 되돌릴 수 없습니다.`,
       confirmLabel: '삭제',
       danger: true,
+      // ⋮ 메뉴를 닫으면서 눌렀던 버튼이 사라진다 → 취소해도 돌아갈 곳이 없다.
+      focusFallback: landingRef,
     })
     if (!ok) return
     setDeletingId(c.id)
@@ -69,6 +73,8 @@ export default function MyCharactersPage() {
     try {
       await api.deleteCharacter(c.id)
       setCharacters((prev) => prev.filter((x) => x.id !== c.id))
+      // 다이얼로그가 닫히며 이미 여기로 보냈지만, 삭제로 카드가 사라진 뒤에도 확실히 맞춰 둔다.
+      landingRef.current?.focus()
     } catch (err) {
       setError(err.message || '삭제에 실패했습니다.')
     } finally {
@@ -81,7 +87,8 @@ export default function MyCharactersPage() {
   return (
     <div>
       <div className="page-head">
-        <h1>내 캐릭터</h1>
+        {/* tabIndex=-1: Tab으로는 닿지 않고, 삭제 후 포커스가 착지할 자리로만 쓴다 */}
+        <h1 tabIndex={-1} ref={landingRef}>내 캐릭터</h1>
         <Link to="/characters/new" className="btn-link">+ 캐릭터 만들기</Link>
       </div>
       {error && <p className="error">{error}</p>}

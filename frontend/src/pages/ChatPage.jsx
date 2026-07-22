@@ -80,6 +80,8 @@ function ChatRoom({ roomId }) {
   // 방 자체를 불러오지 못하면(삭제·잘못된 id) 빈 화면 대신 명확히 안내한다.
   const [roomError, setRoomError] = useState('')
   const bottomRef = useRef(null)
+  // 삭제하면 포커스가 있던 버튼이 메시지째 사라져 포커스가 body로 떨어진다. 입력창으로 옮겨준다.
+  const composerRef = useRef(null)
 
   // 서버에서 대화 내역을 다시 받아와 상태를 맞춘다.
   const reload = async () => {
@@ -313,6 +315,7 @@ function ChatRoom({ roomId }) {
       message: '이 메시지와 그 뒤의 대화가 모두 삭제됩니다. 되돌릴 수 없어요.',
       confirmLabel: '삭제',
       danger: true,
+      focusFallback: composerRef,
     })
     if (!ok) return
     setActing(true)
@@ -320,6 +323,8 @@ function ChatRoom({ roomId }) {
     try {
       await api.deleteFrom(roomId, messageId)
       await reload()
+      // 삭제 버튼은 메시지째 사라지므로 다이얼로그가 돌려줄 곳이 없다. 입력창으로 착지시킨다.
+      composerRef.current?.focus()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -469,12 +474,17 @@ function ChatRoom({ roomId }) {
 
       <form className="composer" onSubmit={onSend}>
         <input
+          ref={composerRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="당신의 대사나 행동을 적으세요…"
         />
-        <button type="submit" disabled={sending || !input.trim()}>
-          전하기
+        {/* 아이콘만 남으므로 이름은 aria-label·title로 남긴다(스크린리더·마우스 호버) */}
+        <button type="submit" disabled={sending || !input.trim()} aria-label="전하기" title="전하기">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 15 22 2" />
+          </svg>
         </button>
       </form>
 
@@ -505,18 +515,40 @@ function ChatRoom({ roomId }) {
             />
             <span className="tog-hint">이 대화에 답할 AI 모델</span>
           </div>
+          {/* 토글 설명은 ⓘ에 올렸을 때만 뜬다. 패널이 280px라 늘 펼쳐 두면 두 줄로 넘친다.
+              .tog가 button이라 ⓘ를 또 button으로 만들 수 없어(중첩 버튼) span으로 두고,
+              키보드는 .tog 포커스로, 스크린리더는 aria-describedby로 같은 설명에 닿게 한다. */}
           <div className="seg">
-            <button type="button" className="tog" onClick={() => toggleConfig('foldSpoilerToggle')}>
+            <button
+              type="button"
+              className="tog"
+              onClick={() => toggleConfig('foldSpoilerToggle')}
+              aria-describedby="tip-spoiler"
+            >
               <span className="tog-l">
                 스포일러 가리기
-                <span className="tog-hint">내 시점 밖 내용을 가림막으로</span>
+                <span className="tog-info" aria-hidden="true">i</span>
+                <span className="tog-tip" role="tooltip" id="tip-spoiler">
+                  켜면 내 캐릭터가 알 수 없는 것까지 AI가 씁니다. 상대의 속마음, 내가 없는
+                  자리에서 벌어지는 일 같은 것들이요. 그런 부분은 가려진 채로 나오고, 클릭하면
+                  펼쳐서 볼 수 있습니다.
+                </span>
               </span>
               <span className={`sw ${config.foldSpoilerToggle ? 'on' : ''}`} />
             </button>
-            <button type="button" className="tog" onClick={() => toggleConfig('writingToggle')}>
+            <button
+              type="button"
+              className="tog"
+              onClick={() => toggleConfig('writingToggle')}
+              aria-describedby="tip-writing"
+            >
               <span className="tog-l">
                 글쓰기 모드
-                <span className="tog-hint">캐릭터가 장면을 주도적으로 전개</span>
+                <span className="tog-info" aria-hidden="true">i</span>
+                <span className="tog-tip" role="tooltip" id="tip-writing">
+                  켜면 AI가 내 캐릭터의 대사와 행동까지 대신 씁니다. 짧게 입력하거나 “계속”만
+                  해도 장면이 알아서 이어집니다. 끄면 내가 쓴 만큼만 이야기에 반영됩니다.
+                </span>
               </span>
               <span className={`sw ${config.writingToggle ? 'on' : ''}`} />
             </button>

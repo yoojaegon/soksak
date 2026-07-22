@@ -57,6 +57,12 @@
   box-sizing: border-box;
 }
 
+/* 포커스를 프로그램적으로 착지시키는 지점(삭제 후 제목 등). Tab으로는 닿지 않는 자리라
+   포커스 링을 보여주면 사용자가 누른 적 없는 곳에 테두리가 생긴 것처럼 보인다. */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -755,6 +761,7 @@ button:disabled {
   background: none;
 }
 .tog {
+  position: relative;   /* 설명 말풍선의 기준 */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -772,11 +779,58 @@ button:disabled {
 }
 .tog-l {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-display);
   font-size: 16px;
   color: var(--text);
+}
+/* 토글 이름 옆 ⓘ — 올리면 설명이 뜬다 */
+.tog-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--outline-strong);
+  border-radius: var(--r-pill);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-3);
+  cursor: help;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tog-info:hover {
+  color: var(--champ);
+  border-color: var(--champ);
+}
+/* 설명 말풍선. 버튼 안에 있으므로 pointer-events로 클릭을 가로채지 않게 막는다. */
+.tog-tip {
+  position: absolute;
+  top: calc(100% - 8px);
+  left: 0;
+  right: 0;
+  z-index: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--outline-strong);
+  background: var(--surface-elev);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-2);
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.tog-info:hover + .tog-tip,
+.tog:focus-visible .tog-tip {
+  opacity: 1;
+  visibility: visible;
 }
 .tog-hint {
   font-family: var(--font-sans);
@@ -1067,8 +1121,15 @@ button:disabled {
   outline: none;
   border-color: var(--champ);
 }
+/* 종이비행기 아이콘 하나뿐이라 정사각형으로. align-self:stretch로 입력창과 높이를 맞춘다
+   (패딩·글꼴이 바뀌어도 따라간다). */
 .composer button {
   flex-shrink: 0;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  width: 47px;
+  padding: 0;
 }
 
 /* 링크를 버튼처럼 보이게 */
@@ -1455,10 +1516,6 @@ button:disabled {
   border-radius: var(--r-modal);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
   animation: confirm-in 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-/* 포커스가 새지 않게 tabIndex=-1을 줬을 뿐, 키보드로 닿는 곳은 아니라 링은 감춘다 */
-.confirm-panel:focus {
-  outline: none;
 }
 .confirm-bar {
   height: 10px;

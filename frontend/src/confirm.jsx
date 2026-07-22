@@ -13,6 +13,15 @@
 // 이미 떠 있는데 또 부르면 줄을 세운다. window.confirm과 달리 호출부가 await로 멈춰 있는 동안에도
 // 화면은 계속 살아 있어서(비동기 작업이 끝나며 alert을 부르는 등) 겹치는 일이 실제로 생기는데,
 // 나중 것으로 덮어쓰면 앞 호출의 Promise가 영영 안 풀려 그 호출부가 멈춘 채로 남는다.
+//
+// 닫힐 때 포커스는 원래 자리로 돌아간다. 다만 삭제처럼 "눌렀던 버튼이 사라지는" 화면에선 돌아갈
+// 곳이 없으므로, 항상 화면에 있는 착지점을 함께 넘긴다(안 넘기면 포커스가 body로 떨어져 다음
+// Tab이 문서 처음부터 다시 시작한다).
+//
+//   const landingRef = useRef(null)
+//   await confirm({ title: '삭제할까요?', danger: true, focusFallback: landingRef })
+//   …
+//   <h1 tabIndex={-1} ref={landingRef}>내 페르소나</h1>   // 조건부로 사라지지 않는 요소여야 한다
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -30,7 +39,9 @@ export function ConfirmProvider({ children }) {
   const open = useCallback(
     (opts) =>
       new Promise((resolve) => {
-        const req = { id: (idRef.current += 1), opts, resolve }
+        // 닫을 때 포커스를 돌려줄 곳은 여기서 잡아 둔다. 호출부는 보통 confirm 직전에 ⋮ 메뉴를
+        // 닫는데(setState), 그 커밋은 아직 일어나지 않아 이 시점엔 눌렀던 버튼이 살아 있다.
+        const req = { id: (idRef.current += 1), opts, resolve, opener: document.activeElement }
         if (currentRef.current) {
           queueRef.current.push(req)   // 이미 떠 있으면 줄만 세우고, 닫힐 때 settle이 이어받는다
           return
@@ -62,7 +73,14 @@ export function ConfirmProvider({ children }) {
   return (
     <ConfirmContext.Provider value={value}>
       {children}
-      {current && <ConfirmDialog key={current.id} options={current.opts} onSettle={settle} />}
+      {current && (
+        <ConfirmDialog
+          key={current.id}
+          options={current.opts}
+          opener={current.opener}
+          onSettle={settle}
+        />
+      )}
     </ConfirmContext.Provider>
   )
 }
@@ -82,7 +100,7 @@ export function useAlert() {
   return useDialog().alert
 }
 
-function ConfirmDialog({ options, onSettle }) {
+function ConfirmDialog({ options, opener, onSettle }) {
   const {
     title,
     message,
@@ -90,6 +108,7 @@ function ConfirmDialog({ options, onSettle }) {
     cancelLabel = '취소',
     danger = false,
     notice = false,
+    focusFallback = null,
   } = options
   const panelRef = useRef(null)
   // 백드롭은 "누르기도 여기서 시작했을 때"만 닫는다. 패널 안에서 드래그해 밖에서 뗀 경우를 거른다.
@@ -114,15 +133,21 @@ function ConfirmDialog({ options, onSettle }) {
   }, [])
 
   // 열릴 때 첫 버튼에 포커스를 준다. 확인 다이얼로그에선 그게 '취소'라, 되돌릴 수 없는 동작에서
-  // Enter가 실행이 아닌 취소로 간다(알림은 버튼이 하나뿐이라 그 버튼). 닫을 땐 원래 포커스를
-  // 되돌려 키보드 사용자가 맥락을 잃지 않게 한다(그 사이 사라진 요소면 되돌릴 곳이 없으니 건너뛴다).
+  // Enter가 실행이 아닌 취소로 간다(알림은 버튼이 하나뿐이라 그 버튼).
+  //
+  // 닫을 땐 포커스를 원래 자리로 돌린다. 돌려줄 대상은 open()에서 잡아 둔 opener를 쓴다 — 여기서
+  // document.activeElement를 읽으면 위 effect가 이미 #root를 inert로 만든 뒤라 body가 잡힌다.
+  // opener가 사라졌으면(⋮ 메뉴 항목처럼 다이얼로그를 여는 것만으로 없어지는 경우) 호출부가 준
+  // focusFallback으로 보낸다. body로는 돌리지 않는다 — body.focus()는 포커스를 아무 데도 두지
+  // 않는 것과 같아서, 다음 Tab이 문서 처음부터 다시 시작한다.
   useEffect(() => {
-    const previous = document.activeElement
     panelRef.current?.querySelector('button')?.focus()
     return () => {
-      if (previous?.isConnected) previous.focus?.()
+      const back =
+        opener?.isConnected && opener !== document.body ? opener : focusFallback?.current
+      if (back?.isConnected) back.focus?.()
     }
-  }, [])
+  }, [opener, focusFallback])
 
   useEffect(() => {
     const onKey = (e) => {
