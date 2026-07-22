@@ -13,13 +13,19 @@ public final class ModelCatalog {
 
     public record Entry(String id, String label) {}
 
-    // 게이트웨이 대조·e2e 검증이 끝난 모델만 올린다. 검증 대기 후보(점/하이픈·preview 표기 확인 필요):
-    //   google/gemini-3.1-pro-preview · google/gemini-2.5-pro · google/gemini-3.5-flash
-    //   anthropic/claude-opus-4.8 · anthropic/claude-opus-4.7 · anthropic/claude-opus-4.6
+    // 게이트웨이 대조가 끝난 모델만 올린다(slug/라벨 모두 GET https://ai-gateway.vercel.sh/v1/models 기준,
+    // 2026-07-22 확인 — 버전 표기는 하이픈이 아니라 점이다). 순서가 곧 픽커 노출 순서.
     private static final List<Entry> ENTRIES = List.of(
+            new Entry("anthropic/claude-opus-4.8", "Claude Opus 4.8"),
+            new Entry("anthropic/claude-opus-4.7", "Claude Opus 4.7"),
+            new Entry("anthropic/claude-opus-4.6", "Claude Opus 4.6"),
+            new Entry("google/gemini-3.1-pro-preview", "Gemini 3.1 Pro Preview"),
+            new Entry("google/gemini-3.5-flash", "Gemini 3.5 Flash"),
+            new Entry("google/gemini-2.5-pro", "Gemini 2.5 Pro"),
             new Entry("openai/gpt-4o-mini", "GPT-4o mini")
     );
 
+    // 테스트용 저가 모델. 실사용 모델로 올리려면 이 상수만 바꾸면 된다.
     private static final String DEFAULT_ID = "openai/gpt-4o-mini";
 
     private ModelCatalog() {}

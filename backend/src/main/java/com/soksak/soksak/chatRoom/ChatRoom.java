@@ -40,6 +40,7 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(name = "fold_spoiler_toggle", nullable = false)
     private boolean foldSpoilerToggle;
 
+    // null = 아직 안 고름. 읽을 땐 ModelCatalog.resolve()가 기본값으로 폴백한다.
     @Column(name = "model")
     private String model;
 

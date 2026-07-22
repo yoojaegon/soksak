@@ -93,7 +93,8 @@ public class ChatRoomService {
     @Transactional
     public ChatRoomResponse updateModels(String loginId, Long id, UpdateModelRequest request) {
         ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
-        if (!ModelCatalog.contains(request.model())) throw new BusinessException(ErrorCode.INVALID_INPUT);
+        if (!ModelCatalog.contains(request.model()))
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
         chatRoom.updateModel(request.model());
 
         return ChatRoomResponse.from(chatRoom);
