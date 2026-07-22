@@ -14,6 +14,7 @@
 // 화면은 계속 살아 있어서(비동기 작업이 끝나며 alert을 부르는 등) 겹치는 일이 실제로 생기는데,
 // 나중 것으로 덮어쓰면 앞 호출의 Promise가 영영 안 풀려 그 호출부가 멈춘 채로 남는다.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const ConfirmContext = createContext(null)
 
@@ -94,6 +95,24 @@ function ConfirmDialog({ options, onSettle }) {
   // 백드롭은 "누르기도 여기서 시작했을 때"만 닫는다. 패널 안에서 드래그해 밖에서 뗀 경우를 거른다.
   const downOnBackdrop = useRef(false)
 
+  // 떠 있는 동안 뒤 페이지를 얼린다: 스크롤 잠금(window.confirm이 해주던 것) + inert.
+  // aria-modal은 선언일 뿐이라 스크린리더·브라우저 찾기는 뒤 내용을 계속 훑는다. inert는 포커스·
+  // 클릭·접근성 트리에서 서브트리를 통째로 뺀다. React 18은 inert를 prop으로 못 받아 DOM에 직접 꽂고,
+  // 그래서 다이얼로그 자신은 portal로 #root 밖(body)에 그린다 — 안에 있으면 같이 죽는다.
+  //
+  // ※ 이 effect는 반드시 아래 포커스 effect보다 먼저 선언돼 있어야 한다. cleanup은 선언 순서대로
+  //   돌기 때문에, 순서가 바뀌면 #root가 아직 inert인 상태에서 포커스를 되돌리려다 조용히 실패한다.
+  useEffect(() => {
+    const root = document.getElementById('root')
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    if (root) root.inert = true
+    return () => {
+      document.body.style.overflow = prevOverflow
+      if (root) root.inert = false
+    }
+  }, [])
+
   // 열릴 때 첫 버튼에 포커스를 준다. 확인 다이얼로그에선 그게 '취소'라, 되돌릴 수 없는 동작에서
   // Enter가 실행이 아닌 취소로 간다(알림은 버튼이 하나뿐이라 그 버튼). 닫을 땐 원래 포커스를
   // 되돌려 키보드 사용자가 맥락을 잃지 않게 한다(그 사이 사라진 요소면 되돌릴 곳이 없으니 건너뛴다).
@@ -102,15 +121,6 @@ function ConfirmDialog({ options, onSettle }) {
     panelRef.current?.querySelector('button')?.focus()
     return () => {
       if (previous?.isConnected) previous.focus?.()
-    }
-  }, [])
-
-  // 떠 있는 동안 뒤 페이지가 스크롤되지 않게 잠근다(window.confirm이 해주던 것).
-  useEffect(() => {
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
     }
   }, [])
 
@@ -144,7 +154,8 @@ function ConfirmDialog({ options, onSettle }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [onSettle])
 
-  return (
+  // #root를 inert로 덮으므로 다이얼로그는 그 밖(body)에 그린다.
+  return createPortal(
     // 바깥을 누르면 취소. mousedown이 아니라 click에서 닫아야 뒤 요소로 클릭이 새지 않는다
     // (mousedown에 언마운트하면 mouseup이 아래 요소에 떨어져 그쪽 onClick이 딸려 실행된다).
     <div
@@ -183,6 +194,7 @@ function ConfirmDialog({ options, onSettle }) {
         </div>
         <div className="confirm-bar" />
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
