@@ -2,6 +2,7 @@ package com.soksak.soksak.chatRoom;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.soksak.soksak.aiClient.ModelCatalog;
 import com.soksak.soksak.auth.RefreshTokenRepository;
 import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.character.ChatCharacter;
@@ -21,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.Collections;
 import java.util.Map;
@@ -190,6 +192,71 @@ class ChatRoomCrudE2eTest {
         assertThat(chatRoomRepository.findById(id).orElseThrow().getTitle()).isEqualTo("릴리");
     }
 
+    // ---------- UPDATE MODEL ----------
+    // room.model이 null인 건 "아직 안 골랐다"는 서버 초기 상태일 뿐이고(resolve()가 기본값으로 폴백),
+    // API로는 받지 않는다. 그래서 아래 400 케이스들은 전부 model이 바뀌지 않아야 한다.
+
+    @Test
+    @DisplayName("카탈로그에 있는 모델로 변경하면 200이고 DB에 반영된다")
+    void update_model_persists() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        String slug = ModelCatalog.entries().get(0).id();
+
+        mockMvc.perform(patch("/chatrooms/{id}/model", id)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("model", slug))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.model").value(slug));
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isEqualTo(slug);
+    }
+
+    @Test
+    @DisplayName("model 필드가 없으면 400이고 이미 고른 모델이 지워지지 않는다")
+    void update_model_without_field_returns_400_and_keeps_model() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        String slug = ModelCatalog.entries().get(0).id();
+        patchModel(ownerToken, id, Map.of("model", slug)).andExpect(status().isOk());
+
+        // 빈 본문이 null로 바인딩돼 선택을 조용히 날려버리면 안 된다
+        patchModel(ownerToken, id, Collections.emptyMap()).andExpect(status().isBadRequest());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isEqualTo(slug);
+    }
+
+    @Test
+    @DisplayName("model이 빈 값이면 400을 반환한다")
+    void update_model_with_blank_returns_400() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        patchModel(ownerToken, id, Map.of("model", "  ")).andExpect(status().isBadRequest());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isNull();
+    }
+
+    @Test
+    @DisplayName("카탈로그에 없는 슬러그는 400을 반환한다")
+    void update_model_with_unknown_slug_returns_400() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        patchModel(ownerToken, id, Map.of("model", "openai/nope-9000"))
+                .andExpect(status().isBadRequest());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isNull();
+    }
+
+    @Test
+    @DisplayName("남의 챗룸 모델 변경은 차단되고 모델이 바뀌지 않는다")
+    void update_others_chatroom_model_is_blocked() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        patchModel(otherToken, id, Map.of("model", ModelCatalog.entries().get(0).id()))
+                .andExpect(status().isForbidden());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isNull();
+    }
+
     // ---------- DELETE ----------
 
     @Test
@@ -277,6 +344,13 @@ class ChatRoomCrudE2eTest {
                 .andReturn();
         JsonNode node = objectMapper.readTree(result.getResponse().getContentAsString());
         return node.get("id").asLong();
+    }
+
+    private ResultActions patchModel(String token, long id, Map<String, ?> body) throws Exception {
+        return mockMvc.perform(patch("/chatrooms/{id}/model", id)
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(body)));
     }
 
     private String json(Map<String, ?> body) throws Exception {
