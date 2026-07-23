@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -67,7 +68,8 @@ class CharacterCrudE2eTest {
         mockMvc.perform(post("/characters")
                         .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("name", "릴리", "description", "상냥한 마법사", "persona", "다정하다"))))
+                        .content(json(Map.of("name", "릴리", "description", "상냥한 마법사", "persona", "다정하다",
+                                "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.characterName").value("릴리"))
                 .andExpect(jsonPath("$.persona").value("다정하다"))
@@ -81,17 +83,18 @@ class CharacterCrudE2eTest {
         mockMvc.perform(post("/characters")
                         .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("name", "", "description", "d", "persona", "p"))))
+                        .content(json(Map.of("name", "", "description", "d", "persona", "p",
+                                "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("토큰 없이 생성하면 403을 반환한다")
-    void create_without_token_returns_403() throws Exception {
+    @DisplayName("토큰 없이 생성하면 401을 반환한다")
+    void create_without_token_returns_401() throws Exception {
         mockMvc.perform(post("/characters")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("name", "릴리", "description", "d", "persona", "p"))))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     // ---------- READ ----------
@@ -149,7 +152,8 @@ class CharacterCrudE2eTest {
         mockMvc.perform(put("/characters/{id}", id)
                         .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("name", "바뀐이름", "description", "바뀐설명", "persona", "바뀐페르소나"))))
+                        .content(json(Map.of("name", "바뀐이름", "description", "바뀐설명", "persona", "바뀐페르소나",
+                                "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.characterName").value("바뀐이름"));
 
@@ -167,7 +171,8 @@ class CharacterCrudE2eTest {
         mockMvc.perform(put("/characters/{id}", id)
                         .header("Authorization", "Bearer " + otherToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("name", "해킹", "description", "x", "persona", "x"))))
+                        .content(json(Map.of("name", "해킹", "description", "x", "persona", "x",
+                                "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
                 .andExpect(status().isForbidden());
 
         // 인가 핵심: 차단됐으니 값은 그대로여야 한다 (상태코드와 무관하게 안정적인 검증)
@@ -227,14 +232,15 @@ class CharacterCrudE2eTest {
         MvcResult result = mockMvc.perform(post("/characters")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json(Map.of("name", name, "description", description, "persona", persona))))
+                        .content(json(Map.of("name", name, "description", description, "persona", persona,
+                                "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
                 .andExpect(status().isCreated())
                 .andReturn();
         JsonNode node = objectMapper.readTree(result.getResponse().getContentAsString());
         return node.get("id").asLong();
     }
 
-    private String json(Map<String, String> body) throws Exception {
+    private String json(Map<String, ?> body) throws Exception {
         return objectMapper.writeValueAsString(body);
     }
 }
