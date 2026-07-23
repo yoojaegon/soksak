@@ -24,10 +24,6 @@ import java.util.List;
 public class CharacterService {
     private final CharacterRepository characterRepository;
     private final UserRepository userRepository;
-    private final MessageRepository messageRepository;
-    private final LoreRepository loreRepository;
-    private final ChatRoomRepository chatRoomRepository;
-    private final CharacterLikeRepository characterLikeRepository;
 
     @Transactional
     public ChatCharacter createCharacter(String loginId, CreateCharacterRequest request) {
@@ -82,10 +78,6 @@ public class CharacterService {
     @Transactional
     public void deleteCharacter(String loginId, Long id) {
         ChatCharacter character = getOwnedCharacter(loginId, id);
-        messageRepository.deleteByCharacterId(id);
-        chatRoomRepository.deleteByCharacterId(id);
-        loreRepository.deleteByCharacterId(id);
-        characterLikeRepository.deleteByCharacterId(id);
         characterRepository.delete(character);
     }
     public ChatCharacter getOwnedCharacter(String loginId, Long characterId) {

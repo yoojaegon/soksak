@@ -21,9 +21,4 @@ public interface CharacterLikeRepository extends JpaRepository<CharacterLike, Lo
             "join fetch cl.character c join fetch c.user " +
             "where cl.user.loginId = :loginId order by cl.createdAt desc")
     List<CharacterLike> findByUser_LoginId(@Param("loginId") String loginId);
-
-    // 캐릭터 삭제 시 그 캐릭터에 달린 좋아요를 일괄 정리(연관 행 남아 FK가 걸리는 걸 방지).
-    @Modifying
-    @Query("delete from CharacterLike cl where cl.character.id = :characterId")
-    void deleteByCharacterId(@Param("characterId") Long characterId);
 }

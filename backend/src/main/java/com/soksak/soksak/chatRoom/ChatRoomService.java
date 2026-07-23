@@ -111,7 +111,6 @@ public class ChatRoomService {
     @Transactional
     public void deleteChatRoom(String loginId, Long id) {
         ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
-        messageRepository.deleteByChatRoomId(id);
         chatRoomRepository.delete(chatRoom);
     }
 

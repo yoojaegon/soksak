@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 // 사용자-캐릭터 좋아요를 잇는 조인 엔티티(한 행 = 한 명이 한 캐릭터에 누른 좋아요).
 // (user_id, character_id) 유니크 제약으로 같은 사용자의 중복 좋아요를 DB 차원에서 막는다.
@@ -25,6 +27,7 @@ public class CharacterLike extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     User user;
     @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     ChatCharacter character;
 
     @Builder
