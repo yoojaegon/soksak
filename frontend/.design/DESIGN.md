@@ -1,100 +1,224 @@
-# Reel Theory
+# 웹툰 팝 (Webtoon Pop)
 
-## Overview
-Reel Theory is a design system for film studios, screening platforms, art-house streaming services, and any product that treats cinema as a medium rather than as content. The aesthetic borrows from film-festival print catalogs and 35mm projection booths: deep ink black, champagne gold for credits and accolades, a precise crimson reserved for play state and live screening indicators, and a faint film-grain texture beneath surfaces to give the interface the analog warmth of celluloid. Layouts are letterboxed — content lives within deliberate horizontal bands with black bars above and below, echoing the projected frame. Hero trailers play full-bleed at full brightness; metadata recedes into the gold-on-black palette of a Cannes program. Reel Theory rejects the streaming-service convention of dense thumbnail grids in favor of a curated, editorial film-card hierarchy where each title gets room to be a film, not a tile.
+> 속삭(soksak) 프론트엔드 디자인 시스템 · **단일 소스**
+> 확정 2026-07-29. 이전 *Reel Theory*(영화 카탈로그 무드) 시스템은 폐기 — 이 파일이 대체한다. 옛 명세는 git 히스토리 참고.
+>
+> ⚠️ **이 문서는 명세(spec)다. 현재 `src/styles.css`는 아직 Reel Theory 토큰으로 돌아간다.** 실제 코드 이식은 별도 작업이며, 시작 전 사용자 승인을 받는다. 문서와 코드가 당분간 갈라져 있는 건 정상(이식 전 단계).
 
-## Colors
-- **Background** (#0B0B0C): Ink black — the dominant surface
-- **Surface** (#141416): Card and panel surface, marginally lifted from background
-- **Surface Elevated** (#1C1C1F): Hover and active surfaces, modal background
-- **Surface Highest** (#262629): Active film card during playback
-- **Letterbox** (#000000): Pure black used for top and bottom letterbox bars
-- **Champagne** (#D4A574): Primary accent — title credits, accolades, primary CTAs
-- **Champagne Bright** (#E8C094): Hover state on champagne
-- **Champagne Deep** (#A88554): Pressed state
-- **Champagne Soft** (#3A2E1F): Champagne-tinted backgrounds for active items
-- **Crimson** (#A6192E): Reserved exclusively for play state, "Now Playing," live screening indicator
-- **Crimson Bright** (#C8334B): Hover on crimson
-- **Text Primary** (#F5F0E6): Warm off-white reminiscent of projector light
-- **Text Secondary** (#A8A299): Descriptions, cast lists, secondary credits
-- **Text Subtle** (#6E6962): Director, year, runtime, language metadata
-- **Text Faint** (#3F3C37): Disabled, placeholder
-- **Outline** (#252528): Card edges, divider lines
-- **Outline Strong** (#3D3D40): Focused inputs, prominent separators
-- **Critic Score Hot** (#A6192E): 90-100 rotten-tomato-equivalent score
-- **Critic Score Warm** (#D4A574): 70-89 score
-- **Critic Score Cool** (#6E6962): Below 70
+---
 
-## Typography
-- **Display Serif**: GT Sectra (fallback Tiempos Headline, Trajan Pro) — used for film titles, hero typography, opening credits
-- **Modern Serif**: Source Serif 4 (fallback Charter) — used for editorial body, synopses
-- **Sans**: Söhne (fallback Inter, Helvetica Neue) — used for UI, navigation, metadata
-- **Display Condensed**: Druk Wide or Druk Condensed — used for the title of "REEL THEORY" wordmark and high-impact callouts
-- **Mono**: JetBrains Mono — used for runtimes, year, aspect ratios, timecodes
+## 개요 (Overview)
 
-The signature is the GT Sectra display serif at very large sizes — its high contrast and tall x-height evoke the typography of mid-century film posters. Film titles render at 88-144px in display serif. Director and credit lines use sans uppercase caption with 0.16em tracking — a direct reference to film festival program typography. Runtime and year are always in mono ("1h 47min · 2026 · 1.85:1") so the metadata bar aligns cleanly. Synopses use Source Serif italic at 21px for the headline pull and 18px regular for body.
+웹툰 팝은 **한국 캐릭터-챗 서비스**를 위한, 밝고 활기찬 웹툰·스티커 감성의 시스템이다. 처음 만나는 사람도 부담 없이 "가볍게 말 걸어보게" 만드는 톤이 목표다. 핵심 장치는 **굵은 잉크 테두리 + 딱 떨어지는 하드 오프셋 섀도우**(네오브루탈리즘), **멀티 파스텔 액센트**, **말풍선·스티커 모티프**, **라운드 시스템 산세리프**다.
 
-Type scale: Cinematic 144/140 (display serif, -0.04em, used once per page on the hero film), Title 88/88 (display serif), Subtitle 56/60 (display serif), H1 40/48, H2 28/36 (display serif), Credit Line 12/18 (sans uppercase 0.16em tracking), Body Pull 21/32 (modern serif italic), Body 18/30 (modern serif), Small 14/22 (sans), Caption 12/16 (sans uppercase 0.12em tracking), Mono Meta 13/16 (mono tabular), Wordmark 14/16 (Druk Wide uppercase 0.2em tracking).
+두 가지 축이 이 시스템을 규정한다:
 
-## Elevation
-Reel Theory uses surface lightness for elevation, layered with subtle film-grain texture. Each surface step adds approximately 8% brightness. Cards on background use surface (#141416); hover lifts to surface-elevated. Active "Now Playing" cards gain a 1px crimson border with no glow — the crimson itself is enough. Modals use surface-elevated with a 1px champagne-soft border (rgba(212, 165, 116, 0.16)) and a backdrop of rgba(11, 11, 12, 0.9).
+1. **다크가 기본 테마.** base(`:root`)는 다크. 라이트는 `[data-theme="light"]` 오버라이드로 제공하며 지원 시점은 후순위(미정).
+2. **화면마다 "강도"가 다르다 (2-강도 시스템).** 둘러보는 화면(홈·카탈로그)은 팝을 **세게** 밀어 첫인상을 끌고, 실제로 오래 머무는 **채팅 화면은 차분·미니멀**하게 물러난다. 같은 팔레트, 다른 강도. → [두 강도 시스템](#두-강도-시스템) 참고.
 
-A signature treatment: a faint film-grain SVG noise overlay (8% opacity, 1px noise) sits across the entire viewport, lending the interface an analog warmth without distracting from content. Hero trailer playbacks remove the grain for crisp video presentation.
+---
 
-Border radius: 0 on letterbox bars and film stills (sharp editorial crops), 2px on metadata pills, 4px on buttons, 6px on cards, 8px on modals. Rounded radius is intentionally restrained — cinema is rectangular.
+## 색상 & 토큰 (Colors & Tokens)
 
-## Components
-- **Hero Letterboxed Frame**: The signature container for featured films. A 21:9 cinematic frame with hard black letterbox bars above and below. Film title in display serif 144px sits in the lower-left of the frame. Director credit in sans caption uppercase champagne sits below. A small crimson "PLAY TRAILER" button hovers in the lower-right.
-- **Film Card**: Editorial card showing a 2:3 vertical poster (sharp corners, no border-radius) with the film title in display serif 28px below, year and runtime in mono caption, and a champagne accolade row beneath ("CANNES · 2025 · OFFICIAL SELECTION"). Hover lifts the card with a subtle 240ms champagne accent stripe sliding in from the left.
-- **Now Playing Indicator**: A persistent banner appearing at the bottom of the viewport during active playback. Crimson 4px top rule, surface-highest background. Contains: 48px poster thumbnail, film title in display serif 18px, sans-caption director credit, scrubber bar in champagne with crimson playhead, and timecode in mono on the right.
-- **Credits Block**: A typographic block listing cast and crew in film-poster format — director, screenplay, cinematography, editor, music — each label in sans caption uppercase 0.16em tracking champagne, value in display serif 18px text-primary. Used on film detail pages and as the closing element of trailers.
-- **Accolade Strip**: A horizontal row of laurel-wreath ornaments (gold) bracketing accolade text. Used to highlight festival selections, critic scores, and awards. The laurel is a 24px SVG icon on each side with champagne stroke.
-- **Critic Score Plate**: A square 64px plate showing critic score in display serif tabular figures, with the score color-coded (hot crimson 90+, warm champagne 70-89, cool subtle below 70). Used in film cards and detail pages.
-- **Trailer Player**: A 16:9 or 2.39:1 video container with a 64px crimson play button centered. Hover scales the play button to 72px and brightens to crimson-bright. Custom controls appear on hover: timeline scrubber in champagne, play/pause toggle in champagne, time remaining in mono.
-- **Letterbox Page Wrapper**: A page-level layout component that wraps the entire experience in a 6px black letterbox top and bottom (32px on larger viewports). Used selectively on hero pages to invoke a projected-frame feel.
-- **Synopsis Pull**: A long-form synopsis block with a 21px modern-serif italic deck (the "logline") at the top, a 4px champagne left rule, and 18px modern-serif body beneath. Set in a 580px reading column.
-- **Buttons**: Primary uses champagne (#D4A574) fill with ink black text in sans uppercase caption with 0.12em tracking, 4px radius, 12x24px padding. Hover brightens to champagne-bright. Secondary uses transparent background with 1px champagne border. The crimson play button is reserved exclusively for media playback — never used as a generic CTA.
-- **Watchlist / Saved**: A small bookmark icon in outline champagne by default, filling to solid champagne on tap. Used to save films for later — paired with a subtle 200ms fill animation.
-- **Showtime / Screening Block**: For platforms with theatrical or live-screening data — a list of upcoming screenings with venue name in display serif 19px, location and time in sans caption uppercase, and a champagne "RESERVE" CTA on the right. Sold-out states show "SOLD OUT" in mono uppercase ink-faint.
-- **Filter Bar**: Sticky horizontal bar with sans caption filter labels: GENRE, ERA, DIRECTOR, COUNTRY, LANGUAGE. Active filters use champagne fill on a 2px-radius pill. The bar background uses surface with a 1px outline bottom border.
-- **Inputs**: 1px outline-strong border, surface background, 4px radius, 12x16px padding. Focus border becomes champagne with no glow.
+액센트 팔레트는 **두 테마 공통**(명도 70%+라 다크에서도 쨍하게 뜬다). 갈리는 건 표면(paper)·잉크(ink)·라인·그림자다. 색은 **oklch가 정본**, hex는 근사값(참고용).
 
-## Spacing
-- Base unit: 4px
-- Scale: 4, 8, 16, 24, 32, 48, 64, 96, 128, 192, 256px
-- Container max-width: 1440px with 48px horizontal padding (large viewports get more breathing room)
-- Reading column: 580px for synopsis and editorial
-- Letterbox bar height: 24px on smaller viewports, 32px on desktop, 48px on cinematic pages
-- Card grid gap: 32px horizontal, 48px vertical
-- Section spacing: 96px between major sections
+### 액센트 (테마 공통)
 
-## Motion
-Motion in Reel Theory is unhurried and projector-paced. Standard duration is 320ms with cubic-bezier(0.22, 0.61, 0.36, 1) easing (a confident ease-out). Card hovers use a slow 320ms champagne accent slide. Film posters cross-fade between frames every 4.8 seconds in autoplay hero contexts. Trailer modal open uses a 480ms scale-up from the poster origin to fullscreen — like a projector unspooling. The film-grain overlay subtly shifts at 12 fps (intentionally slow) to mimic actual film grain. Scrubbing the trailer timeline scrubs the grain too. Page transitions use a slow letterbox-bar slide-in (320ms) before the body content fades in (240ms).
+| 토큰 | oklch | ~hex | 용도 |
+|---|---|---|---|
+| `--coral` / `--coral-deep` | `70% .17 22` / `60% .19 22` | `#f4715f` / `#d94a3d` | 로맨스, 주 CTA 그라디언트 한 축, hot 배지 |
+| `--sky` / `--sky-deep` | `72% .13 232` / `60% .15 245` | `#66ade3` / `#4f80d8` | 미스터리·SF, 내 말풍선 |
+| `--lilac` / `--lilac-deep` | `70% .15 300` / `58% .17 300` | `#b57fe4` / `#965ad2` | 판타지, 브랜드 그라디언트, 그림자 틴트 |
+| `--mint` / `--mint-deep` | `80% .13 168` / `66% .14 170` | `#6fd3b3` / `#35b7a0` | 일상·힐링, "대화 중" 상태 |
+| `--sun` / `--sun-deep` | `88% .15 92` / `80% .16 78` | `#f0c948` / `#eea63f` | 강조 스트라이프, 로그인·하이라이트 바 |
+| `--badge-new` | `72% .16 145` | 그린 | NEW 배지 |
+| `--badge-hot` | `70% .18 22` | 코랄 | 인기 배지 |
 
-## Iconography
-Custom outlined icon set at 1.5px stroke, sharp and geometric. The vocabulary is cinematic: film reel, clapboard, ticket stub, popcorn, projector, marquee bulb, camera body, mono earpiece, vinyl reel, theater seat. Laurel wreath SVGs serve as accolade brackets. Icons are 18px default in text-secondary, scaling to 24px on primary controls and 32px in feature contexts. Champagne on active states, crimson only on playback controls.
+브랜드 그라디언트 = `linear-gradient(135deg, var(--coral), var(--lilac))` (로고 점·주 버튼·아바타 폴백).
 
-## Photography & Video Guidance
-Posters use 2:3 vertical ratio — original film-poster proportions. Hero stills use 21:9 cinematic ratio. Trailers default to 1.85:1 or 2.39:1 aspect. Avoid square crops, modern-streaming-tile aspect ratios, and any treatment that crops out original poster typography. Black-and-white poster art is welcomed and presented at full fidelity. Behind-the-scenes photography uses 3:2 with a faint sepia warmth.
+### 표면 · 잉크 · 그림자 (테마별)
 
-## Voice and Tone
-- Editorial and considered. Like a film festival catalog or a Criterion Collection essay.
-- Use cinematic idiom: "Directed by," "Director of Photography," "Edited by," "Original Score," "In Selection," "Restored from a 4K scan."
-- Avoid streaming-service marketing copy ("You'll love this!" — never).
-- Synopses are loglines first, then a single editorial paragraph — not bullet lists of genre tags.
-- Errors and empty states use cinematic dignity: "This title is not currently available in your region," "No screenings scheduled."
-- Loading states use a slow champagne radial mark — like a film reel spinning up.
+```css
+/* ===== BASE = DARK (:root) ===== */
+:root{
+  --paper:       oklch(19% 0.035 300);  /* 앱 배경 */
+  --paper-2:     oklch(25% 0.035 300);  /* 카드·패널 (배경보다 살짝 밝게) */
+  --paper-tint:  oklch(31% 0.035 300);  /* 입력·hover·chip 바닥 */
+  --ink:         oklch(92% 0.02 320);   /* 본문 + 테두리 (다크에선 밝음) */
+  --ink-soft:    oklch(73% 0.03 300);   /* 보조 텍스트 */
+  --line:        oklch(44% 0.03 300);   /* 얇은 구분선(차분 강도용) */
 
-## Do's and Don'ts
-- Do use letterboxing as both decorative and structural — the projected frame is a core metaphor
-- Do reserve crimson strictly for playback indicators — Now Playing, play buttons, live screening
-- Do use sans caption uppercase with wide tracking (0.12-0.16em) for all credit and metadata typography
-- Do allow film posters to retain their original aspect ratio (2:3) and typography
-- Do pair the film-grain overlay subtly with all dark surfaces — the analog warmth is intentional
-- Don't use streaming-service tile grids — Reel Theory's grid is curated and editorial
-- Don't apply crimson to non-playback buttons or generic CTAs
-- Don't crop posters into square thumbnails or modern-streaming card ratios
-- Don't autoplay trailers with sound — silent autoplay is acceptable on hover, sound requires intent
-- Don't introduce neon colors, gradients, or modern fintech aesthetics
-- Don't use exclamation marks in copy, marketing CTAs, or push notifications
-- Don't reduce display serif headlines below 56px — the cinematic scale is the system's voice
+  /* 하드 오프셋 섀도우 색: 다크는 순백 대신 라일락 엣지 */
+  --edge:        oklch(60% 0.07 300);
+  --shadow-card: 0 10px 0 -4px oklch(70% .15 300 / .16), 0 18px 40px -22px oklch(0% 0 0 / .55);
+  --shadow-pop:  0 20px 0 -8px oklch(70% .15 300 / .18), 0 26px 55px -24px oklch(0% 0 0 / .65);
+
+  /* 밝은 배경(sun/하이라이트/스티커) 위에 올라가는 글자색 */
+  --on-bright:   oklch(22% 0.03 300);
+}
+
+/* ===== LIGHT override ===== */
+:root[data-theme="light"]{
+  --paper:       oklch(98.5% 0.012 320);
+  --paper-2:     oklch(100% 0 0);
+  --paper-tint:  oklch(96% 0.02 320);
+  --ink:         oklch(27% 0.03 300);
+  --ink-soft:    oklch(46% 0.03 300);
+  --line:        oklch(90% 0.02 320);
+
+  --edge:        var(--ink);            /* 라이트는 잉크(거의 검정) 하드 섀도우 */
+  --shadow-card: 0 10px 0 -4px oklch(70% .15 300 / .12), 0 18px 40px -22px oklch(40% .08 300 / .5);
+  --shadow-pop:  0 20px 0 -8px oklch(70% .15 300 / .14), 0 26px 55px -24px oklch(40% .08 300 / .6);
+
+  --on-bright:   var(--ink);
+}
+```
+
+**규칙**: 하드 오프셋 섀도우는 절대 `var(--ink)`를 직접 쓰지 말고 **`var(--edge)`**를 쓴다(다크에서 순백 엣지가 눈부심 → 라일락으로 눌러야 하므로). 밝은 액센트(sun 버튼, 형광 하이라이트 바, 스티커) 위 글자는 `--ink` 대신 **`var(--on-bright)`**.
+
+### 앰비언트 배경
+
+body에 은은한 컬러 글로우(라이트/다크 공통, 알파라 자동 적응):
+```css
+background:
+  radial-gradient(60% 40% at 12% -6%,  oklch(80% .12 168 / .24), transparent 60%),
+  radial-gradient(50% 40% at 96% 2%,   oklch(75% .14 300 / .22), transparent 60%),
+  radial-gradient(46% 36% at 78% 40%,  oklch(78% .13 232 / .16), transparent 60%),
+  var(--paper);
+```
+
+---
+
+## 두 강도 시스템 (Two-Intensity System)
+
+같은 토큰·같은 팔레트를, 화면 성격에 따라 **강(强) / 약(弱)** 두 강도로 적용한다. 이게 웹툰 팝의 핵심 규칙이다.
+
+| | **강 (Pop) — 둘러보기 홈·카탈로그·메이커 CTA** | **약 (Calm) — 채팅 화면** |
+|---|---|---|
+| 테두리 | `2px solid var(--ink)` | `1px solid var(--line)` |
+| 그림자 | 하드 오프셋(`0 Npx 0 var(--edge)`) + `--shadow-card/pop` | 부드러운 확산 그림자만, **하드 오프셋 없음** |
+| 채움 | 쨍한 액센트·그라디언트 | 표면색 위주, 액센트는 **포인트에만**(헤더 아바타·전송 버튼·내 말풍선 틴트) |
+| 모서리 | `--r-lg`(28px) 크게 | `--r-md`(18px) + 꼬리쪽 6px |
+| 목적 | 첫인상·유입·개성 최대 | 대화 몰입·눈 피로 최소 (긴 세션) |
+
+> 이유: 채팅은 오래 머무는 공간이라 굵은 테두리·하드 섀도우·쨍한 색을 그대로 쓰면 시끄럽고 눈이 피로하다. 팝 정체성은 **아바타·전송 버튼 같은 포인트**로만 남긴다. (A/B/C 비교 후 A안 채택.)
+
+구현 힌트: 강도는 컴포넌트 기본값으로 두되, 채팅 영역은 래퍼(예: `.chat` 스코프)에서 테두리·그림자 토큰을 얇은 값으로 재정의하거나, `.pop`(강) 유틸리티를 카탈로그 컴포넌트에만 부여한다.
+
+---
+
+## 타이포그래피 (Typography)
+
+- **UI/디스플레이 공통**: 라운드 시스템 산세리프.
+  `--font-ui: "Apple SD Gothic Neo","Malgun Gothic",system-ui,-apple-system,"Segoe UI",sans-serif;`
+  실제 이식 시 라운드 웹폰트(예: Pretendard, 또는 둥근 고딕 계열) 도입 검토. **명조(serif)는 쓰지 않는다**(Reel Theory 잔재).
+- 성격: 굵고(=900) 큼직하게, 자간 살짝 좁게(`-0.02 ~ -0.035em`). 제목은 무겁게, 본문은 500.
+
+타입 스케일(clamp, 반응형):
+| 역할 | 크기 |
+|---|---|
+| Hero | `clamp(2.6rem, 7vw, 5rem)` / 900 / `-0.035em` |
+| 2XL (섹션 제목) | `clamp(1.5rem, 3.4vw, 2.4rem)` / 900 |
+| LG (카드 이름) | `1.25rem` / 900 |
+| MD (본문·버튼) | `1rem` |
+| SM (칩·보조) | `0.875rem` / 700~800 |
+| XS (배지·아이브로) | `0.78rem` / 800 |
+
+시그니처: 히어로 제목 일부를 `.hl`로 감싸고 뒤에 **형광 하이라이트 바**(sun→coral 그라디언트, 살짝 회전)를 깐다. 이때 글자는 `--on-bright`.
+
+---
+
+## 간격 · 라운드 · 그림자 (Spacing / Radius / Elevation)
+
+- 4pt 스케일: `--s-1:4 · s-2:8 · s-3:12 · s-4:16 · s-5:24 · s-6:32 · s-7:48 · s-8:64 · s-9:96`
+- 컨테이너: `width:min(1160px, 92vw)` 가운데 정렬(`.wrap`)
+- 라운드: `--r-sm:10 · r-md:18 · r-lg:28 · r-xl:40 · r-pill:999`
+- 섹션 간 여백: `--s-8~9`
+- 엘리베이션 = **표면 밝기 차 + 하드 오프셋(강 강도)**. 카드는 `--paper-2`(배경보다 밝음) + `--shadow-card`, hover 시 `translateY(-6px)` + `--shadow-pop`. 다크에선 밝은 테두리가 층을 대신 만들어 준다.
+
+---
+
+## 컴포넌트 (Components)
+
+강도 표기: **[강]** = 홈/카탈로그, **[약]** = 채팅.
+
+- **Nav — 플로팅 필** **[강]**: 상단 sticky, 알약형(`--r-pill`), `2px var(--ink)` 테두리 + 유리(블러). 다크 유리 배경 `oklch(28% .04 300 / .72)`, 라이트는 흰 유리. 로고(그라디언트 물방울 점 + "속삭") + 링크 + `로그인` CTA(sun 배경·`--on-bright` 글자·`0 4px 0 var(--edge)`).
+- **Hero** **[강]**: 아이브로 필 → 900 대형 제목(`.hl` 형광 바) → 보조문(`--ink-soft`) → 버튼 2개. 오른쪽에 떠다니는 **스티커 말풍선**(꼬리 달린, 살짝 회전, `float` 애니메이션). 스티커 글자는 `--on-bright`.
+- **카테고리 필** **[강]**: 알약 버튼 가로 나열, `2px var(--ink)` + `0 3px 0 var(--edge)`. 활성(`is-on`)은 잉크 채움 + 반전 글자.
+- **캐릭터 카드** **[강]**: 세로 카드. 상단 정사각(`aspect-ratio:1/1`) **초상 이미지**(→ [캐릭터 아트](#캐릭터-아트--이미지)), 좌상단 배지(NEW/인기), 하단 본문 = 이름(900) + 한 줄 대사(`--ink-soft`) + 장르 칩 + **💬 대화 시작** 버튼. `2px var(--ink)` + `--shadow-card`, hover 시 살짝 떠오름.
+- **채팅 화면** **[약]**: 헤더(뒤로 · 아바타 · 이름/●대화중 · ⋯) → 스레드 → 입력 바.
+  - 헤더/입력 구분선 `1px var(--line)`.
+  - 말풍선: 상대 = `--paper-2` + `1px var(--line)`, 왼아래 6px 각짐. 나 = `--sky` 반투명 틴트(다크 `.26`, 라이트 `.16`), 오른아래 6px. **하드 섀도우·굵은 테두리 없음.**
+  - 포인트 컬러만 팝: 헤더 아바타(그라디언트), 전송 버튼(그라디언트 원형).
+- **메이커 CTA** **[강]**: 큰 라운드 블록(`--r-xl`), 앰비언트 그라디언트 배경 + `2px var(--ink)` + `--shadow-pop`. 카피 + 흔들리는(wobble) 블롭 아바타. 카피는 "이미지를 올리면 카드가 완성" — 업로드 서사를 강조.
+- **버튼**:
+  - Primary = 브랜드 그라디언트 채움, `--paper-2`(다크에선 어두운) 글자, `2px var(--ink)` + `0 6px 0 var(--edge)`, hover `translateY(-3px)`·press `translateY(2px)`(섀도우 동반 축소).
+  - Ghost = `--paper-2` 배경 + `2px var(--ink)` + `0 4px 0 var(--edge)`.
+  - 전송(원형) = 그라디언트, [약] 채팅에선 하드 섀도우 대신 부드러운 그림자.
+- **배지**: 알약, `2px var(--ink)` + `0 2px 0 var(--edge)`. `new`=그린, `hot`=코랄. 글자 `--paper-2`.
+- **칩(장르/속성)**: 작은 알약, `1.5px var(--ink)`, 반투명 액센트 바닥(`c-rom/fan/day/mys` 등), 800.
+- **스티커 말풍선**: `2px var(--ink)` + `--shadow-card`, 꼬리(회전한 정사각+오른/아래 테두리), 밝은 액센트 바닥 + `--on-bright` 글자.
+- **입력**: 알약/라운드, `--paper-tint` 바닥. [강]은 `2px var(--ink)`, [약]은 `1px var(--line)`.
+
+---
+
+## 캐릭터 아트 · 이미지
+
+- **전략 = 제작자 업로드** (확정). 각 캐릭터는 **제작자가 올린 일러스트**를 정사각(1:1)으로 담는다. 카드·채팅 헤더·아바타에서 공통 사용.
+- 업로드 처리(백엔드): `ChatCharacter`에 `imageUrl` 필드 신설(현재 없음, 아바타=이름 첫 글자). 초기엔 URL 입력 → 이후 업로드/스토리지. 규격·검열(부적절 이미지) 처리 필요. → todos A0-2 / A1.
+- **폴백**(이미지 없을 때): 브랜드 그라디언트 배경 + 이름 첫 글자 모노그램(현재 방식 유지). 목업의 SVG 초상은 "이미지가 들어가면 이렇게 보인다"는 자리표시일 뿐, 실제 스타일은 업로더 몫.
+- 업로드 이미지는 **라이트/다크 공통**(자기 색 유지). 테마는 카드 배경·테두리만 대응하면 된다.
+- 비율: 카드·아바타 **1:1 정사각**. 스트리밍 타일 비율·세로 포스터 강요하지 않는다.
+
+---
+
+## 모션 (Motion)
+
+- 표준 `--dur: 220ms`, `--ease-out: cubic-bezier(.22,1,.36,1)`, `--ease-in-out: cubic-bezier(.65,0,.35,1)`.
+- 상호작용: 카드 hover 떠오름, 버튼 hover 시 위로 뜨며 하드 섀도우 커지고 press 시 눌림(섀도우 축소) — "누르는 맛".
+- 데코: 스티커 `float`(상하 6s), 메이커 블롭 `wobble`(회전 8s). 은은하고 느슨하게.
+- **`prefers-reduced-motion: reduce`** 시 모든 애니메이션·hover 이동 제거(목업에 이미 반영). 필수.
+
+---
+
+## 아이콘 & 이모지 (Iconography & Emoji)
+
+- **이모지는 유지** (확정). 카피의 💗 ✦ ㅋㅋㅋㅋ 💬 등은 웹툰 팝의 가벼운 톤을 만드는 장치 → 커스텀 아이콘으로 대체하지 않는다.
+- 단, **의미 전달을 이모지에만 의존하지 않는다**(접근성): 이모지는 장식, 옆에 텍스트 라벨을 함께 둔다. 순장식 이모지는 `aria-hidden`.
+- 아이콘이 필요할 땐 굵은(2px 내외) 둥근 스트로크의 심플 세트. 날카로운 기하보다 둥글게.
+
+---
+
+## 보이스 & 톤 (Voice & Tone)
+
+- **친구가 말 거는 톤.** 반말/구어체, 가볍고 다정하게. "가볍게 말 걸어보는" 진입장벽 최소.
+- 캐릭터 대사는 한 줄 훅(로그라인)으로: "오늘 밤도 네 얘기, 내가 다 들어줄게." 장르 태그 나열 대신 목소리를 보여준다.
+- 이모지·`ㅋㅋ` 같은 캐주얼 마크 허용(과하지 않게).
+- 빈 상태: 무겁지 않게. "아직 준비 중이야 — 곧 새 친구가 올라와요." 식.
+- 정직한 카피: **가짜 지표·후기·숫자 금지**(예: "지금 1,000명 접속 중" 같은 조작 금지). 없는 수치는 쓰지 않는다.
+
+---
+
+## Do / Don't
+
+**Do**
+- 다크를 base로 두고 라이트는 오버라이드로. 하드 섀도우는 `--edge`, 밝은 배경 글자는 `--on-bright`.
+- 화면 성격에 따라 강/약 강도를 지킨다: 카탈로그는 팝, **채팅은 차분**.
+- 액센트는 멀티로 즐겁게 쓰되 잉크 테두리로 묶어 정돈.
+- 캐릭터 대사·이미지가 주인공. 카드는 그걸 담는 틀.
+
+**Don't**
+- 채팅 화면에 홈처럼 굵은 테두리·하드 섀도우·쨍한 색을 그대로 밀지 않는다(눈 피로).
+- 명조(serif)·필름그레인·레터박스 등 Reel Theory 잔재를 섞지 않는다.
+- 하드 오프셋 섀도우에 `var(--ink)`를 직접 쓰지 않는다(다크 눈부심) → `var(--edge)`.
+- 밝은 sun/하이라이트/스티커 위에 밝은 잉크 글자를 얹지 않는다 → `var(--on-bright)`.
+- 가짜 지표·과장 마케팅 카피·느낌표 남발 금지.
+- 의미를 이모지 단독에 싣지 않는다(텍스트 라벨 병기).
+
+---
+
+## 이식 메모 (Porting Notes)
+
+- 현재 `src/styles.css` 최상단 토큰 블록이 **Reel Theory**(`--ink:#0b0b0c` 잉크블랙, `--champ` 샴페인골드, 명조 폰트, 필름그레인 `body::after`)로 되어 있고 레거시 별칭(`--bg/--panel/--primary/--me/--bot`)으로 컴포넌트가 물려 있다. 웹툰 팝 이식 = 이 토큰 블록을 위 [색상 & 토큰](#색상--토큰-colors--tokens)으로 교체 + 필름그레인 제거 + 별칭 재매핑.
+- **실코드 이식은 별도 작업, 사용자 승인 후 진행**(이 문서 확정만으로 styles.css를 바꾸지 않는다).
+- 참고 목업(자체완결 HTML): 라이트 `7102f03f`, 다크(기본) `0cc8fa61`, 채팅 강도비교 `88d8429f` — claude.ai/code/artifact/ 하위.

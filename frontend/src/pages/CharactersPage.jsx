@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
@@ -67,6 +67,36 @@ export default function CharactersPage() {
     }
   }
 
+  // 장르 필터 칩을 마우스로 끌어서 가로 스크롤. (native overflow는 클릭-드래그 팬을 지원 안 함)
+  const chipsRef = useRef(null)
+  const dragRef = useRef({ down: false, startX: 0, startScroll: 0, moved: false })
+
+  const onChipsPointerDown = (e) => {
+    const el = chipsRef.current
+    if (!el) return
+    dragRef.current = { down: true, startX: e.clientX, startScroll: el.scrollLeft, moved: false }
+    el.setPointerCapture?.(e.pointerId)
+  }
+  const onChipsPointerMove = (e) => {
+    const st = dragRef.current
+    if (!st.down || !chipsRef.current) return
+    const dx = e.clientX - st.startX
+    if (Math.abs(dx) > 4) st.moved = true
+    chipsRef.current.scrollLeft = st.startScroll - dx
+  }
+  const onChipsPointerUp = (e) => {
+    chipsRef.current?.releasePointerCapture?.(e.pointerId)
+    dragRef.current.down = false
+  }
+  // 드래그였으면 뒤이어 발생하는 칩 클릭(필터 토글)을 캡처 단계에서 삼킨다.
+  const onChipsClickCapture = (e) => {
+    if (dragRef.current.moved) {
+      e.preventDefault()
+      e.stopPropagation()
+      dragRef.current.moved = false
+    }
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -94,7 +124,15 @@ export default function CharactersPage() {
         </select>
       </div>
 
-      <div className="chip-picker filter-chips">
+      <div
+        className="chip-picker filter-chips"
+        ref={chipsRef}
+        onPointerDown={onChipsPointerDown}
+        onPointerMove={onChipsPointerMove}
+        onPointerUp={onChipsPointerUp}
+        onPointerLeave={onChipsPointerUp}
+        onClickCapture={onChipsClickCapture}
+      >
         <button
           type="button"
           className={`chip${tag === '' ? ' active' : ''}`}
@@ -125,26 +163,31 @@ export default function CharactersPage() {
         </p>
       ) : (
         <div className="card-grid">
-          {characters.map((c) => (
-            <div className="char-card" key={c.id}>
-              <div className="char-avatar">{c.characterName?.[0] ?? '?'}</div>
-              <h3>{c.characterName}</h3>
-              {(c.tags ?? []).length > 0 && (
-                <div className="card-tags">
-                  {c.tags.map((t) => (
-                    <span className="card-tag" key={t}>{genreLabel(t)}</span>
-                  ))}
-                </div>
-              )}
-              <p className="muted">{c.description || '소개가 없습니다.'}</p>
-              <div className="card-stats">
-                <span className="card-stat" title="좋아요">♥ {(c.likeCount ?? 0).toLocaleString()}</span>
-                <span className="card-stat" title="대화수">💬 {(c.chatCount ?? 0).toLocaleString()}</span>
+          {characters.map((c, i) => (
+            <article className="wp-card" key={c.id}>
+              <div className={`wp-art wp-g${(i % 8) + 1}`}>
+                {(c.likeCount ?? 0) >= 1000 && <span className="wp-badge hot">인기</span>}
+                <span className="wp-mono" aria-hidden="true">{c.characterName?.[0] ?? '?'}</span>
               </div>
-              <button onClick={() => startChat(c.id)} disabled={startingId === c.id}>
-                {startingId === c.id ? '입장 중…' : '대화하기'}
-              </button>
-            </div>
+              <div className="wp-body">
+                <h3 className="wp-name">{c.characterName}</h3>
+                <p className="wp-line">{c.description || '소개가 없습니다.'}</p>
+                {(c.tags ?? []).length > 0 && (
+                  <div className="card-tags">
+                    {c.tags.map((t) => (
+                      <span className="card-tag" key={t}>{genreLabel(t)}</span>
+                    ))}
+                  </div>
+                )}
+                <div className="card-stats">
+                  <span className="card-stat" title="좋아요">♥ {(c.likeCount ?? 0).toLocaleString()}</span>
+                  <span className="card-stat" title="대화수">💬 {(c.chatCount ?? 0).toLocaleString()}</span>
+                </div>
+                <button className="wp-talk" onClick={() => startChat(c.id)} disabled={startingId === c.id}>
+                  {startingId === c.id ? '입장 중…' : '💬 대화 시작'}
+                </button>
+              </div>
+            </article>
           ))}
         </div>
       )}
