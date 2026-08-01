@@ -85,12 +85,14 @@ public class ChatAiServerClient implements ChatAiClient{
                     .exchange((req, res) -> {
                         // exchange()는 4xx/5xx에 예외를 던지지 않으므로 상태코드를 직접 확인한다.
                         if (!res.getStatusCode().is2xxSuccessful()) {
+                            log.warn("AI 스트림 응답 상태 이상 (status={}, model={}, roomId={})",
+                                    res.getStatusCode(), request.model(), room.getId());
                             throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
                         }
-                        return readSse(res.getBody(), onToken);
+                        return readSse(res.getBody(), onToken, request.model(), room.getId());
                     });
         } catch (RestClientException e) {   // 연결 실패/타임아웃 등
-            log.warn("AI 스트림 호출 실패", e);
+            log.warn("AI 스트림 호출 실패 (model={}, roomId={})", request.model(), room.getId(), e);
             throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
         }
     }
@@ -136,7 +138,7 @@ public class ChatAiServerClient implements ChatAiClient{
     // ai-server의 SSE 스트림을 줄 단위로 읽어 토큰을 복원한다.
     // ai-server는 토큰 하나를 'data: ...' 여러 줄 + 빈 줄(이벤트 경계)로 보내므로,
     // 빈 줄이 나올 때까지 data 줄을 모아야 토큰 하나가 완성된다.
-    private String readSse(InputStream body, Consumer<String> onToken) throws IOException {
+    private String readSse(InputStream body, Consumer<String> onToken, String model, Long roomId) throws IOException {
         StringBuilder full = new StringBuilder();   // 저장용 전체 답변 누적
         StringBuilder data = new StringBuilder();   // 현재 이벤트의 data 줄 조립
         boolean sawData = false;                     // 이번 이벤트에서 data 줄을 하나라도 봤는지
@@ -146,7 +148,10 @@ public class ChatAiServerClient implements ChatAiClient{
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.isEmpty()) {                       // ── 빈 줄 = 이벤트 경계, 토큰 하나 완성
-                    if (isError) throw new BusinessException(ErrorCode.AI_UNAVAILABLE); // ai-server 내부 에러
+                    if (isError) {
+                        log.warn("AI 스트림 에러 이벤트 수신 (model={}, roomId={})", model, roomId);
+                        throw new BusinessException(ErrorCode.AI_UNAVAILABLE); // ai-server 내부 에러
+                    }
                     String token = data.toString();
                     data.setLength(0);
                     sawData = false;
@@ -174,6 +179,7 @@ public class ChatAiServerClient implements ChatAiClient{
 
         // [DONE]도 못 보고 내용도 없이 스트림이 끝난 경우(연결 중단 등)는 실패로 처리한다.
         if (full.isEmpty()) {
+            log.warn("AI 스트림이 빈 응답으로 종료됨 (model={}, roomId={})", model, roomId);
             throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
         }
         return full.toString();

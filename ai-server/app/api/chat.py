@@ -66,7 +66,7 @@ def chat_endpoint(request: ChatRequest, http_request: Request):
             char_name=request.char_name,
         )
     except Exception:
-        logger.exception("chat 처리 실패")
+        logger.exception("chat 처리 실패 (model=%s)", request.model)
         raise HTTPException(status_code=500, detail="internal error")
     return {"answer": reply}
 
@@ -93,7 +93,7 @@ def chat_stream_endpoint(request: ChatRequest, http_request: Request):
                 yield "\n"
             yield "data: [DONE]\n\n"
         except Exception:
-            logger.exception("chat stream 처리 실패")
+            logger.exception("chat stream 처리 실패 (model=%s)", request.model)
             yield "event: error\ndata: internal error\n\n"
 
     return StreamingResponse(event_source(), media_type="text/event-stream")
