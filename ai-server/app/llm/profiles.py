@@ -18,6 +18,10 @@ class LLMProfile:
     presence_penalty: Optional[float] = None
     frequency_penalty: Optional[float] = None
 
+    # 추론 모델의 thinking 예산 등급("low" 등). 비워두면 실행 시 slug를 보고
+    # 채운다(factory._effort_for) — 환경변수로 주면 그 값이 이긴다.
+    reasoning_effort: Optional[str] = None
+
 
 def _bool_env(key: str, default: bool) -> bool:
     return os.getenv(key, str(default)).lower() in {"1", "true", "yes"}
@@ -49,4 +53,5 @@ def load_profile(
         top_p=float(os.getenv(f"{prefix}TOP_P")) if os.getenv(f"{prefix}TOP_P") else None,
         presence_penalty=float(os.getenv(f"{prefix}PRESENCE_PENALTY")) if os.getenv(f"{prefix}PRESENCE_PENALTY") else None,
         frequency_penalty=float(os.getenv(f"{prefix}FREQUENCY_PENALTY")) if os.getenv(f"{prefix}FREQUENCY_PENALTY") else None,
+        reasoning_effort=os.getenv(f"{prefix}REASONING_EFFORT") or None,
     )

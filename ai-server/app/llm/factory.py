@@ -5,6 +5,20 @@ from langchain_openai import ChatOpenAI
 
 from app.llm.profiles import LLMProfile
 
+# 추론 모델은 출력 예산의 대부분을 thinking에 쓴다(2026-08-04 실측: Gemini 3.1 Pro는
+# 출력 토큰의 ~85%가 추론, reasoning_effort="low"로 추론 -40%·지연 -31%. Flash도 동일 경향).
+# 캐릭터 대화는 수학·코딩과 달라 깊은 추론의 이득이 거의 없어 낮춰 쓴다.
+# Claude 4.8/4.7/4.6은 thinking을 명시해야 켜지므로 이미 추론 0 → 대상 아님.
+# 추론 없는 모델에 이 필드를 보내면 거부될 수 있어 prefix로 대상을 좁힌다.
+_REASONING_EFFORT_BY_PREFIX = {"google/": "low"}
+
+
+def _effort_for(slug: str) -> str | None:
+    return next(
+        (effort for prefix, effort in _REASONING_EFFORT_BY_PREFIX.items() if slug.startswith(prefix)),
+        None,
+    )
+
 
 def build_llm(profile: LLMProfile) -> ChatOpenAI:
     # Vercel AI Gateway(OpenAI 호환) 경유. 키 하나 + base_url 하나로 여러 제공사 모델 호출.
@@ -23,6 +37,8 @@ def build_llm(profile: LLMProfile) -> ChatOpenAI:
         optional["presence_penalty"] = profile.presence_penalty
     if profile.frequency_penalty is not None:
         optional["frequency_penalty"] = profile.frequency_penalty
+    if profile.reasoning_effort is not None:
+        optional["reasoning_effort"] = profile.reasoning_effort
 
     return ChatOpenAI(
         model=profile.model,
@@ -48,8 +64,14 @@ def get_chat_llm(app, model: str | None) -> ChatOpenAI:
     cache = app.state.chat_llm_cache
     llm = cache.get(slug)
     if llm is None:
-        # 기동 시 로드해 둔 CHAT_ 프로필에서 model만 갈아끼운다.
-        profile = replace(app.state.chat_profile, model=slug)
+        # 기동 시 로드해 둔 CHAT_ 프로필에서 model과 추론 등급만 갈아끼운다.
+        # 추론 등급은 slug에서 유도되므로 slug 하나로 캐시 키가 유지된다.
+        base = app.state.chat_profile
+        profile = replace(
+            base,
+            model=slug,
+            reasoning_effort=base.reasoning_effort or _effort_for(slug),
+        )
         llm = build_llm(profile)
         cache[slug] = llm
     return llm
