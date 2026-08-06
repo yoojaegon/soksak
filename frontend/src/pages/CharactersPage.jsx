@@ -99,8 +99,33 @@ export default function CharactersPage() {
 
   return (
     <div>
+      {/* 히어로는 처음 온 사람에게만. 로그인한 사용자에겐 매번 큰 배너가 소음이라
+          아래 컴팩트 헤더만 보여준다. */}
+      {!isAuthenticated && (
+        <section className="hero">
+          <div className="hero-main">
+            <span className="eyebrow">💬 캐릭터와 대화하기</span>
+            <h1 className="hero-title">
+              오늘 밤은<br />
+              <span className="hl">누구와</span> 이야기할까?
+            </h1>
+            <p className="hero-sub">
+              말수 적은 선배부터 수다스러운 음유시인까지. 마음에 드는 캐릭터를 골라
+              바로 말을 걸어보세요. 직접 만들어 둘 수도 있어요.
+            </p>
+            <div className="hero-actions">
+              <Link to="/signup" className="btn-link">시작하기</Link>
+              <Link to="/characters/new" className="btn-ghost">캐릭터 만들기</Link>
+            </div>
+          </div>
+          <p className="sticker" aria-hidden="true">
+            오늘 밤도 네 얘기,<br />내가 다 들어줄게 ✦
+          </p>
+        </section>
+      )}
+
       <div className="page-head">
-        <h1>캐릭터</h1>
+        <h1>{isAuthenticated ? '캐릭터' : '둘러보기'}</h1>
         <Link to="/characters/new" className="btn-link">+ 캐릭터 만들기</Link>
       </div>
 

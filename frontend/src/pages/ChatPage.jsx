@@ -30,8 +30,7 @@ function Spoiler({ text }) {
   )
 }
 
-// 디자인 프리뷰(/preview/chat)도 같은 렌더를 쓰도록 내보낸다.
-export function MessageLine({ content }) {
+function MessageLine({ content }) {
   const regex = /<spoiler>([\s\S]*?)<\/spoiler>/g
   const parts = []
   let last = 0
