@@ -9,6 +9,7 @@ import CharacterEditPage from './pages/CharacterEditPage.jsx'
 import MyCharactersPage from './pages/MyCharactersPage.jsx'
 import PersonasPage from './pages/PersonasPage.jsx'
 import ChatPage from './pages/ChatPage.jsx'
+import ChatPreviewPage from './pages/ChatPreviewPage.jsx'
 
 // 로그인하지 않았으면 로그인 페이지로 보내는 보호용 래퍼
 function RequireAuth({ children }) {
@@ -63,6 +64,10 @@ export default function App() {
         {/* 로그인/회원가입은 사이드바 없이 단독 화면 */}
         <Route path="/login" element={<main className="content"><LoginPage /></main>} />
         <Route path="/signup" element={<main className="content"><SignupPage /></main>} />
+
+        {/* 채팅 디자인 확인용 임시 프리뷰 — 로그인·백엔드 없이 보려고 가드 밖에 둔다.
+            디자인이 확정되면 이 라우트와 ChatPreviewPage를 함께 지운다. */}
+        <Route path="/preview/chat" element={<main className="content"><ChatPreviewPage /></main>} />
 
         {/* 공개 메인: 로그인 없이도 캐릭터 둘러보기 */}
         <Route path="/" element={<HomeLayout />}>

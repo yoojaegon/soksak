@@ -1,40 +1,43 @@
 /* =========================================================================
-   디자인 토큰 — 웹툰 팝 (Webtoon Pop) · 다크 기본
+   디자인 토큰 — 웹툰 팝 (Webtoon Pop) · 라이트 기본
    전체 명세는 frontend/.design/DESIGN.md 참고.
-   밝고 활기찬 캐릭터챗 무드: 어두운 라일락 페이퍼 + 멀티 파스텔 액센트 +
-   라운드 산세리프 + (컴포넌트 pop용) 하드 오프셋 섀도우.
-   ※ 토큰 '이름'은 레거시(Reel Theory)를 유지하고 '값'만 웹툰 팝 다크로 교체 →
+   밝고 활기찬 캐릭터챗 무드: 흰 페이퍼 + 멀티 파스텔 액센트 +
+   라운드 산세리프 + (컴포넌트 pop용) 잉크 하드 오프셋 섀도우.
+   ※ 토큰 '이름'은 레거시(Reel Theory)를 유지하고 '값'만 교체 →
      기존 컴포넌트가 그대로 리스킨된다. 이름의 원뜻보다 아래 주석의 역할을 따를 것.
+   ⚠ 이름 함정: `--ink`는 이름과 반대로 **앱 배경(페이퍼)**이고, `--text`가 잉크(글자·테두리)다.
+     DESIGN.md는 반대로 부르니(--ink=글자) 이식할 땐 이 파일의 주석을 따를 것.
    ========================================================================= */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* 표면 (어두울수록 바닥, 밝을수록 떠오름) — 다크 라일락 계열 */
-  --ink: oklch(19% 0.035 300);          /* 앱 배경 */
-  --surface: oklch(25% 0.035 300);      /* 카드·패널 */
-  --surface-elev: oklch(29% 0.035 300); /* hover·모달 */
-  --surface-high: oklch(33% 0.035 300); /* 활성 */
-  --letterbox: oklch(14% 0.03 300);     /* 최심 표면 */
+  /* 표면 (밝을수록 바닥, 어두울수록 눌림) — 흰 페이퍼 + 옅은 라일락 틴트 */
+  --ink: oklch(98.5% 0.012 320);          /* 앱 배경 */
+  --surface: oklch(100% 0 0);             /* 카드·패널 (배경보다 희게 떠오름) */
+  --surface-elev: oklch(97% 0.015 320);   /* hover·모달 */
+  --surface-high: oklch(94.5% 0.022 320); /* 활성 */
+  --letterbox: oklch(92% 0.025 320);      /* 최심 표면 */
 
-  /* 주 액센트 = lilac (링크·CTA·활성) */
-  --champ: oklch(70% 0.15 300);
-  --champ-bright: oklch(78% 0.15 300);   /* hover */
-  --champ-deep: oklch(58% 0.17 300);     /* pressed */
-  --champ-soft: oklch(33% 0.06 300);     /* 액센트 틴트 표면 */
+  /* 주 액센트 = lilac (링크·CTA·활성)
+     라이트에선 흰 바탕에서 읽혀야 하므로 다크(70%)보다 어둡게 잡는다. */
+  --champ: oklch(55% 0.17 300);
+  --champ-bright: oklch(47% 0.18 300);   /* hover — 라이트에선 '더 진하게'가 hover다 */
+  --champ-deep: oklch(41% 0.16 300);     /* pressed */
+  --champ-soft: oklch(95% 0.035 300);    /* 액센트 틴트 표면 */
 
   /* 보조/강조 = coral (라이브·에러·hot) */
-  --crimson: oklch(60% 0.19 22);
-  --crimson-bright: oklch(70% 0.17 22);
+  --crimson: oklch(55% 0.20 22);
+  --crimson-bright: oklch(47% 0.20 22);
 
-  /* 텍스트 (밝은 라벤더-오프화이트) */
-  --text: oklch(92% 0.02 320);           /* 기본 */
-  --text-2: oklch(73% 0.03 300);         /* 설명·보조 */
-  --text-3: oklch(60% 0.03 300);         /* 메타 */
-  --text-faint: oklch(48% 0.03 300);     /* disabled·placeholder */
+  /* 텍스트 (짙은 라일락-잉크) */
+  --text: oklch(27% 0.03 300);           /* 기본 + 컴포넌트 테두리 */
+  --text-2: oklch(46% 0.03 300);         /* 설명·보조 */
+  --text-3: oklch(58% 0.03 300);         /* 메타 */
+  --text-faint: oklch(70% 0.02 300);     /* disabled·placeholder */
 
   /* 라인 */
-  --outline: oklch(40% 0.03 300);        /* 카드 엣지·구분선 */
-  --outline-strong: oklch(56% 0.03 300); /* 포커스 입력·강한 구분선 */
+  --outline: oklch(90% 0.02 320);        /* 카드 엣지·구분선 */
+  --outline-strong: oklch(78% 0.03 320); /* 포커스 입력·강한 구분선 */
 
   /* 폰트 역할 — 웹툰은 라운드 산세리프 단일(명조 폐기). display/serif도 sans로 매핑 */
   --font-sans: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -49,9 +52,9 @@
   --r-modal: 22px; /* 모달 */
   --r-pill: 9999px;
 
-  /* 하드 오프셋 섀도우 엣지(다크: 라일락) + 밝은 배경 위 글자색 — 컴포넌트 pop용 */
-  --edge: oklch(60% 0.07 300);
-  --on-bright: oklch(22% 0.03 300);
+  /* 하드 오프셋 섀도우 엣지(라이트: 잉크) + 밝은 배경 위 글자색 — 컴포넌트 pop용 */
+  --edge: var(--text);
+  --on-bright: var(--text);
 
   /* 카드 아트 그라디언트용 멀티 액센트 팔레트 */
   --coral: oklch(70% 0.17 22);   --coral-deep: oklch(60% 0.19 22);
@@ -61,9 +64,14 @@
   --sun: oklch(86% 0.15 92);     --sun-deep: oklch(80% 0.16 78);
 
   /* pop 그림자 + 모션 */
-  --shadow-card: 0 10px 0 -4px oklch(70% 0.15 300 / .16), 0 18px 40px -22px oklch(0% 0 0 / .55);
-  --shadow-pop:  0 20px 0 -8px oklch(70% 0.15 300 / .18), 0 26px 55px -24px oklch(0% 0 0 / .65);
+  --shadow-card: 0 10px 0 -4px oklch(70% 0.15 300 / .12), 0 18px 40px -22px oklch(40% 0.08 300 / .5);
+  --shadow-pop:  0 20px 0 -8px oklch(70% 0.15 300 / .14), 0 26px 55px -24px oklch(40% 0.08 300 / .6);
+  /* [약] 차분 강도 — 채팅에서 하드 오프셋 대신 쓰는 부드러운 확산 그림자 */
+  --shadow-soft: 0 18px 40px -30px oklch(40% 0.08 300 / .55);
   --ease-out: cubic-bezier(.22, 1, .36, 1);
+
+  /* 상단바 높이 — 사이드바·채팅 높이 계산이 전부 이 값을 따라간다 */
+  --topbar-h: 60px;
 
   /* ---- 레거시 별칭: 기존 컴포넌트가 그대로 동작하도록 매핑 ---- */
   --bg: var(--ink);
@@ -72,7 +80,8 @@
   --primary-dark: var(--champ-bright);
   --muted: var(--text-2);
   --border: var(--outline);
-  --me: oklch(34% 0.06 245);   /* 내 말풍선 = sky 틴트(다크) */
+  --me: oklch(93% 0.04 245);        /* 내 말풍선 = sky 틴트 */
+  --me-edge: oklch(80% 0.07 245);   /* 내 말풍선 테두리(틴트보다 한 단 진하게) */
   --bot: var(--surface-elev);
 }
 
@@ -91,8 +100,9 @@ body {
   font-family: var(--font-sans);
   /* 은은한 멀티 액센트 앰비언트 글로우 — 웹툰 팝 시그니처(그레인 대체) */
   background:
-    radial-gradient(60% 40% at 12% -6%, oklch(80% 0.12 168 / .10), transparent 60%),
-    radial-gradient(50% 40% at 96% 2%, oklch(75% 0.14 300 / .10), transparent 60%),
+    radial-gradient(60% 40% at 12% -6%, oklch(80% 0.12 168 / .13), transparent 60%),
+    radial-gradient(50% 40% at 96% 2%, oklch(75% 0.14 300 / .12), transparent 60%),
+    radial-gradient(46% 36% at 78% 40%, oklch(78% 0.13 232 / .08), transparent 60%),
     var(--bg);
   background-attachment: fixed;
   color: var(--text);
@@ -137,7 +147,8 @@ a {
   font-size: 24px;
   font-weight: 900;
   letter-spacing: -0.02em;
-  color: var(--champ);
+  /* 워드마크는 잉크, 색은 아래 물방울(::before)이 담당한다 — 액센트를 두 번 쓰지 않는다 */
+  color: var(--text);
   text-decoration: none;
 }
 .logo::before {
@@ -178,9 +189,9 @@ a {
 .sidebar {
   width: 248px;
   flex-shrink: 0;
-  height: calc(100vh - 56px);
+  height: calc(100vh - var(--topbar-h));
   position: sticky;
-  top: 56px;
+  top: var(--topbar-h);
   background: var(--surface);
   border-right: 1px solid var(--outline);
   display: flex;
@@ -771,35 +782,43 @@ button:disabled {
 .wp-g8 { background: linear-gradient(150deg, var(--ink), var(--lilac-deep)); }
 
 /* =========================================================================
-   채팅 화면 — Reel Theory (상영관): 레터박스 프레임 + 시네마틱 헤더 + 장면 대사
+   채팅 화면 — 웹툰 팝 [약] 차분 강도 (DESIGN.md "두 강도 시스템")
+   홈·카탈로그의 2px 테두리와 하드 오프셋 섀도우는 여기서 쓰지 않는다.
+   긴 세션을 버티는 게 우선이라 1px 라인 + 부드러운 그림자로 물러나고,
+   팝 정체성은 포인트에만 남긴다: 헤더 아바타·전송 버튼(그라디언트) + 내 말풍선 sky 틴트.
    ========================================================================= */
 .chat {
   display: flex;
   flex-direction: row;
-  height: calc(100vh - 56px - 64px);
-  background: var(--ink);
+  /* 64px = .content의 상하 패딩(32px×2) */
+  height: calc(100vh - var(--topbar-h) - 64px);
+  min-height: 420px;
 }
-/* 대화 본문 칼럼 — 설정 사이드바가 열리면 우측으로 자리를 내준다 */
+/* 대화 본문 칼럼 — 하나의 차분한 패널. 헤더·입력줄이 위아래에 물려 있다. */
 .chat-main {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
 }
-/* 위·아래 순수 검정 레터박스 바 — 투영된 프레임 느낌 */
-.lb {
-  height: 24px;
-  background: var(--letterbox);
-  flex-shrink: 0;
+/* 방을 못 불러왔을 때의 안내 — 패널 자체엔 패딩이 없어 여기서만 여백을 준다 */
+.chat-notice {
+  padding: 28px;
 }
 
-/* 대화 상대(캐릭터) 헤더 — 영화제 크레딧 무드 */
+/* 대화 상대(캐릭터) 헤더 — 아바타 · 이름 · 메타 한 줄 */
 .chat-head {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 18px 8px 16px;
+  align-items: center;
+  gap: 13px;
+  flex-shrink: 0;
+  padding: 13px 18px;
   border-bottom: 1px solid var(--outline);
 }
 .chat-head-main {
@@ -814,39 +833,60 @@ button:disabled {
   text-transform: uppercase;
   color: var(--text-3);
 }
+/* 헤더 아바타 = 팝 포인트 하나. 이미지가 붙기 전까진 이름 첫 글자 모노그램. */
+.chat-avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--coral), var(--lilac));
+  color: var(--on-bright);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
 .chat-head .ch-name {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 38px;
-  line-height: 0.98;
-  letter-spacing: -0.01em;
-  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.chat-head .ch-sub {
-  margin-top: 10px;
-  max-width: 56ch;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--text-2);
+/* 제작자 · 모델 · 대화중 을 한 줄에 담는 메타 행 */
+.chat-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-3);
 }
-/* "출연 중" 라이브 인디케이터 — 크림슨은 오직 여기/재생에만 */
+.chat-meta .cap {
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 12px;
+}
+/* "대화중" 라이브 인디케이터 — coral은 오직 여기/에러에만 */
 .now-speaking {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  align-self: center;
+  gap: 6px;
   font-family: var(--font-sans);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--crimson-bright);
   white-space: nowrap;
 }
 .now-speaking .dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--crimson);
   box-shadow: 0 0 8px var(--crimson);
@@ -855,55 +895,63 @@ button:disabled {
 @keyframes ns-blink {
   50% { opacity: 0.3; }
 }
-/* 설정 톱니바퀴 버튼 */
-/* 솔드 골드 버튼 + 잉크색 톱니바퀴 — 어두운 헤더에서 확실히 보이게 */
+/* 설정 톱니바퀴 — 차분 강도라 고스트(채움 없음), 활성일 때만 액센트를 켠다 */
 .gear-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   align-self: center;
-  width: 40px;
-  height: 40px;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
   padding: 0;
-  background: var(--champ);
-  border: none;
-  color: var(--ink);
-  border-radius: var(--r-btn);
+  background: none;
+  border: 1px solid var(--outline);
+  color: var(--text-2);
+  border-radius: var(--r-pill);
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.3s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.3s;
 }
 .gear-btn svg {
   display: block;
 }
 .gear-btn:hover {
-  background: var(--champ-bright);
-  transform: rotate(40deg);
+  background: var(--surface-elev);
+  border-color: var(--outline-strong);
+  color: var(--text);
+  transform: rotate(35deg);
 }
-/* 열린 상태: 골드 테두리 + 골드 아이콘으로 토글된 느낌 */
 .gear-btn.on {
-  background: var(--surface-high);
+  background: var(--champ-soft);
+  border-color: var(--champ);
   color: var(--champ);
-  box-shadow: inset 0 0 0 1px var(--champ);
 }
 
-/* 우측 대화 설정 사이드바 — 브라우저 오른쪽 끝에 고정(좌측 채팅목록과 대칭).
-   ChatPage에서만 렌더되므로 메인/다른 화면에는 나타나지 않는다. 톱바(56px) 아래부터 전체 높이. */
+/* 우측 대화 설정 패널 — 대화 패널 옆 칼럼으로 붙는다.
+   (예전엔 브라우저 오른쪽 끝 fixed였는데, 대화가 카드 패널이 되면서 그 위를 덮어 버려 열로 바꿨다.)
+   ChatPage에서만 렌더되므로 메인/다른 화면에는 나타나지 않는다. */
 .chat-aside {
-  position: fixed;
-  top: 56px;
-  right: 0;
-  bottom: 0;
+  flex-shrink: 0;
   width: 280px;
-  z-index: 40;
-  border-left: 1px solid var(--outline);
-  background: var(--surface);
+  margin-left: 16px;
+  height: 100%;
   overflow-y: auto;
-  padding: 22px 22px 28px;
-  animation: aside-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+  background: var(--surface);
+  border: 1px solid var(--outline);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-soft);
+  padding: 20px 20px 26px;
+  animation: aside-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 @keyframes aside-in {
   from { opacity: 0; transform: translateX(16px); }
   to { opacity: 1; transform: translateX(0); }
+}
+/* 설정이 열리면 대화 칼럼이 그만큼 좁아진다(덮지 않는다) */
+@media (max-width: 860px) {
+  .chat-aside {
+    width: 240px;
+  }
 }
 .aside-head {
   display: flex;
@@ -944,6 +992,12 @@ button:disabled {
 .tog:last-child {
   border-bottom: none;
 }
+/* .tog들이 전부 position:relative라 z-index가 없으면 '나중 행'이 '앞 행의 말풍선' 위에
+   그려진다(설명이 아래 토글 글자와 겹쳐 보이던 원인). 열려 있는 행만 위로 올린다. */
+.tog:hover,
+.tog:focus-within {
+  z-index: 3;
+}
 .tog-l {
   display: flex;
   align-items: center;
@@ -981,9 +1035,11 @@ button:disabled {
   right: 0;
   z-index: 1;
   padding: 10px 12px;
-  border: 1px solid var(--outline-strong);
-  background: var(--surface-elev);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  /* 패널(--surface=흰색)과 확실히 구분되게 한 단 눌린 면 + 액센트 테두리 */
+  background: var(--surface-high);
+  border: 1px solid var(--champ);
+  border-radius: var(--r-btn);
+  box-shadow: 0 12px 28px oklch(40% 0.08 300 / 0.35);
   font-family: var(--font-sans);
   font-size: 12px;
   line-height: 1.65;
@@ -995,7 +1051,8 @@ button:disabled {
   transition: opacity 0.15s;
 }
 .tog-info:hover + .tog-tip,
-.tog:focus-visible .tog-tip {
+.tog:focus-visible .tog-tip,
+.tog-tip.show { /* .show는 프리뷰에서 hover 없이 확인하려고 씀 — 프리뷰와 함께 삭제 */
   opacity: 1;
   visibility: visible;
 }
@@ -1005,14 +1062,14 @@ button:disabled {
   letter-spacing: 0.02em;
   color: var(--text-3);
 }
-/* 토글 스위치 */
+/* 토글 스위치 — 웹툰 톤에 맞춰 둥글게 */
 .sw {
   position: relative;
   flex-shrink: 0;
   width: 42px;
   height: 22px;
   border: 1px solid var(--outline-strong);
-  border-radius: 2px;
+  border-radius: var(--r-pill);
   transition: background 0.2s, border-color 0.2s;
 }
 .sw::after {
@@ -1022,6 +1079,7 @@ button:disabled {
   left: 2px;
   width: 16px;
   height: 16px;
+  border-radius: 50%;
   background: var(--text-3);
   transition: left 0.2s, background 0.2s;
 }
@@ -1057,14 +1115,16 @@ button:disabled {
   cursor: default;
 }
 
-/* 헤더의 눈에 띄지 않는 현재 모델 표시 */
+/* 헤더 메타 행의 현재 모델 표시 — 작은 고스트 알약 */
 .model-badge {
   display: inline-block;
-  margin-top: 12px;
+  padding: 2px 9px;
+  border: 1px solid var(--outline);
+  border-radius: var(--r-pill);
   font-family: var(--font-sans);
   font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--text-3);
 }
 
@@ -1074,87 +1134,111 @@ button:disabled {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 8px 8px 30px;
+  gap: 12px;
+  padding: 20px 20px 24px;
 }
 .conv .muted {
   align-self: center;
   padding-top: 24px;
 }
 
-/* 한 사람의 발화 = 한 turn. 발화 사이를 구분선으로 명확히 나눈다. */
+/* 첫 메시지 전 인트로 — 아바타·이름·소개를 대화 자리에 크게 보여준다 */
+.chat-intro {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 46ch;
+  padding: 20px;
+  text-align: center;
+}
+.chat-intro .chat-avatar {
+  width: 76px;
+  height: 76px;
+  font-size: 34px;
+}
+.chat-intro h2 {
+  font-family: var(--font-sans);
+  font-weight: 900;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  margin: 4px 0 0;
+}
+.chat-intro p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-2);
+}
+.chat-intro .chat-intro-cta {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+/* 한 사람의 발화 = 한 말풍선 묶음. 상대는 왼쪽, 나는 오른쪽. */
 .turn {
   position: relative;
-  width: 100%;
-  max-width: 660px;
-  align-self: center;
-  padding: 26px 0 8px;
+  display: flex;
+  flex-direction: column;
+  max-width: min(76%, 580px);
 }
-/* 각 발화 위에 가는 구분선 (첫 발화 제외) */
-.turn::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--outline-strong);
-}
-.turn:first-of-type::before {
-  display: none;
+.turn.them {
+  align-self: flex-start;
 }
 .turn.me {
-  text-align: right;
+  align-self: flex-end;
+  align-items: flex-end;
 }
 /* 발화자 라벨 + 타임코드 */
 .who {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin: 0 4px 5px;
 }
 .turn.me .who {
   justify-content: flex-end;
 }
 .who .name {
   font-family: var(--font-sans);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-.turn.them .who .name {
-  color: var(--champ);
-}
-.turn.me .who .name {
-  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-2);
 }
 .who .tc {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--text-3);
+  color: var(--text-faint);
 }
-/* 캐릭터 대사 = 세리프(이야기), 내 메시지 = 산세리프(현실) */
+/* 말풍선 — 꼬리쪽 모서리만 6px로 각져 방향을 만든다(하드 섀도우·굵은 테두리 없음) */
 .line {
+  padding: 12px 16px;
+  border-radius: var(--r-card);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.72;
   white-space: pre-wrap;
   word-break: break-word;
 }
 .turn.them .line {
-  font-family: var(--font-serif);
-  font-size: 18px;
-  line-height: 1.72;
+  background: var(--surface-elev);
+  border: 1px solid var(--outline);
+  border-bottom-left-radius: 6px;
   color: var(--text);
 }
 .turn.me .line {
-  font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.65;
-  color: var(--text-2);
+  background: var(--me);
+  border: 1px solid var(--me-edge);
+  border-bottom-right-radius: 6px;
+  color: var(--text);
 }
 
 /* 스포일러 가림막 — 클릭하면 펼쳐진다 */
 .spoiler {
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: 5px;
   padding: 0 2px;
   transition: color 0.2s, background 0.2s, filter 0.2s;
 }
@@ -1169,12 +1253,18 @@ button:disabled {
   color: inherit;
 }
 
-/* 응답 대기 로딩: 점 3개가 순서대로 깜빡임 */
+/* 응답 대기 로딩: 빈 말풍선 안에서 점 3개가 순서대로 깜빡임 */
 .typing {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 30px;
+  gap: 7px;
+  height: 44px;
+  padding: 0 18px;
+  width: fit-content;
+  background: var(--surface-elev);
+  border: 1px solid var(--outline);
+  border-radius: var(--r-card);
+  border-bottom-left-radius: 6px;
 }
 .typing span {
   width: 7px;
@@ -1205,7 +1295,8 @@ button:disabled {
 .msg-actions {
   display: flex;
   gap: 12px;
-  margin-top: 8px;
+  /* 숨겨져 있어도 자리는 차지한다 — hover 때 대화가 들썩이지 않게 */
+  margin: 5px 4px 0;
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -1234,7 +1325,10 @@ button:disabled {
   cursor: default;
 }
 
-/* 인라인 수정 입력창 */
+/* 인라인 수정 입력창 — 수정 중인 발화는 말풍선 폭에 갇히지 않게 넓힌다 */
+.turn.editing {
+  width: min(76%, 580px);
+}
 .edit-box {
   display: flex;
   flex-direction: column;
@@ -1247,8 +1341,9 @@ button:disabled {
   border: 1px solid var(--champ);
   border-radius: var(--r-card);
   font-size: 15px;
-  font-family: var(--font-serif);
-  background: var(--surface);
+  line-height: 1.7;
+  font-family: var(--font-sans);
+  background: var(--ink);
   color: var(--text);
   resize: vertical;
 }
@@ -1259,44 +1354,58 @@ button:disabled {
   opacity: 1;
 }
 
-/* 입력줄 — 영화 한 컷을 적어 넣는 필드 */
+/* 입력줄 — 알약 입력 + 원형 전송 버튼(팝 포인트 둘 중 하나) */
 .composer {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  max-width: 660px;
   width: 100%;
-  margin: 0 auto;
-  padding: 14px 8px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 13px 16px;
   border-top: 1px solid var(--outline);
 }
 .composer input {
   flex: 1;
-  padding: 13px 16px;
-  border: 1px solid var(--outline-strong);
-  border-radius: var(--r-btn);
-  background: var(--surface);
+  min-width: 0;
+  padding: 13px 18px;
+  border: 1px solid var(--outline);
+  border-radius: var(--r-pill);
+  background: var(--ink);
   color: var(--text);
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 16px;
+  font-family: var(--font-sans);
+  font-size: 15px;
 }
 .composer input::placeholder {
-  color: var(--text-3);
+  color: var(--text-faint);
 }
 .composer input:focus {
   outline: none;
   border-color: var(--champ);
 }
-/* 종이비행기 아이콘 하나뿐이라 정사각형으로. align-self:stretch로 입력창과 높이를 맞춘다
-   (패딩·글꼴이 바뀌어도 따라간다). */
+/* 전송 = 그라디언트 원형. 차분 강도라 하드 오프셋 대신 부드러운 그림자만. */
 .composer button {
   flex-shrink: 0;
-  align-self: stretch;
   display: grid;
   place-items: center;
-  width: 47px;
+  width: 46px;
+  height: 46px;
   padding: 0;
+  border-radius: 50%;
+  color: var(--on-bright);
+  box-shadow: 0 8px 18px -10px oklch(60% 0.17 22 / 0.9);
+}
+.composer button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* 대화 중 에러 띠 — 패널 안이라 좌우 패딩을 맞춰 준다 */
+.chat-main > .error {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 9px 18px;
+  background: var(--surface-elev);
+  border-top: 1px solid var(--outline);
 }
 
 /* 링크를 버튼처럼 (웹툰 팝 주 CTA) */
@@ -1730,7 +1839,8 @@ button:disabled {
 }
 .confirm-actions button.danger {
   background: var(--crimson);
-  color: var(--text);
+  /* 잉크(--text)를 쓰면 크림슨 위에서 안 읽힌다 — 채움 버튼이라 흰 글자 고정 */
+  color: oklch(100% 0 0);
 }
 .confirm-actions button.danger:hover:not(:disabled) {
   background: var(--crimson-bright);
@@ -1742,6 +1852,64 @@ button:disabled {
 @keyframes confirm-in {
   from { opacity: 0; transform: translateY(8px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 스크롤 영역 공통 — 잡기 편한 스크롤바.
+   막대 자체는 6px로 얇게 두되 투명 테두리로 클릭 영역을 14px까지 넓힌다
+   (background-clip: content-box 덕분에 테두리 부분은 안 칠해진다).
+   Firefox는 폭을 픽셀로 못 정해서 `auto`(기본 굵기)로 둔다 — thin이면 잡기 어렵다. */
+.conv,
+.chat-aside,
+.room-list {
+  scrollbar-width: auto;
+  scrollbar-color: var(--outline-strong) transparent;
+}
+.conv::-webkit-scrollbar,
+.chat-aside::-webkit-scrollbar,
+.room-list::-webkit-scrollbar {
+  width: 14px;
+}
+.conv::-webkit-scrollbar-track,
+.chat-aside::-webkit-scrollbar-track,
+.room-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.conv::-webkit-scrollbar-thumb,
+.chat-aside::-webkit-scrollbar-thumb,
+.room-list::-webkit-scrollbar-thumb {
+  background: var(--outline-strong);
+  border-radius: var(--r-pill);
+  border: 4px solid transparent;
+  background-clip: content-box;
+}
+.conv::-webkit-scrollbar-thumb:hover,
+.chat-aside::-webkit-scrollbar-thumb:hover,
+.room-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-3);
+  background-clip: content-box;
+}
+
+/* 채팅 디자인 프리뷰(/preview/chat) 전용 컨트롤 바 — 레이아웃을 밀지 않게 떠 있다.
+   디자인 확정 후 ChatPreviewPage와 함께 지운다. */
+.preview-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 60;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-elev);
+  border: 1px solid var(--outline-strong);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-soft);
+}
+.preview-bar .chip {
+  padding: 5px 12px;
+  font-size: 12px;
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

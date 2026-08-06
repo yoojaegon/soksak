@@ -30,7 +30,8 @@ function Spoiler({ text }) {
   )
 }
 
-function MessageLine({ content }) {
+// 디자인 프리뷰(/preview/chat)도 같은 렌더를 쓰도록 내보낸다.
+export function MessageLine({ content }) {
   const regex = /<spoiler>([\s\S]*?)<\/spoiler>/g
   const parts = []
   let last = 0
@@ -336,7 +337,7 @@ function ChatRoom({ roomId }) {
   if (roomError) {
     return (
       <div className="chat">
-        <div className="chat-main">
+        <div className="chat-main chat-notice">
           <p className="error">{roomError}</p>
           <p className="muted"><Link to="/">← 홈으로 돌아가기</Link></p>
         </div>
@@ -353,26 +354,27 @@ function ChatRoom({ roomId }) {
         className="chat-main"
         onClick={() => showSettings && setShowSettings(false)}
       >
-        <div className="lb" />
-
         {character && (
           <header className="chat-head">
+            {/* 아바타는 캐릭터 이미지가 붙기 전까지 이름 첫 글자 모노그램 */}
+            <div className="chat-avatar" aria-hidden="true">{character.characterName?.[0] ?? '?'}</div>
             <div className="chat-head-main">
-              {character.userName && <span className="cap">@{character.userName} 제작</span>}
               <h1 className="ch-name">{character.characterName}</h1>
-              {character.description && <p className="ch-sub">{character.description}</p>}
-              {(model ?? defaultModel) && (
-                <span className="model-badge">
-                  MODEL · {modelLabel(modelList ?? [], model ?? defaultModel)}
-                </span>
-              )}
+              <div className="chat-meta">
+                {character.userName && <span className="cap">@{character.userName}</span>}
+                {(model ?? defaultModel) && (
+                  <span className="model-badge">
+                    {modelLabel(modelList ?? [], model ?? defaultModel)}
+                  </span>
+                )}
+                {sending && (
+                  <span className="now-speaking">
+                    <span className="dot" />
+                    대화중
+                  </span>
+                )}
+              </div>
             </div>
-            {sending && (
-              <span className="now-speaking">
-                <span className="dot" />
-                NOW SPEAKING
-              </span>
-            )}
             <button
               type="button"
               className={`gear-btn ${showSettings ? 'on' : ''}`}
@@ -396,7 +398,13 @@ function ChatRoom({ roomId }) {
         {loading ? (
           <p className="muted">대화를 불러오는 중…</p>
         ) : messages.length === 0 ? (
-          <p className="muted">첫 메시지를 보내 대화를 시작해보세요.</p>
+          // 아직 한 마디도 없을 땐 캐릭터 소개를 대화 자리에 크게 보여준다(헤더는 한 줄로 줄었으므로).
+          <div className="chat-intro">
+            <div className="chat-avatar" aria-hidden="true">{character?.characterName?.[0] ?? '?'}</div>
+            <h2>{character?.characterName ?? '캐릭터'}</h2>
+            {character?.description && <p>{character.description}</p>}
+            <p className="chat-intro-cta">첫 메시지를 보내 대화를 시작해보세요.</p>
+          </div>
         ) : (
           messages.map((m, idx) => {
             const isTemp = typeof m.id === 'string' && m.id.startsWith('temp-')
@@ -408,7 +416,7 @@ function ChatRoom({ roomId }) {
             // 수정 중인 메시지는 입력창으로 표시
             if (editingId === m.id) {
               return (
-                <div key={m.id} className={`turn ${side}`}>
+                <div key={m.id} className={`turn ${side} editing`}>
                   <div className="who">
                     <span className="name">{who}</span>
                   </div>
@@ -487,8 +495,6 @@ function ChatRoom({ roomId }) {
           </svg>
         </button>
       </form>
-
-        <div className="lb" />
       </div>
 
       {showSettings && (
