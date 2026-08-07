@@ -32,6 +32,11 @@ def _bool_env(key: str, default: bool) -> bool:
 # temperature/max_tokens는 채팅(길고 창의적)과 요약(짧고 사실적)의 정답이 달라
 # 기본값을 공유하면 한쪽이 반드시 틀린다 → 필수 인자로 둬서 새 프로필이 조용히
 # 엉뚱한 값을 물려받는 걸 막는다.
+#
+# 재시도 예산 규칙: timeout × (max_retries+1) ≤ 호출자의 인내심(백엔드 application.yml의
+# ai-server.read-timeout). 초과분은 백엔드가 이미 포기한 뒤에 나가는, 아무도 안 듣는
+# 유료 호출이다. 지금은 timeout=60 == read-timeout=60이라 여유가 0 → max_retries=0.
+# 재시도를 되살리고 싶으면 값만 올리지 말고 per-attempt timeout부터 내려야 한다(예: 28×2=56).
 def load_profile(
     prefix: str,
     name: str,
@@ -40,7 +45,7 @@ def load_profile(
     max_tokens: int,
     model: str = "openai/gpt-4o-mini",
     timeout: int = 30,
-    max_retries: int = 2,
+    max_retries: int = 0,
 ) -> LLMProfile:
     return LLMProfile(
         name=name,

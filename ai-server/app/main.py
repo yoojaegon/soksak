@@ -18,8 +18,10 @@ async def lifespan(app: FastAPI):
     # max_tokens는 길이 조절이 아니라 폭주 방지 상한이다(과금은 실제 생성량 기준).
     # 채팅은 thinking 켜진 모델이 추론에 다 써도 본문이 남게 넉넉히 두고,
     # 길이는 프롬프트로 잡는다. 온도는 캐릭터 연기라 높게.
+    # timeout/max_retries는 한 쌍으로 읽을 것 — 곱이 백엔드 read-timeout(60초)을 넘으면
+    # 초과분은 아무도 안 듣는 호출이 된다(profiles.load_profile 주석의 재시도 예산 규칙).
     app.state.chat_profile = load_profile(
-        "CHAT_", "chat", temperature=0.8, max_tokens=20000, timeout=60
+        "CHAT_", "chat", temperature=0.8, max_tokens=20000, timeout=60, max_retries=0
     )
     app.state.chat_llm_cache = {}
     # 요약은 SUMMARY_ 고정 프로필 그대로(모델 선택은 채팅 전용).
@@ -27,8 +29,12 @@ async def lifespan(app: FastAPI):
     # 잘리면 다음 턴의 기존 요약으로 들어가 오염이 누적되므로 넉넉히, 단 채팅만큼은 아니게.
     # 사실 기록이라 온도는 낮게.
     # 요약은 비스트리밍(invoke)이라 read 한 번이 생성 전체를 덮어 30초로는 빡빡하다.
+    # 재시도가 실제로 도는 건 비스트리밍인 이쪽뿐인데(스트리밍은 헤더가 온 뒤엔 재시도 없음),
+    # 60초를 다 쓰고 실패하면 백엔드도 그 시점에 포기하므로 뒤 시도는 전부 헛돈다 → 0.
     app.state.summary_llm = build_llm(
-        load_profile("SUMMARY_", "summary", temperature=0.3, max_tokens=2000, timeout=60)
+        load_profile(
+            "SUMMARY_", "summary", temperature=0.3, max_tokens=2000, timeout=60, max_retries=0
+        )
     )
     yield
 
