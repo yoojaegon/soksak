@@ -465,10 +465,9 @@ button:disabled {
   text-transform: none;
   color: var(--text);
 }
-/* 공용 폼 필드 스타일 — auth 카드·페르소나 폼·모델 픽커가 함께 쓴다 */
+/* 공용 폼 필드 스타일 — auth 카드·모델 픽커가 함께 쓴다 */
 .auth-card input,
 .auth-card select,
-.persona-form select,
 .model-select {
   padding: 12px 15px;
   border: 2px solid var(--text);
@@ -482,7 +481,6 @@ button:disabled {
 }
 .auth-card input:focus,
 .auth-card select:focus,
-.persona-form select:focus,
 .model-select:focus {
   outline: none;
   border-color: var(--champ);
@@ -1670,8 +1668,7 @@ button:disabled {
   font-size: 20px;
   margin: 0 0 16px;
 }
-/* select 스타일은 공용 폼 필드 규칙(.auth-card 쪽)에 함께 묶여 있다 */
-/* 성별 + 나이를 한 줄에 */
+/* 짧은 입력 두 개를 한 줄에 (회원가입 나이·성별, 로어북 필드) */
 .form-row {
   display: flex;
   gap: 12px;

@@ -24,14 +24,14 @@ public class UserPersonaService {
     @Transactional
     public UserPersonaResponse create(String loginId, CreateUserPersonaRequest request) {
         User user = findUser(loginId);
-        return save(user, request.name(), request.gender(), request.age(), request.persona());
+        return save(user, request.name(), request.persona());
     }
 
     /** 회원가입 시 가입정보(이름/나이/성별)로 기본 페르소나를 생성한다. */
     @Transactional
     public UserPersonaResponse createDefault(String loginId, String name, int age, Gender gender) {
         User user = findUser(loginId);
-        return save(user, name, gender, age, generateDefaultPersona(name, age, gender));
+        return save(user, name, generateDefaultPersona(name, age, gender));
     }
 
     /** 로그인한 본인이 가진 페르소나 목록을 조회한다. */
@@ -46,7 +46,7 @@ public class UserPersonaService {
     @Transactional
     public UserPersonaResponse update(String loginId, Long id, UpdateUserPersonaRequest request) {
         UserPersona persona = getOwnedPersona(loginId, id);
-        persona.update(request.name(), request.gender(), request.age(), request.persona());
+        persona.update(request.name(), request.persona());
         return UserPersonaResponse.from(persona);
     }
 
@@ -108,12 +108,10 @@ public class UserPersonaService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
-    private UserPersonaResponse save(User user, String name, Gender gender, int age, String persona) {
+    private UserPersonaResponse save(User user, String name, String persona) {
         UserPersona userPersona = UserPersona.builder()
                 .user(user)
                 .name(name)
-                .gender(gender)
-                .age(age)
                 .persona(persona)
                 // 경로와 무관하게 유저의 첫 페르소나를 기본값으로 둔다.
                 .isDefault(!userPersonaRepository.existsByUser(user))

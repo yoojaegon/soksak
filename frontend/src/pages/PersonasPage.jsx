@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
-import { GENDERS, genderLabel } from '../constants.js'
 import { useConfirm } from '../confirm.jsx'
 
-const EMPTY_FORM = { name: '', gender: 'MALE', age: '', persona: '' }
+// 나이·성별은 따로 받지 않는다. 어차피 페르소나 본문에 함께 쓰게 되고, 대화에 전달되는 것도 본문뿐이다.
+const EMPTY_FORM = { name: '', persona: '' }
 
 export default function PersonasPage() {
   const confirm = useConfirm()
@@ -67,7 +67,7 @@ export default function PersonasPage() {
 
   const openEdit = (p) => {
     setEditing(p.id)
-    setForm({ name: p.name, gender: p.gender, age: String(p.age), persona: p.persona })
+    setForm({ name: p.name, persona: p.persona })
     setError('')
     setFieldErrors({})
   }
@@ -81,13 +81,9 @@ export default function PersonasPage() {
   const onSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    // 필수 입력 검증 (성별은 항상 기본값이 선택돼 있어 제외)
+    // 필수 입력 검증
     const errs = {}
     if (!form.name.trim()) errs.name = '이름을 입력해주세요'
-    // type=number라도 noValidate라 소수점(step 위반)이 그대로 넘어온다. 서버 Integer에 맞춰 여기서 막는다.
-    if (form.age === '') errs.age = '나이를 입력해주세요'
-    else if (!Number.isInteger(Number(form.age))) errs.age = '나이는 정수로 입력해주세요'
-    else if (Number(form.age) < 0) errs.age = '나이는 0 이상이어야 합니다'
     if (!form.persona.trim()) errs.persona = '페르소나를 입력해주세요'
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs)
@@ -98,8 +94,6 @@ export default function PersonasPage() {
     try {
       const body = {
         name: form.name.trim(),
-        gender: form.gender,
-        age: Number(form.age),
         persona: form.persona.trim(),
       }
       if (editing === 'new') {
@@ -186,29 +180,14 @@ export default function PersonasPage() {
               <input name="name" value={form.name} onChange={onChange} placeholder="예: 지민" />
               {fieldErrors.name && <p className="field-error">! {fieldErrors.name}</p>}
             </label>
-            <div className="form-row">
-              <label>
-                <span className="field-caption">성별 <span className="req">*</span></span>
-                <select name="gender" value={form.gender} onChange={onChange}>
-                  {GENDERS.map((g) => (
-                    <option key={g.value} value={g.value}>{g.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className="field-caption">나이 <span className="req">*</span></span>
-                <input name="age" type="number" min="0" value={form.age} onChange={onChange} placeholder="예: 25" />
-                {fieldErrors.age && <p className="field-error">! {fieldErrors.age}</p>}
-              </label>
-            </div>
             <label>
               <span className="field-caption">페르소나 <span className="req">*</span> (어떤 사람인지)</span>
               <textarea
                 name="persona"
                 value={form.persona}
                 onChange={onChange}
-                rows={4}
-                placeholder="예: 나는 호기심 많고 장난기 있는 대학생이다."
+                rows={5}
+                placeholder="예: 나는 25세 남성이고 이름은 지민이다. 호기심 많고 장난기 있는 대학생이며, 처음 보는 사람에게는 말수가 적다."
               />
               {fieldErrors.persona && <p className="field-error">! {fieldErrors.persona}</p>}
             </label>
@@ -267,7 +246,6 @@ export default function PersonasPage() {
                 <h3>{p.name}</h3>
                 {p.isDefault && <span className="badge">기본</span>}
               </div>
-              <p className="muted">{genderLabel(p.gender)} · {p.age}세</p>
               <p className="muted persona-text">{p.persona}</p>
             </div>
           ))}
