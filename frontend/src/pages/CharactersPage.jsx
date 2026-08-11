@@ -125,7 +125,8 @@ export default function CharactersPage() {
       )}
 
       <div className="page-head">
-        <h1>{isAuthenticated ? '캐릭터' : '둘러보기'}</h1>
+        {/* 비로그인 화면은 히어로가 h1을 가져가므로 여기선 h2로 내린다. */}
+        {isAuthenticated ? <h1>캐릭터</h1> : <h2>둘러보기</h2>}
         <Link to="/characters/new" className="btn-link">+ 캐릭터 만들기</Link>
       </div>
 
