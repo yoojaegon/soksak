@@ -16,6 +16,7 @@ export default defineConfig({
       '/characters': 'http://localhost:8080',
       '/chatrooms': 'http://localhost:8080',
       '/user-personas': 'http://localhost:8080',
+      '/uploads': 'http://localhost:8080', // 이미지 업로드(POST)와 업로드된 이미지 보기(GET)
     },
   },
 })

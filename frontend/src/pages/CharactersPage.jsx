@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { GENRES, genreLabel } from '../genres.js'
+import CharacterImage from '../components/CharacterImage.jsx'
 
 const SORT_OPTIONS = [
   { value: 'createdAt,desc', label: '최신순' },
@@ -193,7 +194,9 @@ export default function CharactersPage() {
             <article className="wp-card" key={c.id}>
               <div className={`wp-art wp-g${(i % 8) + 1}`}>
                 {(c.likeCount ?? 0) >= 1000 && <span className="wp-badge hot">인기</span>}
-                <span className="wp-mono" aria-hidden="true">{c.characterName?.[0] ?? '?'}</span>
+                <CharacterImage src={c.imageUrl} className="wp-img" loading="lazy">
+                  <span className="wp-mono" aria-hidden="true">{c.characterName?.[0] ?? '?'}</span>
+                </CharacterImage>
               </div>
               <div className="wp-body">
                 <h3 className="wp-name">{c.characterName}</h3>

@@ -54,6 +54,9 @@ __pycache__/
 logs/
 *.log
 
+### 업로드된 캐릭터 이미지 (로컬 실행 시 레포 루트에 쌓인다) ###
+uploads/
+
 ### Claude Code ###
 .claude/
 !.claude/settings.json

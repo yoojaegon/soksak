@@ -5,6 +5,11 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
+  servlet:
+    multipart:
+      max-file-size: 5MB      # 프론트가 업로드 전에 1024px로 줄이므로 실제로는 훨씬 작게 올라온다.
+      max-request-size: 6MB   # 파일 + 나머지 파트 합계
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -12,6 +17,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+# 업로드된 이미지 저장 위치·주소. dir은 실행 디렉터리(bootRun 기준 레포 루트) 기준 상대 경로.
+# 오브젝트 스토리지로 옮길 때 ImageStorageService만 바꾸면 되고 이 계약은 유지된다.
+uploads:
+  dir: uploads
+  public-path: /uploads
 
 jwt:
   issuer: soksak

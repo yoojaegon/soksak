@@ -19,6 +19,11 @@ export default function CharacterForm({ heading, initial, submitLabel, savingLab
     if (value.trim()) setFieldErrors((prev) => ({ ...prev, [name]: undefined }))
   }
 
+  // 입력 이벤트 없이 값을 채우는 필드용(이미지 업로드 결과 주소).
+  const handleSetField = (name, value) => {
+    setForm((f) => ({ ...f, [name]: value }))
+  }
+
   // 장르 칩 토글: 이미 있으면 빼고 없으면 넣는다. 토글하면 장르 필수 에러는 지운다.
   const handleToggleTag = (value) => {
     setForm((f) => ({ ...f, tags: toggleTag(f.tags ?? [], value) }))
@@ -57,7 +62,13 @@ export default function CharacterForm({ heading, initial, submitLabel, savingLab
     <div className="form-card">
       {heading && <h1>{heading}</h1>}
       <form onSubmit={submit}>
-        <CharacterFields form={form} onChange={handleChange} onToggleTag={handleToggleTag} errors={fieldErrors} />
+        <CharacterFields
+          form={form}
+          onChange={handleChange}
+          onToggleTag={handleToggleTag}
+          onSetField={handleSetField}
+          errors={fieldErrors}
+        />
         {error && <p className="error">{error}</p>}
         <div className="form-actions">
           <Link to={cancelTo} className="link-btn">취소</Link>

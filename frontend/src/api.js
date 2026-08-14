@@ -62,7 +62,10 @@ export class ApiError extends Error {
 }
 
 async function request(path, { method = 'GET', body, auth = true, retry = true } = {}) {
-  const headers = { 'Content-Type': 'application/json' }
+  // 파일 업로드(FormData)는 그대로 보낸다. Content-Type을 직접 지정하면 multipart 경계값이
+  // 빠져서 서버가 파트를 못 읽으므로, 이때만 브라우저가 헤더를 붙이게 둔다.
+  const isFormData = body instanceof FormData
+  const headers = isFormData ? {} : { 'Content-Type': 'application/json' }
   if (auth) {
     // 만료된 토큰은 붙이지 않는다. 없으면 아래 401 흐름에서 refresh로 재발급한다.
     const token = getValidAccessToken()
@@ -72,7 +75,7 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
   const res = await fetch(path, {
     method,
     headers,
-    body: body != null ? JSON.stringify(body) : undefined,
+    body: body == null ? undefined : isFormData ? body : JSON.stringify(body),
   })
 
   // accessToken 만료(401) 처리
@@ -245,6 +248,14 @@ export const api = {
   getCharacter: (id) => request(`/characters/${id}`),
   // 내가 만든 캐릭터 목록 (소유 판별·로어북 진입에 사용)
   getMyCharacters: () => request('/characters/me'),
+  // 이미지 업로드 — 파일을 보내면 저장된 주소({ url })를 돌려준다.
+  // 캐릭터 저장과는 별개라, 업로드만 하고 저장을 취소하면 파일은 서버에 남는다(고아 파일).
+  uploadImage: (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request('/uploads/images', { method: 'POST', body: form })
+  },
+
   createCharacter: (body) => request('/characters', { method: 'POST', body }),
   updateCharacter: (id, body) => request(`/characters/${id}`, { method: 'PUT', body }),
   deleteCharacter: (id) => request(`/characters/${id}`, { method: 'DELETE' }),

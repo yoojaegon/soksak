@@ -36,6 +36,7 @@ public class CharacterService {
                 .description(request.description())
                 .persona(request.persona())
                 .greeting(request.greeting())
+                .imageUrl(normalizeImageUrl(request.imageUrl()))
                 .tags(request.tags())
                 .build();
         return characterRepository.save(chatCharacter);
@@ -68,10 +69,17 @@ public class CharacterService {
         return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
+    // 이미지는 선택 입력이라 폼에서 미입력이 빈 문자열('')로 올라온다.
+    // 저장 전에 null로 통일해 두지 않으면 DB에 ''과 null이 섞여 "이미지 없음" 판정이 경로마다 갈린다.
+    private static String normalizeImageUrl(String raw) {
+        return (raw == null || raw.isBlank()) ? null : raw.strip();
+    }
+
     @Transactional
     public CharacterResponse updateCharacter(String loginId, Long id, UpdateCharacterRequest request) {
         ChatCharacter character = getOwnedCharacter(loginId, id);
-        character.update(request.name(), request.description(), request.persona(), request.greeting(), request.tags());
+        character.update(request.name(), request.description(), request.persona(), request.greeting(),
+                normalizeImageUrl(request.imageUrl()), request.tags());
         return CharacterResponse.from(character);
     }
 

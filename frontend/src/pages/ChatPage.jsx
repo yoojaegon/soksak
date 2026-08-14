@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import ModelPicker from '../components/ModelPicker.jsx'
+import CharacterImage from '../components/CharacterImage.jsx'
 import { modelLabel } from '../models.js'
 import { useConfirm } from '../confirm.jsx'
 
@@ -356,7 +357,9 @@ function ChatRoom({ roomId }) {
         {character && (
           <header className="chat-head">
             {/* 아바타는 캐릭터 이미지가 붙기 전까지 이름 첫 글자 모노그램 */}
-            <div className="chat-avatar" aria-hidden="true">{character.characterName?.[0] ?? '?'}</div>
+            <div className="chat-avatar" aria-hidden="true">
+              <CharacterImage src={character.imageUrl}>{character.characterName?.[0] ?? '?'}</CharacterImage>
+            </div>
             <div className="chat-head-main">
               <h1 className="ch-name">{character.characterName}</h1>
               <div className="chat-meta">
@@ -399,7 +402,9 @@ function ChatRoom({ roomId }) {
         ) : messages.length === 0 ? (
           // 아직 한 마디도 없을 땐 캐릭터 소개를 대화 자리에 크게 보여준다(헤더는 한 줄로 줄었으므로).
           <div className="chat-intro">
-            <div className="chat-avatar" aria-hidden="true">{character?.characterName?.[0] ?? '?'}</div>
+            <div className="chat-avatar" aria-hidden="true">
+              <CharacterImage src={character?.imageUrl}>{character?.characterName?.[0] ?? '?'}</CharacterImage>
+            </div>
             <h2>{character?.characterName ?? '캐릭터'}</h2>
             {character?.description && <p>{character.description}</p>}
             <p className="chat-intro-cta">첫 메시지를 보내 대화를 시작해보세요.</p>

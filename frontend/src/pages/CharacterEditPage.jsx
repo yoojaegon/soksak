@@ -84,6 +84,9 @@ export default function CharacterEditPage() {
             tags: character.tags ?? [],
             persona: character.persona ?? '',
             greeting: character.greeting ?? '',
+            // 여기서 빠지면 폼이 imageUrl 없는 본문을 PUT하고, 서버가 이를 '지움'으로 받아
+            // 이름만 고쳐 저장해도 이미지가 조용히 사라진다.
+            imageUrl: character.imageUrl ?? '',
           }}
           submitLabel="저장"
           savingLabel="저장 중…"

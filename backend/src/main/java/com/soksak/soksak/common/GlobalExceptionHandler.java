@@ -8,6 +8,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.sql.SQLException;
 
@@ -36,6 +37,15 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return build(ErrorCode.LOGIN_FAILED, request);
+    }
+
+    // 멀티파트 크기 초과는 컨트롤러에 닿기 전에 터지므로 여기서 413으로 바꿔준다(기본은 500).
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleUploadSize(
+            MaxUploadSizeExceededException e,
+            HttpServletRequest request
+    ) {
+        return build(ErrorCode.IMAGE_TOO_LARGE, request);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

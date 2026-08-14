@@ -62,6 +62,9 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/characters/me").authenticated()
                     // 로그인 없이도 캐릭터 둘러보기(목록/상세) 가능
                     .requestMatchers(HttpMethod.GET, "/characters", "/characters/*").permitAll()
+                    // 업로드된 이미지 보기는 공개(비로그인 카탈로그에도 캐릭터 이미지가 뜬다).
+                    // 올리는 것(POST /uploads/images)은 아래 anyRequest 규칙대로 인증 필요.
+                    .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                     .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtFilter(jwtTokenProvider),

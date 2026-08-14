@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import { useConfirm } from '../confirm.jsx'
+import CharacterImage from '../components/CharacterImage.jsx'
 
 // 내가 만든 캐릭터만 모아 보여주는 페이지.
 // 각 카드에서 바로 대화를 시작하거나 로어북으로 들어갈 수 있고,
@@ -121,7 +122,9 @@ export default function MyCharactersPage() {
                 )}
               </div>
 
-              <div className="char-avatar">{c.characterName?.[0] ?? '?'}</div>
+              <div className="char-avatar" aria-hidden="true">
+                <CharacterImage src={c.imageUrl}>{c.characterName?.[0] ?? '?'}</CharacterImage>
+              </div>
               <h3>{c.characterName}</h3>
               <p className="muted">{c.description || '소개가 없습니다.'}</p>
               <button onClick={() => startChat(c.id)} disabled={startingId === c.id}>

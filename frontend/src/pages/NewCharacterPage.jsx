@@ -13,7 +13,7 @@ export default function NewCharacterPage() {
   const navigate = useNavigate()
   const alert = useAlert()
   const [tab, setTab] = useState('basic')
-  const [form, setForm] = useState({ name: '', description: '', tags: [], persona: '', greeting: '' })
+  const [form, setForm] = useState({ name: '', description: '', tags: [], persona: '', greeting: '', imageUrl: '' })
   // 필수 입력 누락 시 각 입력창 아래 빨간 에러
   const [fieldErrors, setFieldErrors] = useState({})
   // 로어북 탭에서 모은 초안 로어들 (탭을 오가도 유지되도록 여기서 보관)
@@ -25,6 +25,11 @@ export default function NewCharacterPage() {
     const { name, value } = e.target
     setForm((f) => ({ ...f, [name]: value }))
     if (value.trim()) setFieldErrors((prev) => ({ ...prev, [name]: undefined }))
+  }
+
+  // 입력 이벤트 없이 값을 채우는 필드용(이미지 업로드 결과 주소).
+  const setField = (name, value) => {
+    setForm((f) => ({ ...f, [name]: value }))
   }
 
   // 장르 칩 토글: 이미 있으면 빼고 없으면 넣는다. 토글하면 장르 필수 에러는 지운다.
@@ -114,7 +119,13 @@ export default function NewCharacterPage() {
 
       {tab === 'basic' ? (
         <div className="form-card create-card">
-          <CharacterFields form={form} onChange={onChange} onToggleTag={onToggleTag} errors={fieldErrors} />
+          <CharacterFields
+            form={form}
+            onChange={onChange}
+            onToggleTag={onToggleTag}
+            onSetField={setField}
+            errors={fieldErrors}
+          />
         </div>
       ) : (
         <LorebookPanel draft lores={draftLores} onChange={setDraftLores} />
