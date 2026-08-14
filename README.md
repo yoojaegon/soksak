@@ -157,27 +157,16 @@ git clone https://github.com/yoojaegon/soksak.git
 cd soksak
 
 # 환경변수 설정
-cp .env.example .env        # 루트: DB_PASSWORD, JWT_SECRET_KEY 채우기
-cp ai-server/.env.example ai-server/.env   # AI 서버: OPENAI_API_KEY 채우기
+cp .env.example .env        # DB_URL, DB_PASSWORD, JWT_SECRET_KEY, AI_GATEWAY_API_KEY 등 채우기
 ```
-
-실행 순서: **Postgres → Backend → AI Server → Frontend**
 
 ```bash
-# 1) PostgreSQL (Docker) — 루트에서
-docker compose up -d
-
-# 2) Backend → http://localhost:8080
-cd backend && ./gradlew bootRun
-
-# 3) AI Server → http://localhost:8000
-cd ai-server && uv run uvicorn app.main:app --port 8000
-
-# 4) Frontend → http://localhost:5173
-cd frontend && npm install && npm run dev
+# 전체 실행 (Postgres 컨테이너 포함) → http://localhost
+docker compose --profile local up -d --build
 ```
 
-> 프론트엔드는 Vite dev proxy로 백엔드와 통신하므로 개발 시 별도 CORS 설정이 필요 없습니다.
+> 배포(EC2)에서는 DB를 RDS로 쓰므로 `--profile local` 없이 `docker compose up -d --build` 를 쓰고, `.env`의 `DB_URL`만 RDS 엔드포인트로 바꿉니다. 구성 파일은 로컬·배포가 동일합니다.
+> 프론트를 고치며 개발할 때는 `cd frontend && npm run dev` (http://localhost:5173, `/api` 를 백엔드로 프록시).
 > AI 서버를 띄우지 않고 백엔드만 돌리려면 채팅 클라이언트를 `StubChatAiClient` 로 전환하면 됩니다.
 
 ---

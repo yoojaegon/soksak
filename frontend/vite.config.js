@@ -8,15 +8,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // API는 전부 /api 아래라 프록시 규칙도 한 줄이면 된다.
+    // (업로드된 이미지 주소도 /api/uploads/... 로 내려오므로 여기에 함께 걸린다.)
     proxy: {
-      '/auth': 'http://localhost:8080',
-      '/models': 'http://localhost:8080',
-      '/signup': 'http://localhost:8080',
-      '/me': 'http://localhost:8080',
-      '/characters': 'http://localhost:8080',
-      '/chatrooms': 'http://localhost:8080',
-      '/user-personas': 'http://localhost:8080',
-      '/uploads': 'http://localhost:8080', // 이미지 업로드(POST)와 업로드된 이미지 보기(GET)
+      '/api': 'http://localhost:8080',
     },
   },
 })

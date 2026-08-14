@@ -1,21 +1,76 @@
+# 로컬·배포 공통 구성. 파일이 하나뿐이고, 다른 건 프로필과 .env 값뿐이다.
+#
+#   로컬:  docker compose --profile local up -d --build   (Postgres 컨테이너까지 함께)
+#   배포:  docker compose up -d --build                   (DB는 RDS라 Postgres를 안 띄움)
+#
+# 인터넷에 열리는 건 web(80)뿐이다. 백엔드·AI 서버는 expose만 해서 컨테이너 네트워크 안에서만 닿는다.
 services:
+  # DB는 로컬에서만 컨테이너로 띄운다. EC2에서는 RDS를 쓰므로 프로필을 켜지 않는다.
   postgres:
     image: postgres:16-alpine
     container_name: soksak-postgres
+    profiles: ["local"]
     restart: unless-stopped
     environment:
       POSTGRES_DB: soksak
-      POSTGRES_USER: postgres
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
+      # psql·DB 툴로 밖에서 붙기 위한 것. 앱끼리는 이 포트가 아니라 서비스 이름으로 통신한다.
       - "5432:5432"
     volumes:
       - soksak-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d soksak"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d soksak"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      # 로컬은 postgres 컨테이너, 배포는 RDS. 둘 다 .env의 DB_URL 하나로 정한다.
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      INTERNAL_AUTH_SECRET: ${INTERNAL_AUTH_SECRET}
+      # 컨테이너끼리는 서비스 이름으로 통신한다(localhost가 아니다).
+      AI_SERVER_BASE_URL: http://ai-server:8000
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      # 업로드된 이미지. 볼륨으로 빼지 않으면 컨테이너를 다시 만들 때마다 전부 사라진다.
+      - uploads:/data/uploads
+    expose:
+      - "8080"
+    # postgres는 프로필이 꺼진 배포 환경에선 아예 없는 서비스라 depends_on에 넣지 않는다.
+    # 로컬에서 DB보다 먼저 떠도 restart 정책으로 다시 붙는다.
+    depends_on:
+      - ai-server
+
+  ai-server:
+    build: ./ai-server
+    restart: unless-stopped
+    environment:
+      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY}
+      AI_GATEWAY_BASE_URL: ${AI_GATEWAY_BASE_URL}
+      INTERNAL_AUTH_SECRET: ${INTERNAL_AUTH_SECRET}
+    volumes:
+      # ai-server는 stdout이 아니라 파일로 로그를 남긴다(컨테이너 안 경로는 /logs).
+      - ai-logs:/logs
+    expose:
+      - "8000"
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
 volumes:
   soksak-pgdata:
+  uploads:
+  ai-logs:

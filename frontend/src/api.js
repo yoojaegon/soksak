@@ -3,6 +3,12 @@
 // - 모든 요청에 Authorization 헤더(Bearer)를 자동으로 붙인다.
 // - accessToken이 만료(401)되면 refreshToken으로 한 번 재발급 후 재시도한다.
 
+// 모든 API 경로 앞에 붙는 접두사(백엔드 server.servlet.context-path와 같은 값).
+// 화면 라우트와 API 경로가 겹쳐서(/characters/3/edit 은 화면, /characters/3 은 API),
+// 배포 환경의 nginx가 정적 파일 요청과 API 요청을 가르는 기준이 이 접두사다.
+// ⚠️ 업로드된 이미지 주소(imageUrl)는 서버가 이미 접두사를 붙여 내려주므로 여기서 또 붙이지 않는다.
+const API_BASE = '/api'
+
 const ACCESS_KEY = 'soksak_access'
 const REFRESH_KEY = 'soksak_refresh'
 
@@ -72,7 +78,7 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
     if (token) headers.Authorization = `Bearer ${token}`
   }
 
-  const res = await fetch(path, {
+  const res = await fetch(API_BASE + path, {
     method,
     headers,
     body: body == null ? undefined : isFormData ? body : JSON.stringify(body),
@@ -122,7 +128,7 @@ async function streamRequest(path, { body } = {}, { onToken, onDone, onError } =
 
   let res
   try {
-    res = await fetch(path, {
+    res = await fetch(API_BASE + path, {
       method: 'POST',
       headers,
       body: body != null ? JSON.stringify(body) : undefined,
@@ -211,7 +217,8 @@ async function doReissue() {
   const refreshToken = getRefreshToken()
   if (!refreshToken) return false
   try {
-    const res = await fetch('/auth/reissue', {
+    // request()를 거치지 않고 직접 부르는 유일한 경로라 접두사를 따로 붙인다.
+    const res = await fetch(`${API_BASE}/auth/reissue`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),

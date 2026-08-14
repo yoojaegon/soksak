@@ -1,6 +1,12 @@
+# API 경로 접두사. 화면 라우트(/characters/3/edit)와 API 경로(/characters/3)가 겹쳐서,
+# 배포 환경의 nginx가 둘을 가르는 기준이 이 접두사다. 프론트(api.js의 API_BASE)도 같은 값을 쓴다.
+server:
+  servlet:
+    context-path: /api
+
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/soksak
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/soksak}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -18,10 +24,12 @@ spring:
       hibernate:
         format_sql: true
 
-# 업로드된 이미지 저장 위치·주소. dir은 실행 디렉터리(bootRun 기준 레포 루트) 기준 상대 경로.
+# 업로드된 이미지 저장 위치·주소.
+# dir 기본값은 실행 디렉터리(bootRun 기준 레포 루트) 기준 상대 경로이고,
+# 배포에서는 컨테이너의 볼륨 경로(/data/uploads)를 UPLOADS_DIR로 덮어쓴다.
 # 오브젝트 스토리지로 옮길 때 ImageStorageService만 바꾸면 되고 이 계약은 유지된다.
 uploads:
-  dir: uploads
+  dir: ${UPLOADS_DIR:uploads}
   public-path: /uploads
 
 jwt:
@@ -31,7 +39,8 @@ jwt:
   refresh-token-expiration: 1209600000  # 14d (ms)
 
 ai-server:
-  base-url: http://localhost:8000   # FastAPI(uvicorn) 기본 포트
+  # 로컬은 uvicorn 기본 포트, 배포는 컨테이너 서비스 이름(http://ai-server:8000)을 환경변수로 덮어쓴다.
+  base-url: ${AI_SERVER_BASE_URL:http://localhost:8000}
   connect-timeout: 3000             # 연결 타임아웃 (ms)
   read-timeout: 60000               # 응답 대기 (ms) — LLM 호출이라 길게.
                                     # ai-server의 CHAT_/SUMMARY_ TIMEOUT과 같이 움직여야 한다.

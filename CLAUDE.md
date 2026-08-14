@@ -25,33 +25,25 @@ Base package for new code: `com.soksak.soksak`.
 
 Secrets note: DB password and JWT `secret-key` now live in the root `.env` (read by both docker-compose and the backend via `spring-dotenv`) — see "Running locally" below. `application.yml` references them via `${...}` placeholders; don't hard-code secrets back into it.
 
-## Running locally (full stack)
+## Running (one compose file for local and deploy)
 
-Start order: **Postgres → backend → AI server → frontend**. Commands shown for Windows PowerShell (use `.\gradlew`); on macOS/Linux use `./gradlew`.
+`docker-compose.yml` is the single source for both. The only differences are the profile and the `.env` values.
 
-Prerequisite (once): copy `.env.example` to `.env` at the repo root and fill `DB_PASSWORD` / `JWT_SECRET_KEY` (e.g. `openssl rand -hex 16` / `openssl rand -base64 48`). Both docker-compose and the backend (`spring-dotenv`) read this root `.env`. The AI server reads its own `ai-server/.env` (needs `AI_GATEWAY_API_KEY` and `AI_GATEWAY_BASE_URL` — LLM calls go through the Vercel AI Gateway; see `ai-server/.env.example`).
+Prerequisite (once): copy `.env.example` to `.env` at the repo root and fill it in. Compose reads this one file and injects the values into every container; `spring-dotenv` reads the same file when the backend is run outside a container.
 
 ```bash
-# 1) Postgres (Docker) — from repo root
-docker compose up -d            # stop later with: docker compose stop
+# Local — Postgres container included → http://localhost
+docker compose --profile local up -d --build
 
-# 2) Backend (Spring Boot) → http://localhost:8080
-cd backend
-.\gradlew bootRun               # bootRun cwd = repo root, so it picks up ./.env
-
-# 3) AI server (FastAPI + LangChain) → http://localhost:8000
-cd ai-server
-uv run uvicorn app.main:app --port 8000
-
-# 4) Frontend (React + Vite) → http://localhost:5173
-cd frontend
-npm install                     # first time only
-npm run dev
+# Deploy (EC2) — DB is RDS, so Postgres is not started
+docker compose up -d --build
 ```
 
 Notes:
-- The frontend talks to the backend through a Vite dev proxy (`/auth`, `/signup`, `/characters`, `/chatrooms` → :8080), so no CORS config is needed in dev.
-- To see real AI replies, the AI server (step 3) must be up. To run the backend without it, switch the chat client to `StubChatAiClient`.
+- **All API paths live under `/api`** (`server.servlet.context-path`), because SPA routes and API paths collide (`/characters/3/edit` is a screen, `/characters/3` is an API). nginx routes `/api/*` to the backend and everything else to `index.html`; the frontend prepends the same prefix in `api.js` (`API_BASE`).
+- Only `web` (port 80) is exposed. backend/ai-server are reachable only inside the compose network, by service name (`http://ai-server:8000`, not localhost).
+- Uploaded images live in the `uploads` volume (`UPLOADS_DIR=/data/uploads` in the container). Without that volume they vanish whenever the container is recreated.
+- Frontend hot reload is gone with this setup — `npm run dev` (Vite, :5173, proxies `/api` → :8080) still works if the backend is up.
 
 ## Workflow
 
