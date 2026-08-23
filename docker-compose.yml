@@ -56,6 +56,10 @@ services:
       AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY}
       AI_GATEWAY_BASE_URL: ${AI_GATEWAY_BASE_URL}
       INTERNAL_AUTH_SECRET: ${INTERNAL_AUTH_SECRET}
+      # 요약 전용 프로필. 비워두면 코드 기본값을 쓴다(profiles.load_profile).
+      # ai-server 컨테이너에는 .env가 안 들어가므로 여기서 명시적으로 넘겨야 한다.
+      SUMMARY_MODEL: ${SUMMARY_MODEL:-}
+      SUMMARY_TIMEOUT: ${SUMMARY_TIMEOUT:-}
     volumes:
       # ai-server는 stdout이 아니라 파일로 로그를 남긴다(컨테이너 안 경로는 /logs).
       - ai-logs:/logs

@@ -24,7 +24,15 @@ class LLMProfile:
 
 
 def _bool_env(key: str, default: bool) -> bool:
-    return os.getenv(key, str(default)).lower() in {"1", "true", "yes"}
+    return (_env(key) or str(default)).lower() in {"1", "true", "yes"}
+
+
+# 빈 문자열은 "설정 안 함"으로 본다. compose가 미설정 변수를 넘기면 값이 ""로 들어오는데
+# (docker-compose.yml의 SUMMARY_MODEL 등), os.getenv의 기본값 인자는 그걸 값으로 받아들여
+# model=""로 기동하거나 int("")로 터진다.
+def _env(key: str) -> Optional[str]:
+    value = os.getenv(key)
+    return value if value else None
 
 
 # 기본값은 프로필별로 호출부(main.py)가 정한다. 환경변수가 있으면 그게 이기므로
@@ -49,14 +57,14 @@ def load_profile(
 ) -> LLMProfile:
     return LLMProfile(
         name=name,
-        model=os.getenv(f"{prefix}MODEL", model),
-        temperature=float(os.getenv(f"{prefix}TEMPERATURE", str(temperature))),
-        max_tokens=int(os.getenv(f"{prefix}MAX_TOKENS", str(max_tokens))),
-        timeout=int(os.getenv(f"{prefix}TIMEOUT", str(timeout))),
-        max_retries=int(os.getenv(f"{prefix}MAX_RETRIES", str(max_retries))),
+        model=_env(f"{prefix}MODEL") or model,
+        temperature=float(_env(f"{prefix}TEMPERATURE") or temperature),
+        max_tokens=int(_env(f"{prefix}MAX_TOKENS") or max_tokens),
+        timeout=int(_env(f"{prefix}TIMEOUT") or timeout),
+        max_retries=int(_env(f"{prefix}MAX_RETRIES") or max_retries),
         use_responses_api=_bool_env(f"{prefix}USE_RESPONSES_API", False),
-        top_p=float(os.getenv(f"{prefix}TOP_P")) if os.getenv(f"{prefix}TOP_P") else None,
-        presence_penalty=float(os.getenv(f"{prefix}PRESENCE_PENALTY")) if os.getenv(f"{prefix}PRESENCE_PENALTY") else None,
-        frequency_penalty=float(os.getenv(f"{prefix}FREQUENCY_PENALTY")) if os.getenv(f"{prefix}FREQUENCY_PENALTY") else None,
-        reasoning_effort=os.getenv(f"{prefix}REASONING_EFFORT") or None,
+        top_p=float(_env(f"{prefix}TOP_P")) if _env(f"{prefix}TOP_P") else None,
+        presence_penalty=float(_env(f"{prefix}PRESENCE_PENALTY")) if _env(f"{prefix}PRESENCE_PENALTY") else None,
+        frequency_penalty=float(_env(f"{prefix}FREQUENCY_PENALTY")) if _env(f"{prefix}FREQUENCY_PENALTY") else None,
+        reasoning_effort=_env(f"{prefix}REASONING_EFFORT"),
     )

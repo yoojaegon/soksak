@@ -1,6 +1,5 @@
 package com.soksak.soksak.message;
 
-import com.soksak.soksak.aiClient.ChatAiClient;
 import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.chatRoom.ChatRoomRepository;
@@ -23,9 +22,6 @@ public class ChatTxService {
     private final ChatRoomRepository chatRoomRepository;
     private final MessageRepository messageRepository;
     private final CharacterRepository characterRepository;
-    private final ChatAiClient chatAiClient;
-    private static final int WINDOW = 20;
-    private static final int BATCH = 10;
 
     @Transactional
     public PreparedChat prepareAndSaveUser(String loginId, Long roomId, String content) {
@@ -54,12 +50,19 @@ public class ChatTxService {
                 .content(reply)
                 .build());
 
-        try{
-            rollSummary(room,  messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId));
-        } catch (Exception e) {
-            log.warn("요약 실패 (roomId={})", roomId, e);
-        }
         return aiMessage;
+    }
+
+    @Transactional
+    public void applySummary(Long roomId, String newSummary, Long upToId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHATROOM_NOT_FOUND));
+
+        // AI 호출이 도는 사이 다른 경로가 더 앞까지 요약했으면 덮어쓰지 않는다.
+        Long current = room.getSummarizedUpToId();
+        if (current != null && current >= upToId) return;
+
+        room.applySummary(newSummary, upToId);
     }
 
     @Transactional
@@ -90,22 +93,5 @@ public class ChatTxService {
             priorHistory = messages.subList(0, messages.size() - 1);
         }
         return new RegenTarget(room, lastUser.getContent(), List.copyOf(priorHistory));
-    }
-
-
-
-    private void rollSummary(ChatRoom room, List<Message> all) {
-        Long upTo = room.getSummarizedUpToId() == null ? 0 : room.getSummarizedUpToId();
-        int summarizableEnd = all.size() - WINDOW;
-        if (summarizableEnd <= 0) return;
-
-        List<Message> batch = all.subList(0, summarizableEnd).stream()
-                .filter(m -> m.getId() > upTo)
-                .toList();
-
-        if (batch.size() < BATCH) return;
-
-        String newSummary = chatAiClient.summarize(room.getSummary(), batch);
-        room.applySummary(newSummary, batch.get(batch.size() - 1).getId());
     }
 }

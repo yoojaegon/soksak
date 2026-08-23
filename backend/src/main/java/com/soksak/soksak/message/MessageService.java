@@ -41,6 +41,7 @@ public class MessageService {
     public MessageResponse sendMessage(String loginId, Long roomId, String content) {
         return withRoomLock(roomId, () -> {
             PreparedChat preparedChat = chatTxService.prepareAndSaveUser(loginId, roomId, content);
+            trySummarize(preparedChat);
             String reply = chatAiClient.reply(preparedChat.room(), content, preparedChat.priorHistory());
             Message aiMessage = chatTxService.saveAssistant(roomId, reply);
             return MessageResponse.from(aiMessage);
@@ -50,6 +51,7 @@ public class MessageService {
     public SseEmitter sendMessageStream(String loginId, Long roomId, String content) {
         return startStream(roomId, () -> {
             PreparedChat p = chatTxService.prepareAndSaveUser(loginId, roomId, content);
+            trySummarize(p);
             return new StreamJob(p.room(), content, p.priorHistory());
         });
     }
@@ -123,6 +125,24 @@ public class MessageService {
             return action.get();
         } finally {
             lock.unlock();
+        }
+    }
+
+    // 답변 생성 앞에서 돈다 — 방금 만든 요약이 이번 턴 프롬프트에 실리게 하려는 것.
+    // 조회는 없다. prepareAndSaveUser가 이미 읽어온 방/이력으로만 판단한다.
+    private void trySummarize(PreparedChat p) {
+        try {
+            SummaryPlan plan = SummaryPlan.of(p.room(), p.priorHistory());
+            if (plan == null) return;
+
+            String summary = chatAiClient.summarize(plan.existingSummary(), plan.batch());
+            chatTxService.applySummary(p.room().getId(), summary, plan.upToId());
+            // p.room()은 트랜잭션 밖 detached 인스턴스라 위 저장이 여기 반영되지 않는다.
+            // 이 줄이 없으면 buildRequest가 옛 summary를 읽어 이번 턴엔 요약이 안 실린다.
+            p.room().applySummary(summary, plan.upToId());
+        } catch (Exception e) {
+            // 요약이 실패해도 채팅은 계속된다 — 요약 안 된 구간은 원문 그대로 프롬프트에 실린다.
+            log.warn("요약 실패 (roomId={})", p.room().getId(), e);
         }
     }
 
