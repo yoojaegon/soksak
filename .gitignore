@@ -60,6 +60,7 @@ uploads/
 ### Claude Code ###
 .claude/
 !.claude/settings.json
+.mcp.json
 
 ### graphify (code knowledge graph output) ###
 graphify-out/
