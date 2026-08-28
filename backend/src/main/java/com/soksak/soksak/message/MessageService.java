@@ -1,9 +1,11 @@
 package com.soksak.soksak.message;
 
+import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.chatRoom.ChatRoomService;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.aiClient.ChatAiClient;
+import com.soksak.soksak.message.dto.DeleteFromResponse;
 import com.soksak.soksak.message.dto.MessageResponse;
 import com.soksak.soksak.message.dto.RegenTarget;
 import com.soksak.soksak.message.dto.StreamJob;
@@ -95,15 +97,15 @@ public class MessageService {
     }
 
     @Transactional
-    public void deleteFrom(String loginId, Long roomId, Long messageId) {
-        chatRoomService.getOwnedChatRoom(loginId, roomId);
+    public DeleteFromResponse deleteFrom(String loginId, Long roomId, Long messageId) {
+        ChatRoom room = chatRoomService.getOwnedChatRoom(loginId, roomId);
         Message target = messageRepository.findById(messageId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
 
         if (!target.getChatRoom().getId().equals(roomId)) {
             throw new BusinessException(ErrorCode.MESSAGE_FORBIDDEN);
         }
-        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);;
+        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
 
         int idx = -1;
         for (int i = 0; i < messages.size(); i++) {
@@ -113,7 +115,22 @@ public class MessageService {
             }
         }
 
+        Long cut = target.getId();
+        Long upTo = room.getSummarizedUpToId();
+
+        boolean crossed = upTo != null && upTo >= cut;
+
         messageRepository.deleteAll(messages.subList(idx, messages.size()));
+
+        if (crossed) {
+            if (idx > 0) {
+                room.rewindSummaryTo(messages.get(idx - 1).getId());
+            } else {
+                room.clearSummary();
+            }
+        }
+
+        return new DeleteFromResponse(crossed && idx > 0);
     }
 
     private <T> T withRoomLock(Long roomId, Supplier<T> action) {

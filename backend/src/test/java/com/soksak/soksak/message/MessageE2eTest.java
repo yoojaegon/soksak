@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.List;
 import java.util.Map;
@@ -342,7 +343,9 @@ class MessageE2eTest {
 
         mockMvc.perform(delete("/chatrooms/{roomId}/messages/{messageId}/after", roomId, thirdId)
                         .header("Authorization", "Bearer " + ownerToken))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                // 요약을 굴린 적 없는 방이라 장기기억이 오염될 일도 없다
+                .andExpect(jsonPath("$.summaryStale").value(false));
 
         List<Message> after = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
         assertThat(after).hasSize(2);                                  // 첫 턴만 남음
@@ -358,7 +361,9 @@ class MessageE2eTest {
 
         mockMvc.perform(delete("/chatrooms/{roomId}/messages/{messageId}/after", roomId, firstId)
                         .header("Authorization", "Bearer " + ownerToken))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                // 남은 대화가 없으니 사용자가 장기기억을 손볼 일도 없다
+                .andExpect(jsonPath("$.summaryStale").value(false));
 
         assertThat(messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId)).isEmpty();
     }
@@ -395,6 +400,88 @@ class MessageE2eTest {
     void delete_without_token_returns_401() throws Exception {
         mockMvc.perform(delete("/chatrooms/{roomId}/messages/{messageId}/after", roomId, 1L))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ---------- DELETE × 요약(장기기억) ----------
+    // 옛 대화는 messages 원문과 chat_room.summary 두 벌로 존재한다. 삭제는 원문만 지우므로,
+    // 이미 요약에 접혀 들어간 구간까지 지우면 "어디까지 요약했나"(커서)가 없는 메시지를 가리키고
+    // 요약문엔 지운 내용이 남는다. 커서는 서버가 되돌리고, 요약문은 사용자가 직접 고친다.
+
+    @Test
+    @DisplayName("요약 구간보다 뒤를 지우면 요약은 손대지 않는다")
+    void delete_after_summary_leaves_it_untouched() throws Exception {
+        send(ownerToken, "첫째");
+        send(ownerToken, "둘째");
+        send(ownerToken, "셋째");
+        List<Message> before = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
+        assertThat(before).hasSize(6);
+        seedSummary("접어둔 옛 이야기", before.get(1).getId());
+
+        // 커서(1번)보다 뒤인 4번부터 삭제 → 요약이 덮은 구간은 그대로 살아 있다
+        deleteFrom(ownerToken, before.get(4).getId())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summaryStale").value(false));
+
+        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
+        assertThat(room.getSummary()).isEqualTo("접어둔 옛 이야기");
+        assertThat(room.getSummarizedUpToId()).isEqualTo(before.get(1).getId());
+    }
+
+    @Test
+    @DisplayName("요약 구간 안쪽을 지우면 커서만 살아남은 마지막 메시지로 당겨지고 요약문은 남는다")
+    void delete_inside_summary_rewinds_cursor_and_keeps_text() throws Exception {
+        send(ownerToken, "첫째");
+        send(ownerToken, "둘째");
+        send(ownerToken, "셋째");
+        List<Message> before = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
+        seedSummary("접어둔 옛 이야기", before.get(3).getId());
+
+        // 커서(3번)보다 앞인 2번부터 삭제 → 0·1번만 남는다
+        deleteFrom(ownerToken, before.get(2).getId())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summaryStale").value(true));
+
+        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
+        // 요약문을 여기서 비우면 100턴짜리 방이 뒤쪽 몇 턴을 지웠다는 이유로 기억을 통째로 잃는다.
+        // 지운 내용이 남는 건 감수하고, 사용자가 장기기억 칸에서 직접 고치게 한다.
+        assertThat(room.getSummary()).isEqualTo("접어둔 옛 이야기");
+        // 커서를 null로 되돌리면 살아남은 원문이 전부 다시 프롬프트에 실린다 — 살아남은 마지막 메시지로.
+        assertThat(room.getSummarizedUpToId()).isEqualTo(before.get(1).getId());
+    }
+
+    @Test
+    @DisplayName("커서가 가리키는 그 메시지를 지워도 요약 구간을 건드린 것으로 본다")
+    void delete_exactly_at_cursor_is_crossed() throws Exception {
+        send(ownerToken, "첫째");
+        send(ownerToken, "둘째");
+        List<Message> before = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
+        seedSummary("접어둔 옛 이야기", before.get(2).getId());
+
+        // 판정이 >= 가 아니라 > 면 여기서 커서가 사라진 메시지를 계속 가리킨다
+        deleteFrom(ownerToken, before.get(2).getId())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summaryStale").value(true));
+
+        assertThat(chatRoomRepository.findById(roomId).orElseThrow().getSummarizedUpToId())
+                .isEqualTo(before.get(1).getId());
+    }
+
+    @Test
+    @DisplayName("전부 지우면 요약문과 커서가 함께 비워지고 안내는 뜨지 않는다")
+    void delete_all_clears_summary_without_notice() throws Exception {
+        send(ownerToken, "첫째");
+        send(ownerToken, "둘째");
+        List<Message> before = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
+        seedSummary("접어둔 옛 이야기", before.get(1).getId());
+
+        // 남은 대화가 없으니 사용자가 장기기억을 손볼 일도 없다 → summaryStale은 false
+        deleteFrom(ownerToken, before.get(0).getId())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summaryStale").value(false));
+
+        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
+        assertThat(room.getSummary()).isNull();
+        assertThat(room.getSummarizedUpToId()).isNull();
     }
 
     // ---------- helpers ----------
@@ -444,6 +531,18 @@ class MessageE2eTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("content", content))))
                 .andExpect(status().isCreated());
+    }
+
+    private ResultActions deleteFrom(String token, long messageId) throws Exception {
+        return mockMvc.perform(delete("/chatrooms/{roomId}/messages/{messageId}/after", roomId, messageId)
+                .header("Authorization", "Bearer " + token));
+    }
+
+    // 요약을 실제로 굴리려면 메시지 30개와 AI 호출이 필요하므로, 결과 상태만 직접 심어둔다.
+    private void seedSummary(String summary, Long upToId) {
+        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
+        room.applySummary(summary, upToId);
+        chatRoomRepository.save(room);
     }
 
     private String json(Map<String, ?> body) throws Exception {

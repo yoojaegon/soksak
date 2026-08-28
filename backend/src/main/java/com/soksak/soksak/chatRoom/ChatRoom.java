@@ -71,4 +71,12 @@ public class ChatRoom extends BaseTimeEntity {
     }
 
     public void updateModel(String model) {this.model = model;}
+
+    public void updateSummary(String summary) {this.summary = summary;}
+
+    public void clearSummary() {this.summary = null; this.summarizedUpToId = null;}
+
+    // 요약문은 건드리지 않는다. 지운 대화가 요약에 남더라도 사용자가 직접 고치는 쪽을 택했다 —
+    // 여기서 summary까지 비우면 100턴짜리 방이 뒤쪽 몇 턴을 지웠다는 이유로 기억을 통째로 잃는다.
+    public void rewindSummaryTo(Long upToId) {this.summarizedUpToId = upToId;}
 }

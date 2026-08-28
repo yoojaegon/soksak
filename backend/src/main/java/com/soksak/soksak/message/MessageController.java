@@ -1,5 +1,6 @@
 package com.soksak.soksak.message;
 
+import com.soksak.soksak.message.dto.DeleteFromResponse;
 import com.soksak.soksak.message.dto.MessageRequest;
 import com.soksak.soksak.message.dto.MessageResponse;
 import jakarta.validation.Valid;
@@ -59,13 +60,13 @@ public class MessageController {
     }
 
     @DeleteMapping("/{messageId}/after")
-    public ResponseEntity<Void> deleteForm(
+    public ResponseEntity<DeleteFromResponse> deleteForm(
             Authentication authentication,
             @PathVariable Long roomId,
             @PathVariable Long messageId
     ) {
-        messageService.deleteFrom(authentication.getName(), roomId, messageId);
-        return ResponseEntity.noContent().build();
+
+        return ResponseEntity.ok(messageService.deleteFrom(authentication.getName(), roomId, messageId));
     }
 
     @PostMapping("/stream")

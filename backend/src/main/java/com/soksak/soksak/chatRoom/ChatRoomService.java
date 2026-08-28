@@ -3,10 +3,7 @@ package com.soksak.soksak.chatRoom;
 import com.soksak.soksak.aiClient.ModelCatalog;
 import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.character.ChatCharacter;
-import com.soksak.soksak.chatRoom.dto.ChatRoomResponse;
-import com.soksak.soksak.chatRoom.dto.CreateChatRoomRequest;
-import com.soksak.soksak.chatRoom.dto.UpdateChatRoomRequest;
-import com.soksak.soksak.chatRoom.dto.UpdateModelRequest;
+import com.soksak.soksak.chatRoom.dto.*;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.message.Message;
@@ -131,5 +128,19 @@ public class ChatRoomService {
             throw new BusinessException(ErrorCode.CHATROOM_FORBIDDEN);
         }
         return chatRoom;
+    }
+
+    @Transactional(readOnly = true)
+    public SummaryResponse getSummary(String loginId, Long chatRoomId) {
+        return SummaryResponse.from(getOwnedChatRoom(loginId, chatRoomId));
+    }
+
+    @Transactional
+    public SummaryResponse updateSummary(String loginId, Long chatRoomId, UpdateSummaryRequest request) {
+        ChatRoom chatRoom = getOwnedChatRoom(loginId, chatRoomId);
+
+        String summary = request.summary().trim();
+        chatRoom.updateSummary(summary.isEmpty() ? null : summary);
+        return SummaryResponse.from(chatRoom);
     }
 }

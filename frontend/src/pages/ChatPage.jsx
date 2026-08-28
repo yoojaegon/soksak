@@ -6,6 +6,10 @@ import CharacterImage from '../components/CharacterImage.jsx'
 import { modelLabel } from '../models.js'
 import { useConfirm } from '../confirm.jsx'
 
+// 장기기억 길이 상한. 백엔드 UpdateSummaryRequest의 @Size(max)와 같은 값이어야 한다 —
+// 다르면 사용자가 다 쓰고 저장할 때야 400을 받는다.
+const MEMORY_MAX = 3000
+
 // 메시지 시각을 HH:MM 타임코드로. createdAt이 없으면(임시 메시지) 빈 문자열.
 function timecode(createdAt) {
   if (!createdAt) return ''
@@ -71,6 +75,19 @@ function ChatRoom({ roomId }) {
   const [modelList, setModelList] = useState(null)
   const [defaultModel, setDefaultModel] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
+  // 장기기억(자동 요약문) — summary는 textarea의 값, summarySaved는 마지막으로 서버와 맞춘 값.
+  // 둘이 다르면 저장할 게 있다는 뜻이다. ref를 같이 두는 건 config와 같은 이유 —
+  // 패널을 다시 열 때 편집 중이던 내용을 서버 값으로 덮어쓰지 않으려면 최신값을 동기적으로 읽어야 한다.
+  const [summary, setSummary] = useState('')
+  const [summarySaved, setSummarySaved] = useState('')
+  const summarySavedRef = useRef('')
+  const writeSummarySaved = (next) => {
+    summarySavedRef.current = next
+    setSummarySaved(next)
+  }
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summarySaving, setSummarySaving] = useState(false)
+  const [summaryError, setSummaryError] = useState('')
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -78,6 +95,9 @@ function ChatRoom({ roomId }) {
   const [editingId, setEditingId] = useState(null) // 현재 수정 중인 메시지 id
   const [editText, setEditText] = useState('')
   const [error, setError] = useState('')
+  // 오류는 아니지만 알려야 하는 것(지금은 삭제가 장기기억을 건드린 경우 하나).
+  // .error와 달리 중립 톤이고, 사용자가 확인했거나 대화를 이어가면 사라진다.
+  const [notice, setNotice] = useState('')
   // 방 자체를 불러오지 못하면(삭제·잘못된 id) 빈 화면 대신 명확히 안내한다.
   const [roomError, setRoomError] = useState('')
   const bottomRef = useRef(null)
@@ -155,6 +175,51 @@ function ChatRoom({ roomId }) {
     }
   }, [])
 
+  // 장기기억은 대화가 진행되는 동안 서버에서 계속 갱신되므로, 방 정보처럼 입장할 때 한 번이 아니라
+  // 설정 패널을 열 때마다 새로 받는다.
+  useEffect(() => {
+    if (!showSettings) return
+    let alive = true
+    setSummaryLoading(true)
+    setSummaryError('')
+    api
+      .getSummary(roomId)
+      .then((data) => {
+        if (!alive) return
+        const next = data?.summary ?? ''
+        // 저장 안 한 편집이 남아 있으면 덮어쓰지 않는다(실수로 패널을 닫았다 열어도 글이 안 날아가게).
+        setSummary((cur) => (cur === summarySavedRef.current ? next : cur))
+        writeSummarySaved(next)
+      })
+      .catch((err) => {
+        if (alive) setSummaryError(err.message)
+      })
+      .finally(() => {
+        if (alive) setSummaryLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [showSettings, roomId])
+
+  // 장기기억 저장. 토글·모델과 달리 낙관적 반영을 하지 않는다 —
+  // 서버가 앞뒤 공백을 다듬고 빈 값을 null로 바꾸므로, 응답을 받아 그 결과를 그대로 화면에 넣는다.
+  const saveSummary = async () => {
+    if (summarySaving) return
+    setSummarySaving(true)
+    setSummaryError('')
+    try {
+      const data = await api.updateSummary(roomId, summary)
+      const next = data?.summary ?? ''
+      setSummary(next)
+      writeSummarySaved(next)
+    } catch (err) {
+      setSummaryError(err.message)
+    } finally {
+      setSummarySaving(false)
+    }
+  }
+
   // 메시지가 늘어나면 항상 맨 아래로 스크롤
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -194,6 +259,8 @@ function ChatRoom({ roomId }) {
 
     setSending(true)
     setError('')
+    // 대화를 이어간다는 건 장기기억 안내를 지나쳤다는 뜻이다 — 계속 붙잡아 두지 않는다.
+    setNotice('')
 
     // 내 메시지와 빈 AI 버블을 먼저 화면에 올린다(낙관적). AI 버블엔 토큰이 도착하는 대로 이어붙인다.
     const now = Date.now()
@@ -322,8 +389,14 @@ function ChatRoom({ roomId }) {
     setActing(true)
     setError('')
     try {
-      await api.deleteFrom(roomId, messageId)
+      const res = await api.deleteFrom(roomId, messageId)
       await reload()
+      // 이미 요약에 접혀 들어간 구간까지 지운 경우. 서버는 "어디까지 요약했나"만 되돌리고
+      // 요약문은 그대로 두므로(그래야 앞부분 기억이 안 날아간다), 지운 내용이 남았는지는
+      // 사용자가 직접 보고 고쳐야 한다. 그 순간을 놓치지 않게 알린다.
+      if (res?.summaryStale) {
+        setNotice('지운 대화의 일부가 장기기억에 남아 있을 수 있어요.')
+      }
       // 삭제 버튼은 메시지째 사라지므로 다이얼로그가 돌려줄 곳이 없다. 입력창으로 착지시킨다.
       composerRef.current?.focus()
     } catch (err) {
@@ -482,6 +555,22 @@ function ChatRoom({ roomId }) {
         <div ref={bottomRef} />
       </div>
 
+      {notice && (
+        <p className="notice">
+          <span>{notice}</span>
+          <button
+            type="button"
+            className="notice-action"
+            onClick={() => {
+              setShowSettings(true)
+              setNotice('')
+            }}
+          >
+            장기기억 열기
+          </button>
+        </p>
+      )}
+
       {error && <p className="error">{error}</p>}
 
       <form className="composer" onSubmit={onSend}>
@@ -562,6 +651,43 @@ function ChatRoom({ roomId }) {
               </span>
               <span className={`sw ${config.writingToggle ? 'on' : ''}`} />
             </button>
+          </div>
+          {/* 장기기억 — 서버가 자동으로 만든 요약문을 그대로 보여주고 직접 고치게 한다.
+              토글들과 달리 자유 텍스트라 즉시 저장하지 않는다(실수로 날리기 쉬움). */}
+          <div className="aside-field aside-memory">
+            <label className="field-caption" htmlFor="chat-memory">
+              장기기억
+            </label>
+            <textarea
+              id="chat-memory"
+              className="memory-box"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              disabled={summaryLoading || summarySaving}
+              maxLength={MEMORY_MAX}
+              placeholder={
+                summaryLoading ? '불러오는 중…' : '대화가 길어지면 여기에 자동으로 정리됩니다.'
+              }
+              aria-describedby="memory-hint"
+            />
+            <div className="memory-foot">
+              <span className="memory-count">
+                {summary.length} / {MEMORY_MAX}
+              </span>
+              <button
+                type="button"
+                className="memory-save"
+                onClick={saveSummary}
+                disabled={summaryLoading || summarySaving || summary === summarySaved}
+              >
+                {summarySaving ? '저장 중…' : '저장'}
+              </button>
+            </div>
+            {summaryError && <span className="memory-error">{summaryError}</span>}
+            <span className="tog-hint" id="memory-hint">
+              캐릭터가 계속 기억하는 내용입니다. 직접 고칠 수 있고, 대화가 더 쌓이면 자동으로 다시
+              정리되면서 문장이 바뀔 수 있습니다.
+            </span>
           </div>
         </aside>
       )}

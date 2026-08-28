@@ -257,6 +257,133 @@ class ChatRoomCrudE2eTest {
         assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isNull();
     }
 
+    // ---------- SUMMARY (장기기억) ----------
+    // 모델과 달리 빈 값이 정당한 입력이다("지우기"). 대신 필드 자체가 없는 건 400 —
+    // 빈 본문이 null로 바인딩돼 사용자의 기억을 조용히 날리면 안 된다.
+    // 그리고 어떤 경로로도 summarizedUpToId(어디까지 요약했나 표시)는 바뀌면 안 된다.
+
+    @Test
+    @DisplayName("요약이 없는 방의 장기기억 조회는 200이고 summary가 null이다")
+    void get_summary_of_new_room_returns_null() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        mockMvc.perform(get("/chatrooms/{id}/summary", id)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("장기기억 조회는 저장된 요약문을 반환한다")
+    void get_summary_returns_stored_text() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        seedSummary(id, "주인공이 왕자임을 밝혔다.", 42L);
+
+        mockMvc.perform(get("/chatrooms/{id}/summary", id)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary").value("주인공이 왕자임을 밝혔다."));
+    }
+
+    @Test
+    @DisplayName("장기기억 수정은 200이고 DB에 반영되며 요약 커서는 그대로다")
+    void update_summary_persists_and_keeps_cursor() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        seedSummary(id, "옛 요약", 42L);
+
+        patchSummary(ownerToken, id, Map.of("summary", "사용자가 고친 요약"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary").value("사용자가 고친 요약"));
+
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        assertThat(room.getSummary()).isEqualTo("사용자가 고친 요약");
+        // 커서까지 따라 움직이면 이미 요약된 구간의 원문이 다시 프롬프트에 실린다
+        assertThat(room.getSummarizedUpToId()).isEqualTo(42L);
+    }
+
+    @Test
+    @DisplayName("장기기억을 빈 문자열로 저장하면 null로 지워지고 커서는 그대로다")
+    void update_summary_with_empty_clears_it() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        seedSummary(id, "옛 요약", 42L);
+
+        patchSummary(ownerToken, id, Map.of("summary", ""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary").doesNotExist());
+
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        assertThat(room.getSummary()).isNull();
+        assertThat(room.getSummarizedUpToId()).isEqualTo(42L);
+    }
+
+    @Test
+    @DisplayName("공백만 보내도 null로 지워진다 (trim 후 판정)")
+    void update_summary_with_blanks_clears_it() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        seedSummary(id, "옛 요약", 42L);
+
+        // trim 전 값으로 비었는지 판정하면 여기서 빈 문자열이 저장돼, "없음"의 표현이 두 개가 된다
+        patchSummary(ownerToken, id, Map.of("summary", "  \n  "))
+                .andExpect(status().isOk());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary()).isNull();
+    }
+
+    @Test
+    @DisplayName("장기기억 저장 시 앞뒤 공백은 다듬어진다")
+    void update_summary_trims_edges() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        // textarea는 끝에 개행이 남기 쉬운데, 그게 매 턴 프롬프트에 그대로 실린다
+        patchSummary(ownerToken, id, Map.of("summary", "  기억할 내용  \n\n"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary").value("기억할 내용"));
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary()).isEqualTo("기억할 내용");
+    }
+
+    @Test
+    @DisplayName("summary 필드가 없으면 400이고 기존 장기기억이 지워지지 않는다")
+    void update_summary_without_field_returns_400_and_keeps_summary() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        seedSummary(id, "지켜야 할 기억", 42L);
+
+        patchSummary(ownerToken, id, Collections.emptyMap()).andExpect(status().isBadRequest());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary())
+                .isEqualTo("지켜야 할 기억");
+    }
+
+    @Test
+    @DisplayName("상한을 넘는 장기기억은 400이고 저장되지 않는다")
+    void update_summary_over_max_length_returns_400() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        seedSummary(id, "지켜야 할 기억", 42L);
+
+        // 이 값은 프론트 MEMORY_MAX와 같아야 한다. 상한이 어긋나면 사용자는 다 쓰고 나서야 400을 본다.
+        patchSummary(ownerToken, id, Map.of("summary", "가".repeat(3001)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary())
+                .isEqualTo("지켜야 할 기억");
+    }
+
+    @Test
+    @DisplayName("남의 챗룸 장기기억 조회·수정은 차단되고 내용이 바뀌지 않는다")
+    void others_summary_is_blocked() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        seedSummary(id, "남의 기억", 42L);
+
+        mockMvc.perform(get("/chatrooms/{id}/summary", id)
+                        .header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isForbidden());
+
+        patchSummary(otherToken, id, Map.of("summary", "해킹"))
+                .andExpect(status().isForbidden());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary()).isEqualTo("남의 기억");
+    }
+
     // ---------- DELETE ----------
 
     @Test
@@ -344,6 +471,20 @@ class ChatRoomCrudE2eTest {
                 .andReturn();
         JsonNode node = objectMapper.readTree(result.getResponse().getContentAsString());
         return node.get("id").asLong();
+    }
+
+    // 요약을 실제로 굴리려면 메시지 30개와 AI 호출이 필요하므로, 결과 상태만 직접 심어둔다.
+    private void seedSummary(long roomId, String summary, Long upToId) {
+        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
+        room.applySummary(summary, upToId);
+        chatRoomRepository.save(room);
+    }
+
+    private ResultActions patchSummary(String token, long id, Map<String, ?> body) throws Exception {
+        return mockMvc.perform(patch("/chatrooms/{id}/summary", id)
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(body)));
     }
 
     private ResultActions patchModel(String token, long id, Map<String, ?> body) throws Exception {

@@ -307,6 +307,12 @@ export const api = {
     request(`/chatrooms/${id}/model`, { method: 'PATCH', body: { model } }),
   // 채팅방 삭제
   deleteChatRoom: (id) => request(`/chatrooms/${id}`, { method: 'DELETE' }),
+  // 장기기억(자동 요약문) 조회. 대화 중에 갱신되므로 방 정보와 함께 받지 않고
+  // 설정 패널을 열 때마다 따로 부른다(목록 응답이 긴 텍스트로 불어나는 것도 막는다).
+  getSummary: (id) => request(`/chatrooms/${id}/summary`),
+  // 장기기억 직접 수정. 빈 문자열은 "지우기"라 유효한 값이다(백엔드에서 null로 저장).
+  updateSummary: (id, summary) =>
+    request(`/chatrooms/${id}/summary`, { method: 'PATCH', body: { summary } }),
   // 대화 설정(프롬프트 모드/스포일러 접기) 변경. boolean 토글은 body가 아니라 query param으로 보낸다.
   updateConfig: (id, { writingToggle, foldSpoilerToggle }) =>
     request(
