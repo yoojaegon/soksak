@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from app.chains.chat import chat, chat_stream
 from app.llm import get_chat_llm
 from app.memory.summarizer import ConversationSummarizer
+from app.memory.token_counter import count_tokens
 from app.prompts.config import PromptConfig
 
 logger = logging.getLogger(__name__)
@@ -46,8 +47,17 @@ class ChatRequest(BaseModel):
 
 
 class SummarizeRequest(BaseModel):
-    existing_summary: str | None = None
+    # 맥락 파악용으로만 쓰이는 직전 요약 1~2건. 이걸 갱신하는 게 아니라 이번 구간을
+    # 따로 요약하고, 누적은 백엔드가 요약을 여러 건 쌓아 두는 방식으로 처리한다.
+    previous_summaries: list[str] = []
     new_messages: list[Message]
+    # 구버전 백엔드 호환. 갱신형 시절의 단일 요약 필드로, 오면 앞선 기록 한 건으로 취급한다.
+    existing_summary: str | None = None
+
+    def context_summaries(self) -> list[str]:
+        if self.previous_summaries:
+            return self.previous_summaries
+        return [self.existing_summary] if self.existing_summary else []
 
 
 @router.post("/chat")
@@ -110,11 +120,19 @@ def summarize_endpoint(request: SummarizeRequest, http_request: Request):
                 turns.append(AIMessage(content=m.content))
 
         summarizer = ConversationSummarizer(http_request.app.state.summary_llm)
-        summary = summarizer.update(
-            existing_summary=request.existing_summary,
+        result = summarizer.summarize(
+            previous_summaries=request.context_summaries(),
             new_turns=turns,
         )
     except Exception:
         logger.exception("summarize 처리 실패")
         raise HTTPException(status_code=500, detail="internal error")
-    return {"summary": summary}
+
+    # 토큰 수는 백엔드가 "어느 요약까지 프롬프트에 실을지" 정할 때 쓰는 보조값이다.
+    # 측정이 실패해도 근사치가 돌아오므로 여기서 요약이 깨지는 일은 없다.
+    return {
+        "summary": result.summary,
+        "importance": result.importance,
+        "keywords": result.keywords,
+        "token_count": count_tokens(result.summary),
+    }

@@ -60,6 +60,10 @@ services:
       # ai-server 컨테이너에는 .env가 안 들어가므로 여기서 명시적으로 넘겨야 한다.
       SUMMARY_MODEL: ${SUMMARY_MODEL:-}
       SUMMARY_TIMEOUT: ${SUMMARY_TIMEOUT:-}
+      # 토큰 수 세기용 벤더 직결 키. 게이트웨이가 아니라 벤더 API를 직접 부르므로 별도로 넣는다.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      TOKEN_COUNT_MODEL: ${TOKEN_COUNT_MODEL:-}
     volumes:
       # ai-server는 stdout이 아니라 파일로 로그를 남긴다(컨테이너 안 경로는 /logs).
       - ai-logs:/logs
