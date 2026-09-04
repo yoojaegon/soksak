@@ -55,8 +55,8 @@ public class ChatAiServerClient implements ChatAiClient{
     }
 
     @Override
-    public String summarize(String existingSummary, List<Message> batch) {
-        SummarizeRequest request = new SummarizeRequest(existingSummary, toTurns(batch));
+    public SummarizeResponse summarize(List<String> previousSummaries, List<Message> batch) {
+        SummarizeRequest request = new SummarizeRequest(previousSummaries, toTurns(batch));
 
         SummarizeResponse response = callAiServer(() -> aiServerRestClient.post()
                 .uri("/summarize")
@@ -68,7 +68,7 @@ public class ChatAiServerClient implements ChatAiClient{
             log.warn("AI 서버가 빈 요약을 반환함");
             throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
         }
-        return response.summary();
+        return response;
     }
 
     // ai-server의 /chat/stream(SSE)을 열어 토큰을 onToken으로 흘려보내고, 전체 답변을 누적해 리턴한다.

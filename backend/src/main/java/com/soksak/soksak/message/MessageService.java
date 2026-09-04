@@ -1,7 +1,8 @@
 package com.soksak.soksak.message;
 
-import com.soksak.soksak.chatRoom.ChatRoom;
+import com.soksak.soksak.aiClient.dto.SummarizeResponse;
 import com.soksak.soksak.chatRoom.ChatRoomService;
+import com.soksak.soksak.chatRoom.chatSummary.ChatSummary;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.aiClient.ChatAiClient;
@@ -96,41 +97,10 @@ public class MessageService {
         });
     }
 
-    @Transactional
+    // 락 안에서 돈다 — AI 응답을 만드는 중에 지워버리면, 이미 계획된 요약 조각이 사라진
+    // 메시지의 id를 가리킨 채로 저장된다. 그 사이의 삭제 요청은 ROOM_BUSY로 돌려보낸다.
     public DeleteFromResponse deleteFrom(String loginId, Long roomId, Long messageId) {
-        ChatRoom room = chatRoomService.getOwnedChatRoom(loginId, roomId);
-        Message target = messageRepository.findById(messageId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
-
-        if (!target.getChatRoom().getId().equals(roomId)) {
-            throw new BusinessException(ErrorCode.MESSAGE_FORBIDDEN);
-        }
-        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
-
-        int idx = -1;
-        for (int i = 0; i < messages.size(); i++) {
-            if (messages.get(i).getId().equals(messageId)){
-                idx = i;
-                break;
-            }
-        }
-
-        Long cut = target.getId();
-        Long upTo = room.getSummarizedUpToId();
-
-        boolean crossed = upTo != null && upTo >= cut;
-
-        messageRepository.deleteAll(messages.subList(idx, messages.size()));
-
-        if (crossed) {
-            if (idx > 0) {
-                room.rewindSummaryTo(messages.get(idx - 1).getId());
-            } else {
-                room.clearSummary();
-            }
-        }
-
-        return new DeleteFromResponse(crossed && idx > 0);
+        return withRoomLock(roomId, () -> chatTxService.deleteFrom(loginId, roomId, messageId));
     }
 
     private <T> T withRoomLock(Long roomId, Supplier<T> action) {
@@ -149,14 +119,17 @@ public class MessageService {
     // 조회는 없다. prepareAndSaveUser가 이미 읽어온 방/이력으로만 판단한다.
     private void trySummarize(PreparedChat p) {
         try {
-            SummaryPlan plan = SummaryPlan.of(p.room(), p.priorHistory());
+            SummaryPlan plan = SummaryPlan.of(p.priorHistory(), p.summaries());
             if (plan == null) return;
 
-            String summary = chatAiClient.summarize(plan.existingSummary(), plan.batch());
-            chatTxService.applySummary(p.room().getId(), summary, plan.upToId());
-            // p.room()은 트랜잭션 밖 detached 인스턴스라 위 저장이 여기 반영되지 않는다.
-            // 이 줄이 없으면 buildRequest가 옛 summary를 읽어 이번 턴엔 요약이 안 실린다.
-            p.room().applySummary(summary, plan.upToId());
+            SummarizeResponse result = chatAiClient.summarize(plan.previousSummaries(), plan.batch());
+            ChatSummary saved = chatTxService.appendSummary(p.room().getId(), plan, result);
+
+            // p.room()·p.summaries()는 이 턴의 프롬프트를 만들 때 다시 쓰인다. SSE 경로는 별도
+            // 스레드라 위 저장의 영속성 컨텍스트가 다르니, 여기서 직접 맞춰줘야 방금 만든
+            // 요약이 이번 턴에 실린다. (동기 경로에선 같은 값으로 다시 채우는 셈이라 무해하다)
+            p.summaries().add(saved);
+            p.room().syncSummaryFrom(p.summaries());
         } catch (Exception e) {
             // 요약이 실패해도 채팅은 계속된다 — 요약 안 된 구간은 원문 그대로 프롬프트에 실린다.
             log.warn("요약 실패 (roomId={})", p.room().getId(), e);

@@ -6,6 +6,8 @@ import com.soksak.soksak.aiClient.ModelCatalog;
 import com.soksak.soksak.auth.RefreshTokenRepository;
 import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.character.ChatCharacter;
+import com.soksak.soksak.chatRoom.chatSummary.ChatSummary;
+import com.soksak.soksak.chatRoom.chatSummary.ChatSummaryRepository;
 import com.soksak.soksak.message.Message;
 import com.soksak.soksak.message.MessageRepository;
 import com.soksak.soksak.message.MessageRole;
@@ -25,6 +27,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,6 +49,7 @@ class ChatRoomCrudE2eTest {
     @Autowired CharacterRepository characterRepository;
     @Autowired ChatRoomRepository chatRoomRepository;
     @Autowired MessageRepository messageRepository;
+    @Autowired ChatSummaryRepository chatSummaryRepository;
     @Autowired RefreshTokenRepository refreshTokenRepository;
     @Autowired PasswordEncoder passwordEncoder;
 
@@ -60,6 +64,7 @@ class ChatRoomCrudE2eTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        chatSummaryRepository.deleteAll();
         messageRepository.deleteAll();
         chatRoomRepository.deleteAll();
         characterRepository.deleteAll();
@@ -260,7 +265,11 @@ class ChatRoomCrudE2eTest {
     // ---------- SUMMARY (장기기억) ----------
     // 모델과 달리 빈 값이 정당한 입력이다("지우기"). 대신 필드 자체가 없는 건 400 —
     // 빈 본문이 null로 바인딩돼 사용자의 기억을 조용히 날리면 안 된다.
-    // 그리고 어떤 경로로도 summarizedUpToId(어디까지 요약했나 표시)는 바뀌면 안 된다.
+    //
+    // ⚠️ 전환 중이다. 기억의 저장소는 chat_summary 조각으로 옮겨갔지만 GET/PATCH는 아직
+    // chat_room.summary를 읽고 쓴다(프론트 계약은 안 바꾸기로 했다 — 조각을 이어 붙인
+    // 문자열 하나를 주고받는다). 아래에서 커서(summarizedUpToId)를 확인하는 단언들은
+    // 그 전환이 끝나면 "조각이 몇 개 남았나"로 바뀐다.
 
     @Test
     @DisplayName("요약이 없는 방의 장기기억 조회는 200이고 summary가 null이다")
@@ -313,6 +322,9 @@ class ChatRoomCrudE2eTest {
 
         ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
         assertThat(room.getSummary()).isNull();
+        // ⚠️ 현재 동작을 적어둔 것이지 바람직한 동작이 아니다. 요약문만 비우고 커서를 남기면
+        // 커서 앞 구간이 원문으로도 요약으로도 실리지 않아 프롬프트에서 증발한다. 조각 모델로
+        // 읽기가 넘어가면 커서 자체가 사라지면서 이 구멍도 함께 없어진다.
         assertThat(room.getSummarizedUpToId()).isEqualTo(42L);
     }
 
@@ -418,6 +430,27 @@ class ChatRoomCrudE2eTest {
     }
 
     @Test
+    @DisplayName("챗룸을 삭제하면 요약 조각도 함께 지워진다")
+    void delete_chatroom_cascades_to_summary_fragments() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        Message message = messageRepository.save(Message.builder()
+                .chatRoom(room)
+                .role(MessageRole.USER)
+                .content("안녕")
+                .build());
+        seedSummaryFragment(id, "접어둔 옛 이야기", message.getId(), message.getId());
+
+        mockMvc.perform(delete("/chatrooms/{id}", id)
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isNoContent());
+
+        // 조각은 메시지를 FK로 참조하지 않으므로(삭제 규칙을 일관되게 두려고 일부러 뺐다),
+        // 방이 사라질 때 같이 지워지는 건 chat_room 쪽 ON DELETE CASCADE 하나뿐이다.
+        assertThat(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(id)).isEmpty();
+    }
+
+    @Test
     @DisplayName("남의 챗룸 삭제는 차단되고 챗룸이 유지된다")
     void delete_others_chatroom_is_blocked() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
@@ -473,11 +506,27 @@ class ChatRoomCrudE2eTest {
         return node.get("id").asLong();
     }
 
-    // 요약을 실제로 굴리려면 메시지 30개와 AI 호출이 필요하므로, 결과 상태만 직접 심어둔다.
+    // GET/PATCH는 아직 방의 요약문과 커서를 읽고 쓰지만, 그 값의 출처는 이제 조각이다.
+    // 둘을 함께 심어야 상태가 어긋나지 않는다(운영 코드도 조각에서 블롭을 다시 만든다).
     private void seedSummary(long roomId, String summary, Long upToId) {
+        seedSummaryFragment(roomId, summary, 1L, upToId);
         ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
-        room.applySummary(summary, upToId);
+        room.syncSummaryFrom(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId));
         chatRoomRepository.save(room);
+    }
+
+    private void seedSummaryFragment(long roomId, String content, long fromId, long toId) {
+        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
+        chatSummaryRepository.save(ChatSummary.builder()
+                .chatRoom(room)
+                .seq(1)
+                .fromMessageId(fromId)
+                .toMessageId(toId)
+                .content(content)
+                .importance(ChatSummary.DEFAULT_IMPORTANCE)
+                .keywords(List.of("씨앗"))
+                .estimatedTokens(20)
+                .build());
     }
 
     private ResultActions patchSummary(String token, long id, Map<String, ?> body) throws Exception {

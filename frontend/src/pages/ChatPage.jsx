@@ -391,11 +391,11 @@ function ChatRoom({ roomId }) {
     try {
       const res = await api.deleteFrom(roomId, messageId)
       await reload()
-      // 이미 요약에 접혀 들어간 구간까지 지운 경우. 서버는 "어디까지 요약했나"만 되돌리고
-      // 요약문은 그대로 두므로(그래야 앞부분 기억이 안 날아간다), 지운 내용이 남았는지는
-      // 사용자가 직접 보고 고쳐야 한다. 그 순간을 놓치지 않게 알린다.
-      if (res?.summaryStale) {
-        setNotice('지운 대화의 일부가 장기기억에 남아 있을 수 있어요.')
+      // 이미 요약에 접혀 들어간 구간까지 지운 경우. 그 구간을 덮던 요약 조각도 함께
+      // 지워지므로 지운 대화가 기억에 남지는 않는다. 다만 장기기억이 줄어든 건 사용자가
+      // 알아야 할 변화라 알린다.
+      if (res?.summaryTrimmed) {
+        setNotice('지운 구간의 장기기억도 함께 정리했어요.')
       }
       // 삭제 버튼은 메시지째 사라지므로 다이얼로그가 돌려줄 곳이 없다. 입력창으로 착지시킨다.
       composerRef.current?.focus()

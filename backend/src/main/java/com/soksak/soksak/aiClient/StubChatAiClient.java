@@ -1,5 +1,6 @@
 package com.soksak.soksak.aiClient;
 
+import com.soksak.soksak.aiClient.dto.SummarizeResponse;
 import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.message.Message;
 import org.springframework.context.annotation.Profile;
@@ -16,9 +17,11 @@ public class StubChatAiClient implements ChatAiClient{
         return "(ai 서버 연결 예정) " + room.getCharacter().getName() + " 응답 자리";
     }
 
+    // importance는 null로 둬서 엔티티 기본값(3)을 타게 하고, 토큰 수는 스텁 문자열 길이에
+    // 맞춘 작은 값을 준다 — 0을 주면 조각이 예산을 안 먹어서 선택 로직이 테스트에서 안 걸린다.
     @Override
-    public String summarize(String existingSummary, List<Message> batch) {
-        return "(요약 stub)";
+    public SummarizeResponse summarize(List<String> previousSummaries, List<Message> batch) {
+        return new SummarizeResponse("(요약 stub)", null, List.of(), 20);
     }
 
     @Override

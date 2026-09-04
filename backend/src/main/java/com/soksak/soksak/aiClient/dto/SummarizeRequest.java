@@ -7,7 +7,7 @@ import java.util.List;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record SummarizeRequest(
-        String existingSummary,
+        List<String> previousSummaries,
         List<ChatAiRequest.Turn> newMessages
 ) {
 }
