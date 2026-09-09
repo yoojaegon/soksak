@@ -3,6 +3,8 @@ package com.soksak.soksak.aiClient;
 import com.soksak.soksak.aiClient.dto.SummarizeRequest;
 import com.soksak.soksak.aiClient.dto.SummarizeResponse;
 import com.soksak.soksak.chatRoom.ChatRoom;
+import com.soksak.soksak.chatRoom.chatSummary.ChatSummary;
+import com.soksak.soksak.chatRoom.chatSummary.SummarySelector;
 import com.soksak.soksak.lore.LoreService;
 import com.soksak.soksak.message.Message;
 import com.soksak.soksak.aiClient.dto.ChatAiRequest;
@@ -38,8 +40,8 @@ public class ChatAiServerClient implements ChatAiClient{
     private final LoreService loreService;
 
     @Override
-    public String reply(ChatRoom room, String content, List<Message> priorHistory) {
-        ChatAiRequest request = buildRequest(room, content, priorHistory);
+    public String reply(ChatRoom room, String content, List<Message> priorHistory, List<ChatSummary> summaries) {
+        ChatAiRequest request = buildRequest(room, content, priorHistory, summaries);
 
         ChatAiResponse response = callAiServer(() -> aiServerRestClient.post()
                 .uri("/chat")
@@ -74,8 +76,9 @@ public class ChatAiServerClient implements ChatAiClient{
     // ai-server의 /chat/stream(SSE)을 열어 토큰을 onToken으로 흘려보내고, 전체 답변을 누적해 리턴한다.
     // (누적본은 스트림이 끝난 뒤 assistant 메시지로 저장하는 용도)
     @Override
-    public String replyStream(ChatRoom room, String content, List<Message> priorHistory, Consumer<String> onToken) {
-        ChatAiRequest request = buildRequest(room, content, priorHistory);
+    public String replyStream(ChatRoom room, String content, List<Message> priorHistory,
+                              List<ChatSummary> summaries, Consumer<String> onToken) {
+        ChatAiRequest request = buildRequest(room, content, priorHistory, summaries);
         try {
             // 스트리밍이라 retrieve()가 아닌 exchange()로 응답 바디를 직접 읽는다.
             // 바디 소비(readSse)는 반드시 이 람다 안에서 끝내야 한다 — 밖으로 나가면 커넥션이 닫힌다.
@@ -97,11 +100,13 @@ public class ChatAiServerClient implements ChatAiClient{
         }
     }
 
-    private ChatAiRequest buildRequest(ChatRoom room, String content, List<Message> priorHistory) {
-        Long upTo = room.getSummarizedUpToId();
-        List<Message> unsummarized = (upTo == null)
-                ? priorHistory
-                : priorHistory.stream().filter(m -> m.getId() > upTo).toList();
+    private ChatAiRequest buildRequest(ChatRoom room, String content,
+                                       List<Message> priorHistory, List<ChatSummary> summaries) {
+        // 커서는 조각 '전체' 기준이다(SummarySelector.cursorOf 주석 참고). 아래 select()가
+        // 예산 때문에 일부를 빼더라도 그 구간은 이미 요약된 것으로 친다 — 안 그러면 같은 대화가
+        // 요약과 원문으로 두 번 실린다. 빠진 구간이 기록의 구멍이 된다는 건 프롬프트가 알린다.
+        long upTo = SummarySelector.cursorOf(summaries);
+        List<Message> unsummarized = priorHistory.stream().filter(m -> m.getId() > upTo).toList();
 
         // 이전 대화 -> {role, content} 리스트로 변환. 요약이 밀리면 미요약분이 계속 쌓이므로
         // 개수가 아니라 토큰 예산으로 끊는다(HistoryTrimmer).
@@ -122,12 +127,16 @@ public class ChatAiServerClient implements ChatAiClient{
 
         String model = ModelCatalog.resolve(room.getModel());
 
+        // 조각 전부가 아니라 예산 안에서 고른 것만 싣는다. 고를 게 없으면 null(ai-server가 기억
+        // 블록을 통째로 생략).
+        String memory = SummarySelector.join(SummarySelector.select(summaries));
+
         return new ChatAiRequest(
                 room.getCharacter().getPersona(),
                 content,
                 recent,
                 lore,
-                room.getSummary(),
+                memory,
                 room.getCharacter().getName(),
                 userName,
                 userPersona,

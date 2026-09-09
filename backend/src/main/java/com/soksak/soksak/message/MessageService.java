@@ -44,8 +44,10 @@ public class MessageService {
     public MessageResponse sendMessage(String loginId, Long roomId, String content) {
         return withRoomLock(roomId, () -> {
             PreparedChat preparedChat = chatTxService.prepareAndSaveUser(loginId, roomId, content);
+            // trySummarize가 p.summaries()에 방금 만든 조각을 더한다 — 반드시 그 뒤에 넘길 것.
             trySummarize(preparedChat);
-            String reply = chatAiClient.reply(preparedChat.room(), content, preparedChat.priorHistory());
+            String reply = chatAiClient.reply(preparedChat.room(), content,
+                    preparedChat.priorHistory(), preparedChat.summaries());
             Message aiMessage = chatTxService.saveAssistant(roomId, reply);
             return MessageResponse.from(aiMessage);
         });
@@ -55,7 +57,7 @@ public class MessageService {
         return startStream(roomId, () -> {
             PreparedChat p = chatTxService.prepareAndSaveUser(loginId, roomId, content);
             trySummarize(p);
-            return new StreamJob(p.room(), content, p.priorHistory());
+            return new StreamJob(p.room(), content, p.priorHistory(), p.summaries());
         });
     }
 
@@ -84,7 +86,7 @@ public class MessageService {
     public MessageResponse regenerate(String loginId, Long roomId) {
         return withRoomLock(roomId, () -> {
             RegenTarget t = chatTxService.prepareRegenerate(loginId, roomId);
-            String reply = chatAiClient.reply(t.room(), t.lastUserContent(), t.priorHistory());
+            String reply = chatAiClient.reply(t.room(), t.lastUserContent(), t.priorHistory(), t.summaries());
             Message ai = chatTxService.saveAssistant(roomId, reply);
             return MessageResponse.from(ai);
         });
@@ -93,7 +95,7 @@ public class MessageService {
     public SseEmitter regenerateStream(String loginId, Long roomId) {
         return startStream(roomId, () -> {
             RegenTarget t = chatTxService.prepareRegenerate(loginId, roomId);
-            return new StreamJob(t.room(), t.lastUserContent(), t.priorHistory());
+            return new StreamJob(t.room(), t.lastUserContent(), t.priorHistory(), t.summaries());
         });
     }
 
@@ -147,7 +149,7 @@ public class MessageService {
             try{
                 StreamJob job = prepare.get();
                 String full = chatAiClient.replyStream(
-                        job.room(), job.content(), job.priorHistory(),
+                        job.room(), job.content(), job.priorHistory(), job.summaries(),
                         token -> sendToken(emitter, token));
                 Message ai = chatTxService.saveAssistant(roomId, full);
                 emitter.send(SseEmitter.event().name("done").data(MessageResponse.from(ai)));

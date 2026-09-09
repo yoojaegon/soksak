@@ -89,6 +89,9 @@ public class ChatTxService {
         if (messages.isEmpty()) {
             throw new BusinessException(ErrorCode.MESSAGE_NOT_FOUND);
         }
+        // 재생성도 프롬프트를 다시 만드므로 조각이 필요하다. 전송 경로(prepareAndSaveUser)와 달리
+        // 여기만 조회가 하나 는다 — 재생성은 요약을 굴리지 않아 원래 읽을 일이 없었다.
+        List<ChatSummary> summaries = chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId);
 
         Message last = messages.get(messages.size() - 1);
         Message lastUser;
@@ -109,7 +112,7 @@ public class ChatTxService {
             lastUser = last;
             priorHistory = messages.subList(0, messages.size() - 1);
         }
-        return new RegenTarget(room, lastUser.getContent(), List.copyOf(priorHistory));
+        return new RegenTarget(room, lastUser.getContent(), List.copyOf(priorHistory), summaries);
     }
 
     @Transactional

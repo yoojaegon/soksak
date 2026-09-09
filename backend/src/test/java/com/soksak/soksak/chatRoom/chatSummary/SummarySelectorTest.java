@@ -13,10 +13,15 @@ class SummarySelectorTest {
     // 선택에 쓰이는 값(seq/importance/estimatedTokens)만 의미 있게 채운다.
     // 저장하지 않으므로 chatRoom 은 null 이어도 무방하다.
     private ChatSummary fragment(int seq, int importance, int tokens) {
+        return fragmentSpanning(seq, importance, tokens, (long) seq, (long) seq);
+    }
+
+    // 커서 테스트는 조각이 덮는 메시지 구간이 의미를 가지므로 from/to를 직접 준다.
+    private ChatSummary fragmentSpanning(int seq, int importance, int tokens, Long from, Long to) {
         return ChatSummary.builder()
                 .seq(seq)
-                .fromMessageId((long) seq)
-                .toMessageId((long) seq)
+                .fromMessageId(from)
+                .toMessageId(to)
                 .content("조각" + seq)
                 .importance(importance)
                 .estimatedTokens(tokens)
@@ -121,6 +126,37 @@ class SummarySelectorTest {
         SummarySelector.select(summaries, 20);
 
         assertThat(summaries).extracting(ChatSummary::getSeq).containsExactly(1, 2, 3);
+    }
+
+    @Test
+    @DisplayName("조각이 없으면 커서는 0이다")
+    void cursor_is_zero_when_no_fragments() {
+        assertThat(SummarySelector.cursorOf(List.of())).isZero();
+    }
+
+    @Test
+    @DisplayName("커서는 마지막 조각의 to_message_id 다")
+    void cursor_is_last_fragments_end() {
+        List<ChatSummary> summaries = List.of(
+                fragmentSpanning(1, 3, 10, 1L, 10L),
+                fragmentSpanning(2, 3, 10, 11L, 24L));
+
+        assertThat(SummarySelector.cursorOf(summaries)).isEqualTo(24L);
+    }
+
+    @Test
+    @DisplayName("예산에 밀려 선택되지 않은 조각이 있어도 커서는 그대로다")
+    void cursor_ignores_selection_budget() {
+        // 커서를 select() 결과로 잡으면 빠진 조각의 구간이 미요약분으로 되살아나
+        // 같은 대화가 요약과 원문으로 두 번 실린다. 최신 조각이 빠질 수도 있어서
+        // "마지막으로 선택된 조각"은 커서가 될 수 없다.
+        List<ChatSummary> summaries = List.of(
+                fragmentSpanning(1, 3, 10, 1L, 10L),
+                fragmentSpanning(2, 3, 9000, 11L, 24L));
+
+        assertThat(SummarySelector.select(summaries, 3500))
+                .extracting(ChatSummary::getSeq).containsExactly(1);
+        assertThat(SummarySelector.cursorOf(summaries)).isEqualTo(24L);
     }
 
     @Test

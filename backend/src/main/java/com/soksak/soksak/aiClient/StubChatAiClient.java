@@ -2,6 +2,7 @@ package com.soksak.soksak.aiClient;
 
 import com.soksak.soksak.aiClient.dto.SummarizeResponse;
 import com.soksak.soksak.chatRoom.ChatRoom;
+import com.soksak.soksak.chatRoom.chatSummary.ChatSummary;
 import com.soksak.soksak.message.Message;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -12,8 +13,10 @@ import java.util.function.Consumer;
 @Component
 @Profile("test")   // 테스트에서는 ai-server 없이 이 스텁으로 동작
 public class StubChatAiClient implements ChatAiClient{
+    // 스텁은 프롬프트를 조립하지 않으므로 summaries를 쓰지 않는다. 조각이 실제로 프롬프트에
+    // 실리는지는 여기서 검증되지 않는다 — SummarySelector 단위테스트가 그 몫을 맡는다.
     @Override
-    public String reply(ChatRoom room, String content, List<Message> priorHistory) {
+    public String reply(ChatRoom room, String content, List<Message> priorHistory, List<ChatSummary> summaries) {
         return "(ai 서버 연결 예정) " + room.getCharacter().getName() + " 응답 자리";
     }
 
@@ -25,8 +28,9 @@ public class StubChatAiClient implements ChatAiClient{
     }
 
     @Override
-    public String replyStream(ChatRoom room, String content, List<Message> priorHistory, Consumer<String> onToken) {
-        String reply = reply(room, content, priorHistory);  // 기존 스텁 문자열 재사용
+    public String replyStream(ChatRoom room, String content, List<Message> priorHistory,
+                              List<ChatSummary> summaries, Consumer<String> onToken) {
+        String reply = reply(room, content, priorHistory, summaries);  // 기존 스텁 문자열 재사용
         onToken.accept(reply);                               // 한 조각으로 흘려보냄
         return reply;
     }

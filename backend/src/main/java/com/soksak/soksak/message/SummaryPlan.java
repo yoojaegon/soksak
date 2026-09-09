@@ -1,6 +1,7 @@
 package com.soksak.soksak.message;
 
 import com.soksak.soksak.chatRoom.chatSummary.ChatSummary;
+import com.soksak.soksak.chatRoom.chatSummary.SummarySelector;
 
 import java.util.List;
 
@@ -31,10 +32,10 @@ public record SummaryPlan (
         int summarizableEnd = history.size() - WINDOW;
         if (summarizableEnd <= 0) return null;
 
-        // 커서는 더 이상 방의 필드가 아니라 조각에서 나오는 파생값이다. 조각은 뒤로만 붙고
-        // 삭제는 꼬리부터 잘리므로, 마지막 조각의 to_message_id가 곧 최대값이다.
+        // 커서는 더 이상 방의 필드가 아니라 조각에서 나오는 파생값이다. 프롬프트를 만드는
+        // buildRequest도 같은 함수를 쓴다 — 갈리면 요약 대상과 프롬프트 대상이 어긋난다.
         ChatSummary last = summaries.isEmpty() ? null : summaries.get(summaries.size() - 1);
-        long upTo = last == null ? 0 : last.getToMessageId();
+        long upTo = SummarySelector.cursorOf(summaries);
 
         List<Message> batch = history.subList(0, summarizableEnd).stream()
                 .filter(m -> m.getId() > upTo)
