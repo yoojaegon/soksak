@@ -75,10 +75,6 @@ public class ChatTxService {
                 .estimatedTokens(result.tokenCount())
                 .build());
 
-        // 아직 buildRequest가 방의 summary/커서를 읽으므로 조각과 같은 내용을 여기에도 남긴다.
-        // 3단계에서 읽기를 조각으로 옮기면 이 줄과 ChatRoom의 두 필드를 함께 지운다.
-        room.syncSummaryFrom(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId));
-
         return saved;
     }
 
@@ -117,7 +113,7 @@ public class ChatTxService {
 
     @Transactional
     public DeleteFromResponse deleteFrom(String loginId, Long roomId, Long messageId) {
-        ChatRoom room = chatRoomService.getOwnedChatRoom(loginId, roomId);
+        chatRoomService.getOwnedChatRoom(loginId, roomId);   // 소유권 검증
         Message target = messageRepository.findById(messageId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
 
@@ -135,11 +131,6 @@ public class ChatTxService {
         messageRepository.deleteAll(messages.subList(idx, messages.size()));
         // 잘린 지점에 걸치거나(from < cut <= to) 그 뒤에 있는 조각을 함께 지운다.
         long removed = chatSummaryRepository.deleteByChatRoomIdAndToMessageIdGreaterThanEqual(roomId, cut);
-
-        if (removed > 0) {
-            // 전환기 미러도 같이 맞춘다. 빠뜨리면 지운 대화가 방의 블롭에 남아 프롬프트에 계속 실린다.
-            room.syncSummaryFrom(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId));
-        }
 
         return new DeleteFromResponse(removed > 0);
     }

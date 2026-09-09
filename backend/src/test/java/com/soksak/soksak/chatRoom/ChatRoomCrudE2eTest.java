@@ -8,6 +8,7 @@ import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.character.ChatCharacter;
 import com.soksak.soksak.chatRoom.chatSummary.ChatSummary;
 import com.soksak.soksak.chatRoom.chatSummary.ChatSummaryRepository;
+import com.soksak.soksak.chatRoom.chatSummary.SummarySelector;
 import com.soksak.soksak.message.Message;
 import com.soksak.soksak.message.MessageRepository;
 import com.soksak.soksak.message.MessageRole;
@@ -304,14 +305,14 @@ class ChatRoomCrudE2eTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary").value("사용자가 고친 요약"));
 
-        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
-        assertThat(room.getSummary()).isEqualTo("사용자가 고친 요약");
-        // 커서까지 따라 움직이면 이미 요약된 구간의 원문이 다시 프롬프트에 실린다
-        assertThat(room.getSummarizedUpToId()).isEqualTo(42L);
+        assertThat(storedSummary(id)).isEqualTo("사용자가 고친 요약");
+        // 커서까지 따라 움직이면(=지금 시점으로 밀면) 아직 요약 안 된 최근 대화가 요약된 것으로
+        // 취급돼 프롬프트에서 통째로 사라진다. 수동 조각은 갈아 끼운 조각의 구간을 물려받는다.
+        assertThat(storedCursor(id)).isEqualTo(42L);
     }
 
     @Test
-    @DisplayName("장기기억을 빈 문자열로 저장하면 null로 지워지고 커서는 그대로다")
+    @DisplayName("장기기억을 빈 문자열로 저장하면 조각이 전부 지워지고 커서도 0으로 돌아간다")
     void update_summary_with_empty_clears_it() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
         seedSummary(id, "옛 요약", 42L);
@@ -320,12 +321,11 @@ class ChatRoomCrudE2eTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary").doesNotExist());
 
-        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
-        assertThat(room.getSummary()).isNull();
-        // ⚠️ 현재 동작을 적어둔 것이지 바람직한 동작이 아니다. 요약문만 비우고 커서를 남기면
-        // 커서 앞 구간이 원문으로도 요약으로도 실리지 않아 프롬프트에서 증발한다. 조각 모델로
-        // 읽기가 넘어가면 커서 자체가 사라지면서 이 구멍도 함께 없어진다.
-        assertThat(room.getSummarizedUpToId()).isEqualTo(42L);
+        // 조각을 통째로 지우므로 커서도 함께 0으로 돌아간다. 블롭 시절의 High 버그
+        // ("요약문만 비우고 커서를 남겨 커서 앞 구간이 프롬프트에서 증발")가 여기서 소멸한다 —
+        // 커서가 별도 필드가 아니라 조각에서 유도되는 값이 되면서 어긋날 방법 자체가 없어졌다.
+        assertThat(storedSummary(id)).isNull();
+        assertThat(storedCursor(id)).isZero();
     }
 
     @Test
@@ -338,7 +338,7 @@ class ChatRoomCrudE2eTest {
         patchSummary(ownerToken, id, Map.of("summary", "  \n  "))
                 .andExpect(status().isOk());
 
-        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary()).isNull();
+        assertThat(storedSummary(id)).isNull();
     }
 
     @Test
@@ -351,7 +351,7 @@ class ChatRoomCrudE2eTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary").value("기억할 내용"));
 
-        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary()).isEqualTo("기억할 내용");
+        assertThat(storedSummary(id)).isEqualTo("기억할 내용");
     }
 
     @Test
@@ -362,22 +362,41 @@ class ChatRoomCrudE2eTest {
 
         patchSummary(ownerToken, id, Collections.emptyMap()).andExpect(status().isBadRequest());
 
-        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary())
+        assertThat(storedSummary(id))
                 .isEqualTo("지켜야 할 기억");
     }
 
     @Test
-    @DisplayName("상한을 넘는 장기기억은 400이고 저장되지 않는다")
-    void update_summary_over_max_length_returns_400() throws Exception {
+    @DisplayName("예산을 넘는 장기기억은 400이고 저장되지 않는다")
+    void update_summary_over_budget_returns_400() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
         seedSummary(id, "지켜야 할 기억", 42L);
 
-        // 이 값은 프론트 MEMORY_MAX와 같아야 한다. 상한이 어긋나면 사용자는 다 쓰고 나서야 400을 본다.
-        patchSummary(ownerToken, id, Map.of("summary", "가".repeat(3001)))
+        // 상한이 문자수(@Size 3000)에서 토큰 예산(SummarySelector.TOKEN_BUDGET)으로 바뀌었다.
+        // 한글은 대략 글자당 1.15토큰이라 실질 상한은 약 3,034자 — 프론트 MEMORY_MAX(3000)가
+        // 더 빡빡한 쪽이라 사용자는 여전히 프론트에서 먼저 막힌다(백엔드가 더 느슨해야 안전하다).
+        String tooLong = "가".repeat(4000);
+        assertThat(SummarySelector.estimateTokens(tooLong)).isGreaterThan(SummarySelector.TOKEN_BUDGET);
+
+        patchSummary(ownerToken, id, Map.of("summary", tooLong))
                 .andExpect(status().isBadRequest());
 
-        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary())
+        assertThat(storedSummary(id))
                 .isEqualTo("지켜야 할 기억");
+    }
+
+    @Test
+    @DisplayName("예산 안쪽 길이는 저장된다 (문자수 3000 상한 시절에는 막히던 길이)")
+    void update_summary_just_under_budget_is_saved() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        // 옛 @Size(max=3000)이면 400이던 길이. 예산 환산으로는 아직 안쪽이라 통과해야 한다.
+        String memory = "가".repeat(3010);
+        assertThat(SummarySelector.estimateTokens(memory)).isLessThanOrEqualTo(SummarySelector.TOKEN_BUDGET);
+
+        patchSummary(ownerToken, id, Map.of("summary", memory)).andExpect(status().isOk());
+
+        assertThat(storedSummary(id)).isEqualTo(memory);
     }
 
     @Test
@@ -393,7 +412,7 @@ class ChatRoomCrudE2eTest {
         patchSummary(otherToken, id, Map.of("summary", "해킹"))
                 .andExpect(status().isForbidden());
 
-        assertThat(chatRoomRepository.findById(id).orElseThrow().getSummary()).isEqualTo("남의 기억");
+        assertThat(storedSummary(id)).isEqualTo("남의 기억");
     }
 
     // ---------- DELETE ----------
@@ -510,9 +529,15 @@ class ChatRoomCrudE2eTest {
     // 둘을 함께 심어야 상태가 어긋나지 않는다(운영 코드도 조각에서 블롭을 다시 만든다).
     private void seedSummary(long roomId, String summary, Long upToId) {
         seedSummaryFragment(roomId, summary, 1L, upToId);
-        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
-        room.syncSummaryFrom(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId));
-        chatRoomRepository.save(room);
+    }
+
+    /** 방에 실제로 남아 있는 조각을 이어 붙인 것. 미러가 없어졌으므로 여기가 유일한 확인처다. */
+    private String storedSummary(long roomId) {
+        return SummarySelector.join(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId));
+    }
+
+    private Long storedCursor(long roomId) {
+        return SummarySelector.cursorOf(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId));
     }
 
     private void seedSummaryFragment(long roomId, String content, long fromId, long toId) {

@@ -127,11 +127,10 @@ public class MessageService {
             SummarizeResponse result = chatAiClient.summarize(plan.previousSummaries(), plan.batch());
             ChatSummary saved = chatTxService.appendSummary(p.room().getId(), plan, result);
 
-            // p.room()·p.summaries()는 이 턴의 프롬프트를 만들 때 다시 쓰인다. SSE 경로는 별도
-            // 스레드라 위 저장의 영속성 컨텍스트가 다르니, 여기서 직접 맞춰줘야 방금 만든
-            // 요약이 이번 턴에 실린다. (동기 경로에선 같은 값으로 다시 채우는 셈이라 무해하다)
+            // p.summaries()는 이 턴의 프롬프트를 만들 때 그대로 쓰인다. SSE 경로는 별도 스레드라
+            // 위 저장의 영속성 컨텍스트가 다르니, 여기서 직접 더해줘야 방금 만든 요약이 이번 턴에
+            // 실린다. 이 한 줄이 그 유일한 경로다 — 지우면 새 요약이 한 턴 늦게 반영된다.
             p.summaries().add(saved);
-            p.room().syncSummaryFrom(p.summaries());
         } catch (Exception e) {
             // 요약이 실패해도 채팅은 계속된다 — 요약 안 된 구간은 원문 그대로 프롬프트에 실린다.
             log.warn("요약 실패 (roomId={})", p.room().getId(), e);

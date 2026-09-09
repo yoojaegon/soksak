@@ -8,8 +8,21 @@ import java.util.stream.Collectors;
 public class SummarySelector {
     private SummarySelector() {}
 
-    private static final int TOKEN_BUDGET = 3500;
-    private static final int PINNED_IMPORTANCE = 4;
+    /**
+     * 프롬프트의 기억 자리에 허용하는 토큰 예산.
+     * 표시(GET)·주입(프롬프트)·수정 상한(PATCH)이 모두 이 하나를 본다 —
+     * "보이는 것 = 쓰이는 것 = 고칠 수 있는 것"이 어긋나면
+     * GET에는 나오는데 PATCH로는 못 고치는 기억이 생긴다.
+     */
+    public static final int TOKEN_BUDGET = 3500;
+
+    /** 이 이상이면 나이와 무관하게 후보가 된다. 사용자가 손으로 쓴 기억도 이 값을 받는다. */
+    public static final int PINNED_IMPORTANCE = 4;
+
+    // 2026-09-01 실측(claude-opus-4-8, 한국어): 본문 글자당 1.12토큰 + 메시지당 오버헤드 7.
+    // 둘 다 올려 잡아 과대추정 쪽으로 기울였다 — 과소추정만 컨텍스트 초과 사고를 낸다.
+    private static final double TOKENS_PER_CHAR = 1.15;
+    private static final int OVERHEAD = 10;
 
     public static List<ChatSummary> select(List<ChatSummary> summaries) {
         return select(summaries, TOKEN_BUDGET);
@@ -55,6 +68,15 @@ public class SummarySelector {
     public static long cursorOf(List<ChatSummary> summaries) {
         if (summaries == null || summaries.isEmpty()) return 0;
         return summaries.get(summaries.size() - 1).getToMessageId();
+    }
+
+    /**
+     * 조각을 만들기 전에(=아직 ai-server의 token_count 값이 없을 때) 쓰는 근사식.
+     * 사용자가 손으로 쓴 기억의 토큰 수와 그 상한 검사가 이 값을 쓴다.
+     */
+    public static int estimateTokens(String text) {
+        if (text == null || text.isEmpty()) return 0;
+        return (int) Math.ceil(text.length() * TOKENS_PER_CHAR) + OVERHEAD;
     }
 
     public static String join(List<ChatSummary> selected) {

@@ -442,11 +442,6 @@ class MessageE2eTest {
         assertThat(first.getImportance()).isEqualTo(ChatSummary.DEFAULT_IMPORTANCE);
         assertThat(first.getEstimatedTokens()).isPositive();
 
-        // 전환기 한정: 프롬프트가 아직 방의 블롭을 읽으므로 조각과 같은 내용이 이어 붙어야 한다.
-        // 덮어쓰기로 되돌아가면 여기서 잡힌다. (3단계에서 이 두 줄은 사라진다)
-        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
-        assertThat(room.getSummary()).isEqualTo(first.getContent() + "\n\n" + second.getContent());
-        assertThat(room.getSummarizedUpToId()).isEqualTo(second.getToMessageId());
     }
 
     @Test
@@ -522,10 +517,6 @@ class MessageE2eTest {
         assertThat(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId))
                 .singleElement()
                 .extracting(ChatSummary::getContent).isEqualTo("첫 구간");
-        // 전환기 한정: 실제로 프롬프트에 실리는 건 아직 방의 블롭이라, 조각만 지우고 여기를
-        // 안 맞추면 지운 대화를 캐릭터가 계속 기억한다. (3단계에서 이 단언은 사라진다)
-        assertThat(chatRoomRepository.findById(roomId).orElseThrow().getSummary())
-                .isEqualTo("첫 구간");
     }
 
     @Test
@@ -559,10 +550,6 @@ class MessageE2eTest {
 
         assertThat(messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId)).isEmpty();
         assertThat(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId)).isEmpty();
-
-        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
-        assertThat(room.getSummary()).isNull();
-        assertThat(room.getSummarizedUpToId()).isNull();
     }
 
     // ---------- helpers ----------
@@ -636,8 +623,6 @@ class MessageE2eTest {
                 .keywords(List.of("씨앗"))
                 .estimatedTokens(20)
                 .build());
-        room.syncSummaryFrom(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId));
-        chatRoomRepository.save(room);
     }
 
     // 요약은 "최근 20개를 뺀 나머지가 10개 이상"일 때 굴러간다(SummaryPlan의 WINDOW·BATCH).
