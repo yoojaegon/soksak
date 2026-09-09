@@ -30,8 +30,11 @@ services:
     build: ./backend
     restart: unless-stopped
     environment:
-      # 로컬은 postgres 컨테이너, 배포는 RDS. 둘 다 .env의 DB_URL 하나로 정한다.
-      DB_URL: ${DB_URL}
+      # 컨테이너 안에서는 DB 호스트가 서비스 이름(postgres)이라 기본값을 여기서 준다.
+      # .env에 DB_URL이 있으면 그게 이긴다 — 배포에서 RDS 엔드포인트를 넣는 자리다.
+      # ⚠️ 반드시 `:-`(빈 값도 잡음). `-`로 쓰면 .env의 빈 줄이 그대로 주입되는데,
+      # 빈 문자열은 application.yml의 기본값을 타지 않고 'Failed to determine suitable jdbc url'로 죽는다.
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/soksak}
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}

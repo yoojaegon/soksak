@@ -157,7 +157,8 @@ git clone https://github.com/yoojaegon/soksak.git
 cd soksak
 
 # 환경변수 설정
-cp .env.example .env        # DB_URL, DB_PASSWORD, JWT_SECRET_KEY, AI_GATEWAY_API_KEY 등 채우기
+cp .env.example .env        # DB_PASSWORD, JWT_SECRET_KEY, AI_GATEWAY_API_KEY 등 채우기
+                            # DB_URL은 로컬에선 비워둔다(아래 참고)
 ```
 
 ```bash
@@ -165,7 +166,8 @@ cp .env.example .env        # DB_URL, DB_PASSWORD, JWT_SECRET_KEY, AI_GATEWAY_AP
 docker compose --profile local up -d --build
 ```
 
-> 배포(EC2)에서는 DB를 RDS로 쓰므로 `--profile local` 없이 `docker compose up -d --build` 를 쓰고, `.env`의 `DB_URL`만 RDS 엔드포인트로 바꿉니다. 구성 파일은 로컬·배포가 동일합니다.
+> 배포(EC2)에서는 DB를 RDS로 쓰므로 `--profile local` 없이 `docker compose up -d --build` 를 쓰고, `.env`에 `DB_URL`을 RDS 엔드포인트로 넣습니다. 구성 파일은 로컬·배포가 동일합니다.
+> `DB_URL`은 로컬에서 비워두는 편이 낫습니다. 컨테이너 안에서는 DB 주소가 `postgres:5432`, 호스트에서 직접 백엔드를 돌릴 때는 `localhost:5432`라 값이 서로 다른데, `.env`는 한 파일뿐이라 어느 쪽을 적어도 반대쪽이 깨집니다. 비워두면 각각 `docker-compose.yml`과 `application.yml`의 기본값이 알아서 맞습니다.
 > 프론트를 고치며 개발할 때는 `cd frontend && npm run dev` (http://localhost:5173, `/api` 를 백엔드로 프록시).
 > AI 서버를 띄우지 않고 백엔드만 돌리려면 채팅 클라이언트를 `StubChatAiClient` 로 전환하면 됩니다.
 
