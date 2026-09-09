@@ -51,13 +51,6 @@ class SummarizeRequest(BaseModel):
     # 따로 요약하고, 누적은 백엔드가 요약을 여러 건 쌓아 두는 방식으로 처리한다.
     previous_summaries: list[str] = []
     new_messages: list[Message]
-    # 구버전 백엔드 호환. 갱신형 시절의 단일 요약 필드로, 오면 앞선 기록 한 건으로 취급한다.
-    existing_summary: str | None = None
-
-    def context_summaries(self) -> list[str]:
-        if self.previous_summaries:
-            return self.previous_summaries
-        return [self.existing_summary] if self.existing_summary else []
 
 
 @router.post("/chat")
@@ -121,7 +114,7 @@ def summarize_endpoint(request: SummarizeRequest, http_request: Request):
 
         summarizer = ConversationSummarizer(http_request.app.state.summary_llm)
         result = summarizer.summarize(
-            previous_summaries=request.context_summaries(),
+            previous_summaries=request.previous_summaries,
             new_turns=turns,
         )
     except Exception:

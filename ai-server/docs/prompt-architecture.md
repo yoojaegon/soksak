@@ -32,7 +32,7 @@ persona + (lore_entries) + (summary)  ->  단일 SystemMessage
   4. <character>  persona (항상)
   5. <user>       user_persona (있을 때)
   6. <lore>       lore_entries (있을 때)
-  7. <memory>     summary (있을 때)
+  7. <memory>     발췌 고지 + summary (있을 때)
 [이후 메시지]
   *history + Human(user_text)
 ```
@@ -213,6 +213,10 @@ ChatRequest(config, user_name, user_persona, char_name)
 시스템 프롬프트 조립과는 별개 경로다. `<memory>` 섹션에 **무엇을 넣을지**를 만드는 쪽이고,
 넣는 방식은 §2 그대로다.
 
+백엔드는 쌓아 둔 요약 조각 중 예산에 맞는 것만 골라 보내므로 기록에는 구멍이 뚫린다. 그래서
+`memory_section` 은 요약 본문 앞에 **"이 기록은 발췌"** 고지(`_MEMORY_NOTE`)를 상시 붙인다 —
+없으면 모델이 빠진 구간을 "아무 일도 없었다"로 추론한다.
+
 ### 10.1 갱신형 → 구간형
 
 기존 `summarizer.update(existing_summary, new_turns)` 는 기존 요약을 통째로 다시 쓰는
@@ -272,5 +276,4 @@ POST /summarize
   → { summary, importance, keywords, token_count }
 ```
 
-구버전 백엔드 호환을 위해 `existing_summary`(단일 문자열)도 계속 받는다 — 오면 앞선 기록
-한 건으로 취급한다. 응답의 `summary` 키도 그대로라, 백엔드가 아직 새 필드를 안 읽어도 동작한다.
+응답의 `summary` 키는 갱신형 시절과 이름이 같다 — 구간형에서도 그대로 쓰는 키다.

@@ -58,6 +58,12 @@ _SAFETY = """\
 바꾸는 방식(외형은 미성년이나 실제론 성인 등)으로도 우회하지 않는다. 그 외의 등장·서사\
 (학원물·로맨스 등)에는 제한을 두지 않는다."""
 
+# 백엔드가 쌓아 둔 요약 조각 중 예산에 맞는 것만 골라 보내므로, 기록에는 구멍이 생긴다.
+# 알려주지 않으면 모델이 빠진 구간을 "아무 일도 없었다"로 추론한다.
+_MEMORY_NOTE = """\
+아래는 지난 대화 기록의 일부를 발췌한 것이다. 구간이 이어져 있지 않을 수 있고 빠진 대목이 \
+있다. 기록에 없다고 해서 아무 일도 없었다고 단정하지 않는다."""
+
 
 def _wrap(tag: str, body: str) -> str:
     body = body.strip()
@@ -117,4 +123,4 @@ def lore_section(lore_entries: list[str] | None) -> str:
 def memory_section(summary: str | None) -> str:
     if not summary:
         return ""
-    return _wrap("memory", summary)
+    return _wrap("memory", f"{_MEMORY_NOTE}\n\n{summary}")
