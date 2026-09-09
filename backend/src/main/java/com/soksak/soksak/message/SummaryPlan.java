@@ -12,6 +12,8 @@ public record SummaryPlan (
         int nextSeq
 ){
     // 최근 WINDOW개는 원문 그대로 프롬프트에 실리므로 요약 대상에서 뺀다.
+    // ⚠️ HistoryTrimmer.TOKEN_BUDGET 이 이 개수를 덮을 만큼 커야 한다. 아니면 잘린 메시지가
+    // 요약에도 프롬프트에도 없는 구멍이 된다.
     private static final int WINDOW = 20;
     // 요약 대기분이 이만큼 모여야 굴린다 — 한두 개씩 굴리면 LLM 호출만 잦아진다.
     private static final int BATCH = 10;

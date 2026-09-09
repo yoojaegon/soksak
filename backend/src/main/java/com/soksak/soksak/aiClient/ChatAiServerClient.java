@@ -103,8 +103,9 @@ public class ChatAiServerClient implements ChatAiClient{
                 ? priorHistory
                 : priorHistory.stream().filter(m -> m.getId() > upTo).toList();
 
-        // 이전 대화 -> {role, content} 리스트로 변환
-        List<ChatAiRequest.Turn> recent = toTurns(unsummarized);
+        // 이전 대화 -> {role, content} 리스트로 변환. 요약이 밀리면 미요약분이 계속 쌓이므로
+        // 개수가 아니라 토큰 예산으로 끊는다(HistoryTrimmer).
+        List<ChatAiRequest.Turn> recent = toTurns(HistoryTrimmer.trim(unsummarized));
 
         // 유저의 기본 페르소나 -> user_name / user_persona (없으면 null, ai-server가 기본값 처리)
         UserPersona persona = userPersonaRepository
