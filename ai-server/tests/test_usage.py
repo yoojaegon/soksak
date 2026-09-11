@@ -7,12 +7,26 @@
 
 import logging
 
+from langchain.messages import AIMessageChunk
+
+from app.chains.chat import chat_stream
 from app.llm.usage import log_usage
 
 
 class _FakeLLM:
     def __init__(self, model: str) -> None:
         self.model = model
+
+
+class _FakeStreamLLM(_FakeLLM):
+    """청크 목록을 그대로 흘려보내는 LLM."""
+
+    def __init__(self, model: str, chunks: list[AIMessageChunk]) -> None:
+        super().__init__(model)
+        self._chunks = chunks
+
+    def stream(self, messages):
+        yield from self._chunks
 
 
 def _line(caplog) -> str:
@@ -76,6 +90,74 @@ def test_no_usage_logs_nothing(caplog):
         log_usage(_FakeLLM("claude-opus-4-8"), None)
         log_usage(_FakeLLM("claude-opus-4-8"), {})
     assert not caplog.records
+
+
+def _anthropic_chunks() -> list[AIMessageChunk]:
+    # Anthropic은 스트리밍 중간 청크에 usage_metadata를 싣지 않는다 — 전부 마지막에 온다.
+    return [
+        AIMessageChunk(content="안"),
+        AIMessageChunk(content="녕"),
+        AIMessageChunk(
+            content="",
+            usage_metadata={
+                "input_tokens": 5000,
+                "output_tokens": 300,
+                "total_tokens": 5300,
+                "input_token_details": {"cache_read": 4000, "cache_creation": 0},
+            },
+        ),
+    ]
+
+
+def test_stream_logs_usage_from_final_chunk(caplog):
+    llm = _FakeStreamLLM("claude-opus-4-8", _anthropic_chunks())
+    with caplog.at_level(logging.INFO, logger="app.llm.usage"):
+        assert "".join(chat_stream(llm, "페르소나", "안녕")) == "안녕"
+    line = _line(caplog)
+    assert "입력=5000" in line and "출력=300" in line
+    assert "캐시읽기=4000" in line
+
+
+def test_stream_aborted_before_usage_logs_nothing(caplog):
+    # 클라이언트가 중간에 끊으면 Anthropic의 사용량 청크는 영영 안 온다. 그때 0을 찍으면
+    # 캐시읽기=0이 '캐싱 고장'과 구분되지 않는다 — 모르는 건 모른다고 두고 침묵한다.
+    llm = _FakeStreamLLM("claude-opus-4-8", _anthropic_chunks())
+    with caplog.at_level(logging.INFO, logger="app.llm.usage"):
+        stream = chat_stream(llm, "페르소나", "안녕")
+        assert next(stream) == "안"
+        stream.close()
+    assert not caplog.records
+
+
+def test_stream_accumulates_per_chunk_deltas(caplog):
+    # Gemini는 청크마다 델타로 준다 — 마지막 것만 잡으면 입력 토큰을 통째로 놓친다.
+    llm = _FakeStreamLLM(
+        "models/gemini-3.1-pro-preview",
+        [
+            AIMessageChunk(
+                content="안",
+                usage_metadata={
+                    "input_tokens": 3000,
+                    "output_tokens": 1,
+                    "total_tokens": 3001,
+                    "input_token_details": {"cache_read": 2000},
+                },
+            ),
+            AIMessageChunk(
+                content="녕",
+                usage_metadata={
+                    "input_tokens": 0,
+                    "output_tokens": 699,
+                    "total_tokens": 699,
+                },
+            ),
+        ],
+    )
+    with caplog.at_level(logging.INFO, logger="app.llm.usage"):
+        assert "".join(chat_stream(llm, "페르소나", "안녕")) == "안녕"
+    line = _line(caplog)
+    assert "입력=3000" in line and "출력=700" in line
+    assert "캐시읽기=2000" in line
 
 
 def test_broken_shape_does_not_raise(caplog):

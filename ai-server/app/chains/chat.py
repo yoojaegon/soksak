@@ -89,16 +89,22 @@ def chat_stream(
     )
     history = _to_messages(recent_messages or [])
     messages = [system_msg, *history, HumanMessage(content=user_text)]
-    # 사용량은 청크 여러 개에 나눠 온다(입력은 첫 청크, 출력은 마지막) — 마지막 것만 잡으면
-    # 입력 토큰을 통째로 놓친다. 제공사 둘 다 델타로 주므로 더해 나가는 게 맞다.
+    # 사용량이 오는 모양은 제공사마다 다르다 — Anthropic은 마지막 청크에 한 번에 몰아주고,
+    # Gemini는 청크마다 델타로 준다. 둘 다 받으려면 더해 나가는 수밖에 없다.
+    # 빈 청크에 add_usage를 먹이면 0으로 채운 dict가 나와 '안 받았다'와 '0을 받았다'가
+    # 구분되지 않으므로, 실제로 온 것만 더한다(아래 finally가 이 차이에 기댄다).
     usage = None
     try:
         for chunk in llm.stream(messages):
-            usage = add_usage(usage, getattr(chunk, "usage_metadata", None))
+            chunk_usage = getattr(chunk, "usage_metadata", None)
+            if chunk_usage:
+                usage = add_usage(usage, chunk_usage)
             text = response_to_text(chunk)
             if text:
                 yield text
     finally:
-        # 클라이언트가 중간에 끊어도(GeneratorExit) 그때까지 쓴 토큰은 남긴다 — 끊긴 대화가
-        # 공짜였던 것처럼 보이면 비용을 추적할 수 없다.
+        # 클라이언트가 중간에 끊어도(GeneratorExit) 그때까지 받은 사용량은 남긴다 — 끊긴 대화가
+        # 공짜였던 것처럼 보이면 비용을 추적할 수 없다. 다만 Anthropic처럼 마지막에 몰아주는
+        # 제공사는 중도 이탈 시 사용량이 아예 안 온다. 그때 0을 찍으면 '공짜'로 보이는 건
+        # 물론이고 캐시읽기=0이 캐싱 고장 신호와 똑같아진다 — 차라리 한 줄도 남기지 않는다.
         log_usage(llm, usage)
