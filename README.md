@@ -56,7 +56,7 @@ flowchart LR
     FE -->|REST / SSE| BE["Backend<br/>Spring Boot"]
     BE -->|JPA| DB[(PostgreSQL)]
     BE -->|"내부 HTTP<br/>(shared secret)"| AI["AI Server<br/>FastAPI + LangChain"]
-    AI -->|API| LLM[(OpenAI)]
+    AI -->|"제공사 네이티브 SDK"| LLM[(Anthropic · Google)]
 ```
 
 **왜 백엔드와 AI 서버를 나눴는가**
@@ -88,7 +88,7 @@ flowchart LR
 |---|---|
 | **Frontend** | React 18, React Router, Vite |
 | **Backend** | Java 17, Spring Boot 3.5, Spring Web, Spring Security, Spring Data JPA, Validation, JJWT |
-| **AI Server** | Python 3.11+, FastAPI, LangChain, langchain-openai |
+| **AI Server** | Python 3.11+, FastAPI, LangChain, langchain-anthropic · langchain-google-genai |
 | **Database** | PostgreSQL 16 |
 | **인프라/기타** | Docker Compose, spring-dotenv, JUnit 5 · H2(테스트) |
 
@@ -157,7 +157,8 @@ git clone https://github.com/yoojaegon/soksak.git
 cd soksak
 
 # 환경변수 설정
-cp .env.example .env        # DB_PASSWORD, JWT_SECRET_KEY, AI_GATEWAY_API_KEY 등 채우기
+cp .env.example .env        # DB_PASSWORD, JWT_SECRET_KEY, ANTHROPIC_API_KEY,
+                            # GOOGLE_API_KEY(채팅 기본 모델이 google/*) 등 채우기
                             # DB_URL은 로컬에선 비워둔다(아래 참고)
 ```
 
@@ -182,6 +183,8 @@ soksak/
 ├── frontend/    # React + Vite — 웹 UI
 └── docker-compose.yml
 ```
+
+LLM 설정(제공사 키·모델 목록·튜닝 노브와 그 함정)은 [`ai-server/docs/llm-config.md`](ai-server/docs/llm-config.md).
 
 ---
 

@@ -135,8 +135,9 @@ class ConversationSummarizer:
                 return self._normalize(result)
             logger.warning("구조화 출력이 비어 있어 평문 요약으로 대체한다.")
         except Exception:
-            # 요약 모델은 방마다 바뀔 수 있고(SUMMARY_MODEL), 게이트웨이 경유라 함수 호출을
-            # 지원하지 않는 조합이 있을 수 있다. 메타데이터를 잃더라도 요약 자체는 살린다.
+            # 요약 모델은 SUMMARY_MODEL로 바뀔 수 있고, 구조화 출력의 구현은 제공사마다 다르다
+            # (제공사 OpenAI 호환 엔드포인트를 쓰던 시절엔 Anthropic이 response_format을
+            # 무시해서 이 경로로만 떨어졌다). 메타데이터를 잃더라도 요약 자체는 살린다.
             logger.warning("구조화 출력 실패 — 평문 요약으로 대체한다.", exc_info=True)
 
         text = response_to_text(self._llm.invoke([message])).strip()

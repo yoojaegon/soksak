@@ -8,7 +8,7 @@ from langchain.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 
 from app.chains.chat import chat, chat_stream
-from app.llm import get_chat_llm
+from app.llm import get_chat_llm, resolve_slug, supports_prompt_cache
 from app.memory.summarizer import ConversationSummarizer
 from app.memory.token_counter import count_tokens
 from app.prompts.config import PromptConfig
@@ -55,9 +55,13 @@ class SummarizeRequest(BaseModel):
 
 @router.post("/chat")
 def chat_endpoint(request: ChatRequest, http_request: Request):
+    # slug을 한 번 확정해 두 군데에 쓴다 — 모델 객체를 얻는 데, 그리고 프롬프트 캐싱을
+    # 켤지 묻는 데. 제공사 이름은 여기서도 등장하지 않는다(factory가 유일하게 아는 자리).
+    slug = resolve_slug(http_request.app, request.model)
     try:
         reply = chat(
-            llm=get_chat_llm(http_request.app, request.model),
+            llm=get_chat_llm(http_request.app, slug),
+            cacheable=supports_prompt_cache(slug),
             persona=request.persona,
             user_text=request.user_message,
             recent_messages=[m.model_dump() for m in request.recent_messages],
@@ -76,10 +80,13 @@ def chat_endpoint(request: ChatRequest, http_request: Request):
 
 @router.post("/chat/stream")
 def chat_stream_endpoint(request: ChatRequest, http_request: Request):
+    slug = resolve_slug(http_request.app, request.model)
+
     def event_source():
         try:
             for token in chat_stream(
-                llm=get_chat_llm(http_request.app, request.model),
+                llm=get_chat_llm(http_request.app, slug),
+                cacheable=supports_prompt_cache(slug),
                 persona=request.persona,
                 user_text=request.user_message,
                 recent_messages=[m.model_dump() for m in request.recent_messages],

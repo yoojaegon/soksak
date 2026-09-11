@@ -11,20 +11,12 @@ class LLMProfile:
     max_tokens: int
     timeout: int
     max_retries: int
-    # 게이트웨이는 chat completions만 지원 — Responses API는 명시적으로 켤 때만 쓴다.
-    use_responses_api: bool = False
 
     top_p: Optional[float] = None
     presence_penalty: Optional[float] = None
     frequency_penalty: Optional[float] = None
-
-    # 추론 모델의 thinking 예산 등급("low" 등). 비워두면 실행 시 slug를 보고
-    # 채운다(factory._effort_for) — 환경변수로 주면 그 값이 이긴다.
-    reasoning_effort: Optional[str] = None
-
-
-def _bool_env(key: str, default: bool) -> bool:
-    return (_env(key) or str(default)).lower() in {"1", "true", "yes"}
+    # 추론(thinking) 설정은 프로필에 없다 — 제공사마다 인자도 값의 의미도 달라서
+    # factory가 slug를 보고 정한다. 방마다 추론 레벨을 고르게 하는 건 별도 작업.
 
 
 # 빈 문자열은 "설정 안 함"으로 본다. compose가 미설정 변수를 넘기면 값이 ""로 들어오는데
@@ -37,9 +29,10 @@ def _env(key: str) -> Optional[str]:
 
 # 기본값은 프로필별로 호출부(main.py)가 정한다. 환경변수가 있으면 그게 이기므로
 # 값을 바꿔 실험할 때는 .env에 한 줄 넣으면 되고, 평상시엔 코드가 단일 출처다.
-# temperature/max_tokens는 채팅(길고 창의적)과 요약(짧고 사실적)의 정답이 달라
+# model/temperature/max_tokens는 채팅(길고 창의적)과 요약(짧고 사실적)의 정답이 달라
 # 기본값을 공유하면 한쪽이 반드시 틀린다 → 필수 인자로 둬서 새 프로필이 조용히
-# 엉뚱한 값을 물려받는 걸 막는다.
+# 엉뚱한 값을 물려받는 걸 막는다. model은 특히 그렇다 — 요약은 thinking이 켜진 모델을
+# 물려받으면 추론이 max_tokens를 먹어 요약문이 빈 채로 돌아온다.
 #
 # 재시도 예산 규칙: timeout × (max_retries+1) ≤ 호출자의 인내심(백엔드 application.yml의
 # ai-server.read-timeout). 초과분은 백엔드가 이미 포기한 뒤에 나가는, 아무도 안 듣는
@@ -49,9 +42,9 @@ def load_profile(
     prefix: str,
     name: str,
     *,
+    model: str,
     temperature: float,
     max_tokens: int,
-    model: str = "openai/gpt-4o-mini",
     timeout: int = 30,
     max_retries: int = 0,
 ) -> LLMProfile:
@@ -62,9 +55,7 @@ def load_profile(
         max_tokens=int(_env(f"{prefix}MAX_TOKENS") or max_tokens),
         timeout=int(_env(f"{prefix}TIMEOUT") or timeout),
         max_retries=int(_env(f"{prefix}MAX_RETRIES") or max_retries),
-        use_responses_api=_bool_env(f"{prefix}USE_RESPONSES_API", False),
         top_p=float(_env(f"{prefix}TOP_P")) if _env(f"{prefix}TOP_P") else None,
         presence_penalty=float(_env(f"{prefix}PRESENCE_PENALTY")) if _env(f"{prefix}PRESENCE_PENALTY") else None,
         frequency_penalty=float(_env(f"{prefix}FREQUENCY_PENALTY")) if _env(f"{prefix}FREQUENCY_PENALTY") else None,
-        reasoning_effort=_env(f"{prefix}REASONING_EFFORT"),
     )

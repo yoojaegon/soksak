@@ -4,8 +4,9 @@
 요약을 만든 자리에서 그 길이를 재서 함께 넘긴다. 요약은 한 번 만들면 내용이 안 바뀌므로
 생성 시점에 한 번만 재두면 이후엔 정수 덧셈만 하면 된다.
 
-채팅은 게이트웨이를 거치지만 count_tokens는 Anthropic 직결 엔드포인트라 전용 키를 쓴다
-(무료, 채팅 호출과 레이트 리밋도 별개).
+채팅과 같은 ANTHROPIC_API_KEY를 쓰지만 호출은 별개다 — count_tokens는 무료고 레이트 리밋도
+따로다. LangChain을 거치지 않고 anthropic SDK를 직접 쓰는 건 이 엔드포인트가 생성이 아니라
+측정이라 채팅 프로필(온도·max_tokens 등)과 공유할 게 없기 때문이다.
 
 기준 모델을 하나로 고정하는 이유: 방마다 모델이 다른데 모델별로 재두면 카탈로그가 바뀔
 때마다 과거 요약을 전부 다시 세야 한다. 과소추정만 사고(컨텍스트 초과)를 내고 과대추정은
@@ -22,7 +23,7 @@ import threading
 
 logger = logging.getLogger(__name__)
 
-# 기준 토크나이저. 게이트웨이 slug(anthropic/claude-opus-4.8)가 아니라 Anthropic 직접 ID다.
+# 기준 토크나이저. 소삭 내부 slug(anthropic/claude-opus-4.8)가 아니라 Anthropic 모델 ID다.
 _DEFAULT_MODEL = "claude-opus-4-8"
 
 # 세는 데 오래 매달릴 이유가 없다 — 실패하면 근사치로 넘어가면 그만이다.

@@ -9,9 +9,13 @@ dependencies = [
     "pydantic>=2.7",
     "python-dotenv>=1.0",
     "langchain>=0.3",
-    "langchain-openai>=0.2",
-    # 채팅용이 아니라 토큰 수 세기(/v1/messages/count_tokens) 전용. 채팅은 게이트웨이를
-    # 거치지만 이 엔드포인트는 Anthropic 직결이라 SDK가 따로 필요하다.
+    # 제공사 네이티브 SDK 직결. OpenAI 호환 엔드포인트(langchain-openai)를 쓰던 시절엔
+    # 클래스가 하나였지만, 호환 레이어가 구조화 출력과 프롬프트 캐싱을 지원하지 않아
+    # 제공사별 클래스로 옮겼다(llm/factory.py).
+    "langchain-anthropic>=1.7.1",
+    "langchain-google-genai>=4.4.0",
+    # LangChain을 거치지 않는 토큰 수 세기(/v1/messages/count_tokens) 전용.
+    # langchain-anthropic이 끌어오지만 직접 import하므로 명시해 둔다.
     "anthropic>=1.2",
 ]
 

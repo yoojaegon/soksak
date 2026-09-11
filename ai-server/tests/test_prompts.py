@@ -1,18 +1,19 @@
 """시스템 프롬프트 조립·치환 단위 테스트.
 
-LLM/네트워크 없이 build_system_message 의 출력 문자열만 검증한다.
+LLM/네트워크 없이 build_system_parts 의 출력 문자열만 검증한다.
 실행: `uv run pytest`
 """
 
 from __future__ import annotations
 
-from app.prompts.builder import build_system_message
+from app.prompts.builder import build_system_parts
 from app.prompts.config import PromptConfig, PromptMode
 from app.prompts.sections import apply_placeholders, user_section
 
 
 def _build(**kwargs) -> str:
-    return build_system_message(**kwargs).content
+    """두 조각을 합친 전체 프롬프트. 캐싱을 끈 경로와 같은 방식으로 붙인다."""
+    return "\n\n".join(p for p in build_system_parts(**kwargs) if p)
 
 
 # --- 섹션 구성/순서 ----------------------------------------------------------
@@ -32,7 +33,8 @@ def test_section_order():
         lore_entries=["세계관: 학원물"],
         summary="둘은 어제 처음 만났다.",
     )
-    order = ["<rules>", "<writing>", "<response>", "<character>", "<user>", "<lore>", "<memory>"]
+    # <memory>가 <lore>보다 앞이다 — 캐싱 프리픽스를 위해 안정된 섹션을 앞으로 뺐다(builder 주석).
+    order = ["<rules>", "<writing>", "<response>", "<character>", "<user>", "<memory>", "<lore>"]
     positions = [content.index(tag) for tag in order]
     assert positions == sorted(positions)
 

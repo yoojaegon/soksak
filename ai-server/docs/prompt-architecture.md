@@ -10,7 +10,7 @@
 
 ## 1. 현재 상태
 
-`app/prompts/builder.py` 의 `build_system_message()` 는 사실상 아래를 한 덩어리로 이어붙인다:
+`app/prompts/builder.py` 의 조립 함수는 사실상 아래를 한 덩어리로 이어붙였다:
 
 ```
 persona + (lore_entries) + (summary)  ->  단일 SystemMessage
@@ -22,7 +22,7 @@ persona + (lore_entries) + (summary)  ->  단일 SystemMessage
 ## 2. 목표 구조
 
 시스템 프롬프트를 **고정 순서의 섹션**으로 조립한다. 섹션 구분은 모델 파싱이
-잘 되도록 태그형(`<rules>`, `<writing>`, `<character>`, `<user>`, `<lore>`, `<memory>`)을 쓴다.
+잘 되도록 태그형(`<rules>`, `<writing>`, `<character>`, `<user>`, `<memory>`, `<lore>`)을 쓴다.
 
 ```
 [시스템 프롬프트]
@@ -31,13 +31,19 @@ persona + (lore_entries) + (summary)  ->  단일 SystemMessage
   3. <response>   모드 지침(rp | writing) + 스포일러 지침(fold_spoilers=true 일 때만)
   4. <character>  persona (항상)
   5. <user>       user_persona (있을 때)
-  6. <lore>       lore_entries (있을 때)
-  7. <memory>     발췌 고지 + summary (있을 때)
+  6. <memory>     발췌 고지 + summary (있을 때)
+  7. <lore>       lore_entries (있을 때)
 [이후 메시지]
   *history + Human(user_text)
 ```
 
-조립이 끝난 시스템 프롬프트 전체에 **자리표시자 치환**을 한 번 적용한다:
+**순서는 "안정된 것부터"라는 규칙 하나로 정해진다.** 프롬프트 캐싱이 프리픽스 일치라
+앞에서 한 글자만 바뀌어도 뒤가 전부 무효가 된다. `<lore>` 가 맨 뒤인 건 이번 유저 입력의
+키워드로 골라 오는(`LoreService.selectLore`) **매 턴 달라지는 유일한 섹션**이기 때문이고,
+`<memory>` 가 그 앞인 건 요약이 새로 생길 때만 바뀌면서 덩치는 제일 커서(최대 3,500토큰)
+캐시되는 구간 안에 두는 편이 이득이기 때문이다. 섹션을 추가할 땐 이 축으로 자리를 잡을 것.
+
+조립이 끝난 시스템 프롬프트에 **자리표시자 치환**을 적용한다(조각마다 한 번씩 — §4):
 `{{user}}` → `user_name`(없으면 "유저"), `{{char}}` → `char_name`(없으면 "캐릭터").
 공백·대소문자 변형(`{{ User }}` 등)도 함께 치환한다. 우리가 작성한 지침 텍스트뿐
 아니라 백엔드가 보낸 `persona`/`user_persona`/`lore` 안의 토큰도 같이 처리된다.
@@ -119,7 +125,7 @@ class PromptConfig(BaseModel):
 app/prompts/
   config.py     # PromptConfig, PromptMode
   sections.py   # 섹션별 텍스트 생성 함수 (순수 함수, 원문 작성)
-  builder.py    # 섹션 순서 조립 -> SystemMessage
+  builder.py    # 섹션 순서 조립 -> (안정 구간, 변동 구간) 두 조각
 ```
 
 `sections.py` 예 (시그니처만):
@@ -135,9 +141,17 @@ def memory_section(summary: str) -> str: ...
 def apply_placeholders(text, user_name, char_name) -> str: ...  # {{user}}/{{char}} 치환
 ```
 
-`builder.build_system_message(persona, lore_entries, summary, config, user_name,
+`builder.build_system_parts(persona, lore_entries, summary, config, user_name,
 user_persona, char_name)` 가 위 섹션을 순서대로 합친 뒤 `apply_placeholders` 로
-자리표시자를 치환해 `SystemMessage` 를 만든다.
+자리표시자를 치환해 **`(안정 구간, 매 턴 바뀌는 나머지)` 두 조각**을 돌려준다.
+경계는 `<lore>` 앞이다(§2의 "순서는 안정된 것부터").
+
+⚠️ 치환은 **조각마다 따로** 돈다. 합친 뒤 한 번 돌리던 걸 옮긴 것이라 결과는 같지만
+(자리표시자가 섹션 경계를 넘지 않는다), 빠뜨리면 로어 안 `{{char}}` 가 그대로 나간다.
+
+두 조각을 실제 `SystemMessage` 로 싸는 건 `app/llm/cache.py` 의 `to_system_message` 다 —
+제공사에 따라 한 덩어리 문자열이거나, 앞 조각에 `cache_control` 이 붙은 블록 둘이다.
+`builder` 는 경계만 알고 제공사는 끝까지 모른다(자세한 건 `docs/llm-config.md`).
 
 ## 5. API 계약 변경
 
@@ -167,9 +181,11 @@ class ChatRequest(BaseModel):
 ```
 ChatRequest(config, user_name, user_persona, char_name)
   -> chat(llm, persona, user_text, recent, lore, summary, config, user_name, user_persona, char_name)
-     -> build_system_message(persona, lore, summary, config, user_name, user_persona, char_name)
-        -> [rules][writing][response(mode,spoiler)][character][user][lore][memory]
-        -> apply_placeholders({{user}},{{char}})  => SystemMessage
+     -> build_system_parts(persona, lore, summary, config, user_name, user_persona, char_name)
+        -> 안정: [rules][writing][response(mode,spoiler)][character][user][memory]
+           변동: [lore]                       # 매 턴 키워드로 골라 오므로 경계가 여기
+        -> apply_placeholders({{user}},{{char}})  조각마다 => (stable, volatile)
+     -> to_system_message(stable, volatile, cacheable)  => SystemMessage
      -> [SystemMessage, *history, Human(user_text)]
      -> llm.invoke / stream
 ```
@@ -185,7 +201,7 @@ ChatRequest(config, user_name, user_persona, char_name)
      `<spoiler>` 접이식 렌더.
 3. **`<writing>` 작문 지침** ✅ 완료: 도입·대사·보여주기·갈등/긴장·완급 추가(직유우선 제거).
 4. **`{{user}}` 처리 / `<user>` 섹션** ✅ 완료: `user_name`/`user_persona`/`char_name` 를
-   `ChatRequest`/`chat()`/`chat_stream()`/`build_system_message()` 에 배선. `<user>` 섹션
+   `ChatRequest`/`chat()`/`chat_stream()`/`build_system_parts()` 에 배선. `<user>` 섹션
    추가, 조립 후 `apply_placeholders` 로 `{{user}}`→이름·`{{char}}`→이름 치환(없으면 일반명칭).
    - ⏳ 남음(백엔드/프론트): 백엔드가 유저 페르소나·이름을 채팅방/유저 단위로 저장·전달,
      프론트가 유저 페르소나 입력 UI 제공.
@@ -246,8 +262,8 @@ ChatRequest(config, user_name, user_persona, char_name)
 | `importance` (1~5) | 오래된 요약이라도 무게가 있으면 계속 프롬프트에 싣기 위한 값. 프롬프트에 기준표와 "대부분 2~3" 경고를 함께 준다 — 없으면 모델이 죄다 4~5를 매긴다 |
 | `keywords` (3~8) | 나중에 이번 입력과 관련된 옛 요약을 끌어올 때 쓸 검색어 |
 
-`with_structured_output` 으로 받되, 실패하면(요약 모델·게이트웨이 조합에 따라 함수 호출이
-안 될 수 있다) **평문 요약으로 폴백**한다. 메타데이터는 잃어도 요약 자체는 살린다.
+`with_structured_output` 으로 받되, 실패하면(구조화 출력의 구현이 제공사마다 달라 요약 모델을
+바꾸면 안 될 수 있다) **평문 요약으로 폴백**한다. 메타데이터는 잃어도 요약 자체는 살린다.
 
 ### 10.3 토큰 수 (`token_counter.py`)
 
@@ -255,8 +271,9 @@ ChatRequest(config, user_name, user_persona, char_name)
 실을지"를 예산으로 판단하는 데 쓰며, 요약은 내용이 안 바뀌므로 **생성 시점에 한 번만** 재면
 이후엔 정수 덧셈으로 끝난다.
 
-- 채팅은 게이트웨이 경유지만 `count_tokens` 는 **Anthropic 직결**이라 `ANTHROPIC_API_KEY` 를
-  따로 쓴다(무료, 채팅과 레이트 리밋도 별개).
+- 채팅과 같은 `ANTHROPIC_API_KEY` 를 쓰지만 호출은 별개다(무료, 레이트 리밋도 별개).
+  LangChain을 거치지 않고 `anthropic` SDK를 직접 쓴다 — 생성이 아니라 측정이라 채팅
+  프로필과 공유할 설정이 없다.
 - 기준 모델 하나(`TOKEN_COUNT_MODEL`, 기본 `claude-opus-4-8`)로만 잰다. 모델별로 재두면
   카탈로그가 바뀔 때마다 과거 요약을 다시 세야 하는데, **과소추정만 사고(컨텍스트 초과)를
   내고 과대추정은 무해**하므로 가장 무거운 토크나이저 하나로 재서 나머지는 넉넉히 잡히게 둔다.

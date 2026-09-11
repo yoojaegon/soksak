@@ -22,5 +22,17 @@ def setup_logging() -> None:
     root.setLevel(logging.INFO)
     root.addHandler(file_handler)
 
-    for noisy in ("openai", "httpx", "httpcore", "urllib3", "langchain"):
+    # ⚠️ 로거 계층은 점(.)으로만 이어진다 — "langchain"은 langchain.* 만 덮고
+    # langchain_anthropic / langchain_google_genai 는 별개의 최상위 로거다. 밑줄 패키지는
+    # 하나씩 적어야 한다. ("google"은 점 패키지라 google.genai·google.auth를 함께 덮는다.)
+    for noisy in (
+        "anthropic",
+        "google",
+        "httpx",
+        "httpcore",
+        "urllib3",
+        "langchain",
+        "langchain_anthropic",
+        "langchain_google_genai",
+    ):
         logging.getLogger(noisy).setLevel(logging.WARNING)
