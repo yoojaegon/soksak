@@ -188,7 +188,11 @@ function ChatRoom({ roomId }) {
         if (!alive) return
         const next = data?.summary ?? ''
         // 저장 안 한 편집이 남아 있으면 덮어쓰지 않는다(실수로 패널을 닫았다 열어도 글이 안 날아가게).
-        setSummary((cur) => (cur === summarySavedRef.current ? next : cur))
+        // ⚠️ 비교값은 updater 안에서 ref를 읽지 말고 여기서 캡처할 것 — 대기 중인 업데이트가 있으면
+        // (스트리밍 중 setMessages 등) updater가 렌더 단계로 밀려 아래 ref 갱신 뒤에 실행되고,
+        // 그러면 편집이 없는데도 비교가 어긋나 서버 최신본이 화면에 영영 안 들어온다.
+        const prevSaved = summarySavedRef.current
+        setSummary((cur) => (cur === prevSaved ? next : cur))
         writeSummarySaved(next)
       })
       .catch((err) => {
@@ -561,7 +565,10 @@ function ChatRoom({ roomId }) {
           <button
             type="button"
             className="notice-action"
-            onClick={() => {
+            onClick={(e) => {
+              // 톱니 버튼과 같은 이유로 전파를 끊는다 — .chat-main의 닫기 핸들러까지 올라가면
+              // 패널이 이미 열려 있을 때 방금 연 패널을 도로 닫는다.
+              e.stopPropagation()
               setShowSettings(true)
               setNotice('')
             }}
