@@ -17,6 +17,8 @@ TURNS = [
     AIMessage(content="지호는 창밖으로 시선을 돌렸다. \"…들으면 후회할 텐데.\""),
 ]
 
+SLOTS = ("시점·장소:", "상황:", "사건:", "인물:", "대사:", "미해결:")
+
 
 class _StructuredStub:
     """with_structured_output(...) 이 돌려주는 러너 대역."""
@@ -63,8 +65,16 @@ def test_prompt_contains_format_slots():
     llm = _LLMStub(SummaryResult(summary="요약", importance=3, keywords=[]))
     _summarize(llm)
     prompt = llm.prompts[0]
-    for slot in ("시점·장소:", "상황:", "사건:", "인물:", "대사:", "미해결:"):
+    for slot in SLOTS:
         assert slot in prompt
+
+
+def test_summary_field_description_repeats_the_format():
+    # 프롬프트에만 형식을 두면 모델이 형식을 통째로 버리고 줄글로 답하는 일이 생긴다
+    # (실측: 앞선 기록이 1건일 때 6/12). 구조화 출력에선 필드 설명이 더 세게 먹는다.
+    description = SummaryResult.model_fields["summary"].description
+    for slot in SLOTS:
+        assert slot in description
 
 
 def test_prompt_contains_segment_turns():

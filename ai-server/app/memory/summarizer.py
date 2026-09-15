@@ -7,6 +7,12 @@
 
 [앞선 기록]은 대명사·생략된 주어를 해석하기 위한 맥락일 뿐이며 출력에 포함하지 않는다.
 
+⚠️ **고정 슬롯 명세(_FORMAT)는 프롬프트와 `summary` 필드 설명 양쪽에 둔다.** 프롬프트에만
+두면 모델이 형식을 통째로 버리고 줄글 한 단락으로 답하는 일이 생긴다 — 🔬 2026-09-14 실측
+(claude-haiku-4.5, 같은 구간 반복): [앞선 기록]이 1건일 때 형식 붕괴 **6/12**. 구조화 출력에선
+필드 설명이 프롬프트보다 세게 먹어서, 같은 명세를 필드 설명에 얹은 것만으로 **0/24** 가 됐다.
+(2건일 때 0/9, 없을 때 0/4 — 하필 1건인 경우가 방마다 꼭 한 번 온다. SummaryPlan 참고.)
+
 주의: 모든 지침 문구는 직접 작성한 것이다(docs/prompt-architecture.md §0).
 """
 
@@ -29,13 +35,29 @@ _MAX_IMPORTANCE = 5
 # 검색어가 너무 많으면 변별력이 없다. 넘치면 앞에서부터 자른다.
 _MAX_KEYWORDS = 10
 
+_FORMAT = """\
+시점·장소: (언제 어디서인지 한 문장. 상대적인 표현도 괜찮다 — "감금 사흘째" 등)
+상황: (시간·장소 말고, 이 구간에 깔려 있는 전제와 인물들의 구도)
+사건:
+- (일어난 순서대로, 최대 6개. 중요한 것만 고른다)
+인물:
+- 이름: (감정·태도의 변화와 그 계기, 관계의 변화)
+대사:
+- 이름: "대사" (이야기를 움직인 말만, 최대 6개. 없으면 "없음")
+미해결: (약속, 예고, 아직 풀리지 않은 의문. 없으면 "없음")"""
+
+# 같은 명세를 필드 설명에도 싣는다(위 docstring의 실측). 문구를 프롬프트와 갈라 두면
+# 한쪽만 고쳐졌을 때 형식이 다시 흔들리므로 반드시 _FORMAT 하나에서 파생시킬 것.
+_SUMMARY_FIELD = f"""\
+정해진 형식을 그대로 채운 요약 본문. 머리말은 바꾸지 말고 내용만 채운다.
+
+{_FORMAT}"""
+
 
 class SummaryResult(BaseModel):
-    """요약 한 건. summary 는 아래 형식을 채운 본문, 나머지는 검색·선택용 메타데이터."""
+    """요약 한 건. summary 는 위 형식을 채운 본문, 나머지는 검색·선택용 메타데이터."""
 
-    summary: str = Field(
-        description="정해진 형식을 채운 요약 본문. 머리말은 그대로 두고 내용만 채운다."
-    )
+    summary: str = Field(description=_SUMMARY_FIELD)
     importance: int = Field(
         default=_DEFAULT_IMPORTANCE,
         description="이 구간이 이야기 전체에서 갖는 무게. 1에서 5 사이의 정수.",
@@ -58,17 +80,6 @@ _WRITING_RULES = """\
 - 누가 한 말이고 누가 한 행동인지 인물을 혼동하지 않는다. 등장인물은 둘보다 많을 수 있다.
 - 원문의 언어를 유지하고 번역하지 않는다. 고유명사는 원문 표기 그대로 쓴다.
 - 항목의 머리말은 그대로 두고 내용만 채운다. 단서가 없는 항목에는 "불명"이라고 적는다."""
-
-_FORMAT = """\
-시점·장소: (언제 어디서인지 한 문장. 상대적인 표현도 괜찮다 — "감금 사흘째" 등)
-상황: (시간·장소 말고, 이 구간에 깔려 있는 전제와 인물들의 구도)
-사건:
-- (일어난 순서대로, 최대 6개. 중요한 것만 고른다)
-인물:
-- 이름: (감정·태도의 변화와 그 계기, 관계의 변화)
-대사:
-- 이름: "대사" (이야기를 움직인 말만, 최대 6개. 없으면 "없음")
-미해결: (약속, 예고, 아직 풀리지 않은 의문. 없으면 "없음")"""
 
 _IMPORTANCE_RUBRIC = """\
 importance 는 이 구간이 이야기 전체에서 갖는 무게다.
@@ -118,15 +129,7 @@ class ConversationSummarizer:
         previous_summaries: list[str] | None,
         new_turns: list[AnyMessage],
     ) -> SummaryResult:
-        prompt = _PROMPT.format(
-            role_rules=_ROLE_RULES,
-            previous=self._previous_to_text(previous_summaries),
-            segment=self._turns_to_text(new_turns),
-            writing_rules=_WRITING_RULES,
-            fmt=_FORMAT,
-            importance_rubric=_IMPORTANCE_RUBRIC,
-            keywords_rules=_KEYWORDS_RULES,
-        )
+        prompt = self._build_prompt(previous_summaries, new_turns)
         message = HumanMessage(content=prompt)
 
         try:
@@ -142,6 +145,21 @@ class ConversationSummarizer:
 
         text = response_to_text(self._llm.invoke([message])).strip()
         return SummaryResult(summary=text, importance=_DEFAULT_IMPORTANCE, keywords=[])
+
+    def _build_prompt(
+        self,
+        previous_summaries: list[str] | None,
+        new_turns: list[AnyMessage],
+    ) -> str:
+        return _PROMPT.format(
+            role_rules=_ROLE_RULES,
+            previous=self._previous_to_text(previous_summaries),
+            segment=self._turns_to_text(new_turns),
+            writing_rules=_WRITING_RULES,
+            fmt=_FORMAT,
+            importance_rubric=_IMPORTANCE_RUBRIC,
+            keywords_rules=_KEYWORDS_RULES,
+        )
 
     @staticmethod
     def _normalize(result: SummaryResult) -> SummaryResult:
