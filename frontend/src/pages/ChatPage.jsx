@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import ModelPicker from '../components/ModelPicker.jsx'
+import ThinkingPicker from '../components/ThinkingPicker.jsx'
 import CharacterImage from '../components/CharacterImage.jsx'
-import { modelLabel } from '../models.js'
+import { modelLabel, thinkingOf } from '../models.js'
 import { useConfirm } from '../confirm.jsx'
 
 // 장기기억 길이 상한. 백엔드 UpdateSummaryRequest의 @Size(max)와 같은 값이어야 한다 —
@@ -70,10 +71,14 @@ function ChatRoom({ roomId }) {
   }
   // 이 방에서 답할 LLM 모델(슬러그). null이면 "백엔드 기본 모델 따라감"(방에 저장된 선택 없음).
   const [model, setModel] = useState(null)
+  // 추론 깊이(null = 아직 안 고름 → 모델별 기본값을 픽커가 첫 옵션으로 보여준다).
+  const [thinking, setThinking] = useState(null)
   // 모델 카탈로그(선택지·라벨·기본값). 단일 출처는 백엔드 GET /models — 프론트 폴백 카탈로그는 없다.
   // modelList가 null이면 아직 못 받은 상태(픽커 비활성화, 배지는 저장된 슬러그 그대로).
   const [modelList, setModelList] = useState(null)
   const [defaultModel, setDefaultModel] = useState(null)
+  // 추론 레벨의 전체 어휘(못 고르는 값도 회색으로 보여주기 위해 필요하다).
+  const [thinkingLevels, setThinkingLevels] = useState([])
   const [showSettings, setShowSettings] = useState(false)
   // 장기기억(자동 요약문) — summary는 textarea의 값, summarySaved는 마지막으로 서버와 맞춘 값.
   // 둘이 다르면 저장할 게 있다는 뜻이다. ref를 같이 두는 건 config와 같은 이유 —
@@ -141,6 +146,7 @@ function ChatRoom({ roomId }) {
           foldSpoilerToggle: !!room.foldSpoilerToggle,
         })
         setModel(room.model || null)
+        setThinking(room.thinkingLevel || null)
         // 캐릭터(헤더) 정보 실패는 대화를 막지 않도록 조용히 무시한다.
         api
           .getCharacter(room.characterId)
@@ -168,6 +174,7 @@ function ChatRoom({ roomId }) {
         if (!alive || !data?.models?.length) return
         setModelList(data.models)
         setDefaultModel(data.default ?? null)
+        setThinkingLevels(data.thinkingLevels ?? [])
       })
       .catch(() => {})
     return () => {
@@ -252,6 +259,20 @@ function ChatRoom({ roomId }) {
       await api.updateModel(roomId, next)
     } catch (err) {
       setModel(prev)
+      setError(err.message)
+    }
+  }
+
+  // 추론 깊이도 모델과 같은 방식. 모델을 바꿔도 이 값은 그대로 둔다 — 새 모델이 못 받는
+  // 값이면 서버가 보낼 때만 맞춰주고, 되돌아오면 고른 값이 되살아난다.
+  const changeThinking = async (next) => {
+    const prev = thinking
+    if (next === prev) return
+    setThinking(next)
+    try {
+      await api.updateThinking(roomId, next)
+    } catch (err) {
+      setThinking(prev)
       setError(err.message)
     }
   }
@@ -620,6 +641,19 @@ function ChatRoom({ roomId }) {
               onChange={changeModel}
             />
             <span className="tog-hint">이 대화에 답할 AI 모델</span>
+          </div>
+          <div className="aside-field">
+            <label className="field-caption" htmlFor="chat-thinking">추론 깊이</label>
+            <ThinkingPicker
+              id="chat-thinking"
+              levels={thinkingLevels}
+              thinking={thinkingOf(modelList, model ?? defaultModel)}
+              value={thinking}
+              onChange={changeThinking}
+            />
+            <span className="tog-hint">
+              깊을수록 시간·장소 같은 설정을 덜 헷갈리지만, 첫 응답이 느려집니다.
+            </span>
           </div>
           {/* 토글 설명은 ⓘ에 올렸을 때만 뜬다. 패널이 280px라 늘 펼쳐 두면 두 줄로 넘친다.
               .tog가 button이라 ⓘ를 또 button으로 만들 수 없어(중첩 버튼) span으로 두고,

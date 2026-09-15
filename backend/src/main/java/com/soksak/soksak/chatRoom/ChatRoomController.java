@@ -67,6 +67,15 @@ public class ChatRoomController {
         return ResponseEntity.ok(response);
     }
 
+    @PatchMapping("/{id}/thinking")
+    public ResponseEntity<ChatRoomResponse> updateThinking(
+            Authentication authentication,
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateThinkingRequest request
+    ) {
+        return ResponseEntity.ok(chatRoomService.updateThinking(authentication.getName(), id, request));
+    }
+
     @PatchMapping("/{id}/config")
     public ResponseEntity<ChatRoomResponse> updateConfig(
             Authentication authentication,

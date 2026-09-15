@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,6 +27,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException e,
+            HttpServletRequest request
+    ) {
+        return build(ErrorCode.INVALID_INPUT, request);
+    }
+
+    // 본문을 읽다가 실패한 경우(깨진 JSON, 타입 불일치, enum에 없는 값 등). @Valid 검증은
+    // 바인딩이 끝난 뒤에 도는 거라 여기까지 온 요청은 MethodArgumentNotValidException을
+    // 타지 않는다 — 안 잡아 주면 잘못 보낸 값이 전부 500으로 나간다.
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadableBody(
+            HttpMessageNotReadableException e,
             HttpServletRequest request
     ) {
         return build(ErrorCode.INVALID_INPUT, request);

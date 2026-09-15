@@ -104,6 +104,19 @@ public class ChatRoomService {
         return ChatRoomResponse.from(chatRoom);
     }
 
+    /**
+     * 추론 깊이. 모델이 그 레벨을 받을 수 있는지는 <b>여기서 막지 않는다</b> — 모델과 레벨은
+     * 따로 바뀌므로(추론 없는 모델로 교체 등) 저장 단계에서 거절하면 모델을 못 바꾸게 된다.
+     * 실제로 보낼 수 있는 값으로 맞추는 건 발송 직전의 ModelCatalog.resolveThinking() 몫이다.
+     */
+    @Transactional
+    public ChatRoomResponse updateThinking(String loginId, Long id, UpdateThinkingRequest request) {
+        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+        chatRoom.updateThinkingLevel(request.thinkingLevel());
+
+        return ChatRoomResponse.from(chatRoom);
+    }
+
     @Transactional
     public ChatRoomResponse updateConfig(String loginId, Long id, boolean writingToggle, boolean foldSpoilerToggle) {
         ChatRoom chatRoom = getOwnedChatRoom(loginId, id);

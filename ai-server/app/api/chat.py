@@ -8,7 +8,7 @@ from langchain.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 
 from app.chains.chat import chat, chat_stream
-from app.llm import get_chat_llm, resolve_slug, supports_prompt_cache
+from app.llm import ThinkingLevel, get_chat_llm, resolve_slug, supports_prompt_cache
 from app.memory.summarizer import ConversationSummarizer
 from app.memory.token_counter import count_tokens
 from app.prompts.config import PromptConfig
@@ -44,6 +44,9 @@ class ChatRequest(BaseModel):
     # 백엔드가 카탈로그에서 검증해 확정한 모델 slug. 카탈로그(선택지·기본값)의 단일 출처는
     # 자바 백엔드다. None이면 CHAT_MODEL 프로필 기본값(개발/전환기용 폴백, get_chat_llm 참고).
     model: str | None = None
+    # 방이 고른 추론 깊이. 이미 모델이 받을 수 있는 값으로 백엔드가 보정해서 보낸다.
+    # None이면 slug별 기본값(factory._DEFAULT_THINKING) — 레벨 노출 이전과 같은 거동.
+    thinking: ThinkingLevel | None = None
 
 
 class SummarizeRequest(BaseModel):
@@ -60,7 +63,7 @@ def chat_endpoint(request: ChatRequest, http_request: Request):
     slug = resolve_slug(http_request.app, request.model)
     try:
         reply = chat(
-            llm=get_chat_llm(http_request.app, slug),
+            llm=get_chat_llm(http_request.app, slug, request.thinking),
             cacheable=supports_prompt_cache(slug),
             persona=request.persona,
             user_text=request.user_message,
@@ -85,7 +88,7 @@ def chat_stream_endpoint(request: ChatRequest, http_request: Request):
     def event_source():
         try:
             for token in chat_stream(
-                llm=get_chat_llm(http_request.app, slug),
+                llm=get_chat_llm(http_request.app, slug, request.thinking),
                 cacheable=supports_prompt_cache(slug),
                 persona=request.persona,
                 user_text=request.user_message,

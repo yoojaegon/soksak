@@ -1,5 +1,6 @@
 package com.soksak.soksak.chatRoom;
 
+import com.soksak.soksak.aiClient.ThinkingLevel;
 import com.soksak.soksak.character.ChatCharacter;
 import com.soksak.soksak.common.BaseTimeEntity;
 import com.soksak.soksak.user.User;
@@ -41,6 +42,13 @@ public class ChatRoom extends BaseTimeEntity {
     @Column(name = "model")
     private String model;
 
+    // 추론 깊이도 model과 같은 의미론이다 — null = 아직 안 고름(발송 직전에
+    // ModelCatalog.resolveThinking()이 모델에 맞게 맞춘다).
+    // ⚠️ nullable이어야 한다. ddl-auto=update는 행이 있는 테이블에 NOT NULL 컬럼을 못 붙인다.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "thinking_level")
+    private ThinkingLevel thinkingLevel;
+
     @Builder
     public ChatRoom(Long id, User user, ChatCharacter character, String title) {
         this.id = id;
@@ -64,4 +72,6 @@ public class ChatRoom extends BaseTimeEntity {
     }
 
     public void updateModel(String model) {this.model = model;}
+
+    public void updateThinkingLevel(ThinkingLevel thinkingLevel) {this.thinkingLevel = thinkingLevel;}
 }

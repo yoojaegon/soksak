@@ -3,6 +3,7 @@ package com.soksak.soksak.chatRoom;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.soksak.soksak.aiClient.ModelCatalog;
+import com.soksak.soksak.aiClient.ThinkingLevel;
 import com.soksak.soksak.auth.RefreshTokenRepository;
 import com.soksak.soksak.character.CharacterRepository;
 import com.soksak.soksak.character.ChatCharacter;
@@ -261,6 +262,74 @@ class ChatRoomCrudE2eTest {
                 .andExpect(status().isForbidden());
 
         assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isNull();
+    }
+
+    // ---------- THINKING (추론 깊이) ----------
+
+    @Test
+    @DisplayName("추론 레벨을 고르면 저장되고 응답에 그대로 나온다")
+    void update_thinking_saves_the_level() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        patchThinking(ownerToken, id, Map.of("thinkingLevel", "high"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.thinkingLevel").value("high"));
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel())
+                .isEqualTo(ThinkingLevel.HIGH);
+    }
+
+    @Test
+    @DisplayName("thinkingLevel 필드가 없으면 400이고 이미 고른 레벨이 지워지지 않는다")
+    void update_thinking_without_field_returns_400_and_keeps_level() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        patchThinking(ownerToken, id, Map.of("thinkingLevel", "medium")).andExpect(status().isOk());
+
+        // model과 같은 이유 — 빈 본문 {}가 null로 바인딩돼 선택을 조용히 날리면 안 된다.
+        patchThinking(ownerToken, id, Collections.emptyMap()).andExpect(status().isBadRequest());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel())
+                .isEqualTo(ThinkingLevel.MEDIUM);
+    }
+
+    @Test
+    @DisplayName("모델이 추론을 못 해도 레벨 저장은 막지 않는다 — 보정은 보낼 때 한다")
+    void update_thinking_is_not_validated_against_the_model() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        // 추론을 못 하는 모델을 고른 방에 HIGH를 저장한다. 여기서 400을 내면 모델을
+        // 바꿀 때마다 방의 설정이 무효가 돼 사용자가 모델을 못 바꾸게 된다.
+        patchModel(ownerToken, id, Map.of("model", "anthropic/claude-haiku-4.5"))
+                .andExpect(status().isOk());
+
+        patchThinking(ownerToken, id, Map.of("thinkingLevel", "high")).andExpect(status().isOk());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel())
+                .isEqualTo(ThinkingLevel.HIGH);
+        // 실제로 보낼 때만 꺼진다(ModelCatalogThinkingTest가 그 보정을 고정한다).
+        assertThat(ModelCatalog.resolveThinking("anthropic/claude-haiku-4.5", ThinkingLevel.HIGH))
+                .isEqualTo(ThinkingLevel.OFF);
+    }
+
+    @Test
+    @DisplayName("없는 레벨 값은 400을 반환한다")
+    void update_thinking_with_unknown_level_returns_400() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        patchThinking(ownerToken, id, Map.of("thinkingLevel", "extreme"))
+                .andExpect(status().isBadRequest());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel()).isNull();
+    }
+
+    @Test
+    @DisplayName("남의 챗룸 추론 설정 변경은 차단된다")
+    void update_others_chatroom_thinking_is_blocked() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        patchThinking(otherToken, id, Map.of("thinkingLevel", "high"))
+                .andExpect(status().isForbidden());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel()).isNull();
     }
 
     // ---------- SUMMARY (장기기억) ----------
@@ -563,6 +632,13 @@ class ChatRoomCrudE2eTest {
 
     private ResultActions patchModel(String token, long id, Map<String, ?> body) throws Exception {
         return mockMvc.perform(patch("/chatrooms/{id}/model", id)
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(body)));
+    }
+
+    private ResultActions patchThinking(String token, long id, Map<String, ?> body) throws Exception {
+        return mockMvc.perform(patch("/chatrooms/{id}/thinking", id)
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(body)));

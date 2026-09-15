@@ -1,5 +1,6 @@
 from .cache import to_system_message
 from .factory import (
+    ThinkingLevel,
     build_llm,
     check_api_keys,
     get_chat_llm,
@@ -9,6 +10,7 @@ from .factory import (
 from .profiles import LLMProfile, load_profile
 
 __all__ = [
+    "ThinkingLevel",
     "build_llm",
     "check_api_keys",
     "get_chat_llm",

@@ -10,6 +10,7 @@ public class ModelController {
     @GetMapping("/models")
     public ResponseEntity<ModelResponse> getModels() {
         return ResponseEntity.ok(
-                new ModelResponse(ModelCatalog.entries(), ModelCatalog.defaultId()));
+                new ModelResponse(ModelCatalog.entries(), ModelCatalog.defaultId(),
+                        ModelCatalog.thinkingLevels()));
     }
 }

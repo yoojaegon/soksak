@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass, replace
-from typing import Callable
+from typing import Callable, Literal
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
@@ -21,9 +21,9 @@ class _Provider:
     # 프롬프트 캐싱을 '명시적으로' 켜야 하는가. 켜는 방법이 제공사 어휘라서(Anthropic은
     # 블록에 cache_control) 프롬프트를 어떤 모양으로 쌀지가 여기서 갈린다.
     explicit_prompt_cache: bool
-    # (프로필, 제공사 모델 ID, API 키) → 채팅 모델. 제공사마다 클래스도 인자 이름도
-    # 달라서, 그 차이를 전부 이 함수 안에 가둔다(build_llm에 제공사 분기를 만들지 않는다).
-    build: Callable[[LLMProfile, str, str], BaseChatModel]
+    # (프로필, 제공사 모델 ID, API 키, 추론 레벨) → 채팅 모델. 제공사마다 클래스도 인자
+    # 이름도 달라서, 그 차이를 전부 이 함수 안에 가둔다(build_llm에 제공사 분기를 만들지 않는다).
+    build: Callable[[LLMProfile, str, str, "ThinkingLevel | None"], BaseChatModel]
 
 
 # 샘플링 파라미터(temperature/top_p)를 받지 않는 모델. 제공사에 따라 증상이 다르다
@@ -41,16 +41,30 @@ _NO_SAMPLING = frozenset({
     "google/gemini-3.5-flash-lite",
 })
 
-# 추론(thinking)을 꺼야 하는 모델. 지금 하는 건 호환 엔드포인트 시절의 거동을 네이티브에서
-# 그대로 재현하는 것뿐이고, 추론 레벨을 방마다 고르게 하는 건 나중 작업이다.
-# 2026-09-10 네이티브 실측(같은 프롬프트, 추론 토큰):
-#   gemini-3.5-flash       설정 없으면 673 → thinking_budget=0이면 0. 꺼야 한다
-#   gemini-3.1-pro-preview 544. 끌 수 없다 — 답변이 max_tokens를 넘어 잘릴 여지가 남는다
-#   gemini-3.5-flash-lite  0. 추론 자체가 없다
-#   Claude                 0. 명시하지 않으면 추론하지 않는다(opus-4.8도 마찬가지)
-# ⚠️ Gemini 3 계열의 공식 노브는 thinking_budget이 아니라 thinking_level
-# (minimal/low/medium/high)인데 거기엔 "끔"이 없다. budget=0이 아직 먹으므로 이 값을 쓴다.
-_THINKING_OFF = frozenset({"google/gemini-3.5-flash"})
+# 방마다 고르는 추론 깊이. 선택지·검증·모델별 보정은 백엔드(ModelCatalog)가 갖고,
+# 여기서는 그 값을 제공사 인자로 옮기기만 한다 — 모델 slug과 같은 경계다.
+ThinkingLevel = Literal["off", "low", "medium", "high"]
+
+# ⚠️ "끄는 방법"이 모델마다 다르다. 이것부터가 함정이다 — 한 가지 방법으로 통일하려 들면
+# 통일한 그 방법이 다른 모델에서 400을 낸다(2026-09-15 실측, 짧은 프롬프트 1회):
+#   gemini-3.5-flash       기본으로 추론(59) → thinking_budget=0이면 0. 이 모델만 budget으로 끈다
+#   gemini-3.5-flash-lite  기본이 추론 없음(0). budget=0을 보내면 400 → 필드를 빼는 게 끔이다
+#   gemini-3.1-pro-preview 기본으로 추론(57). budget=0도 400 → 아예 못 끈다(백엔드가 low로 보정)
+#   claude-haiku-4.5       effort를 보내면 400 "does not support the effort parameter"
+#   claude-opus-4.8        effort가 실제로 먹는다(추론 61~65)
+#   claude-opus-4.7/4.6    effort를 받아주기만 하고 추론은 0 → 노브를 노출하지 않는다(카탈로그)
+_OFF_VIA_BUDGET = frozenset({"google/gemini-3.5-flash"})
+_NO_EFFORT_PARAM = frozenset({"anthropic/claude-haiku-4.5"})
+
+# 요청이 레벨을 안 실어 보낼 때의 기본값(백엔드 없이 부르는 개발 경로·요약 프로필).
+# 레벨 노출 이전 거동을 그대로 재현한다 — 끌 수 있는 건 꺼지고, 못 끄는 pro-preview만 low.
+_DEFAULT_THINKING: dict[str, ThinkingLevel] = {"google/gemini-3.1-pro-preview": "low"}
+
+
+def _effective_level(slug: str, thinking: ThinkingLevel | None) -> ThinkingLevel:
+    if thinking is None:
+        return _DEFAULT_THINKING.get(slug, "off")
+    return thinking
 
 
 def _common_kwargs(profile: LLMProfile, model: str, api_key: str) -> dict:
@@ -75,20 +89,36 @@ def _common_kwargs(profile: LLMProfile, model: str, api_key: str) -> dict:
     return kwargs
 
 
-def _build_anthropic(profile: LLMProfile, model: str, api_key: str) -> BaseChatModel:
+def _build_anthropic(profile: LLMProfile, model: str, api_key: str,
+                     thinking: ThinkingLevel | None) -> BaseChatModel:
     # presence_penalty/frequency_penalty는 Anthropic에 없는 노브다. 호환 레이어에선 실려도
     # 무시되는(Ignored) 무효 필드였고 네이티브에선 인자 자체가 없으므로 싣지 않는다.
-    return ChatAnthropic(**_common_kwargs(profile, model, api_key))
+    kwargs = _common_kwargs(profile, model, api_key)
+    level = _effective_level(profile.model, thinking)
+    # Claude에는 "끔" 값이 없다 — reasoning_effort(alias effort)는 max/xhigh/high/medium/low고,
+    # 필드를 안 보내는 것이 곧 끔이다. 그래서 off는 분기 자체가 없는 게 맞다.
+    if level != "off" and profile.model not in _NO_EFFORT_PARAM:
+        kwargs["reasoning_effort"] = level
+    return ChatAnthropic(**kwargs)
 
 
-def _build_google(profile: LLMProfile, model: str, api_key: str) -> BaseChatModel:
+def _build_google(profile: LLMProfile, model: str, api_key: str,
+                  thinking: ThinkingLevel | None) -> BaseChatModel:
     kwargs = _common_kwargs(profile, model, api_key)
     if profile.presence_penalty is not None:
         kwargs["presence_penalty"] = profile.presence_penalty
     if profile.frequency_penalty is not None:
         kwargs["frequency_penalty"] = profile.frequency_penalty
-    if profile.model in _THINKING_OFF:
-        kwargs["thinking_budget"] = 0
+    level = _effective_level(profile.model, thinking)
+    if level == "off":
+        # ⚠️ Gemini 3 계열의 공식 노브는 thinking_level인데 거기엔 "끔"이 없다. budget=0이
+        # 아직 먹는 모델에서만 그걸로 끄고, 나머지는 필드를 빼는 것이 곧 끔이다
+        # (기본으로 추론하지 않는 flash-lite는 budget=0을 보내면 오히려 400).
+        if profile.model in _OFF_VIA_BUDGET:
+            kwargs["thinking_budget"] = 0
+    else:
+        # 필드 이름은 reasoning_effort지만 실제로 나가는 노브는 alias인 thinking_level이다.
+        kwargs["reasoning_effort"] = level
     return ChatGoogleGenerativeAI(**kwargs)
 
 
@@ -160,9 +190,15 @@ def check_api_keys(*required_slugs: str) -> None:
             )
 
 
-def build_llm(profile: LLMProfile) -> BaseChatModel:
+def build_llm(profile: LLMProfile, thinking: ThinkingLevel | None = None) -> BaseChatModel:
+    """추론 레벨은 프로필이 아니라 인자로 받는다.
+
+    ⛔ LLMProfile에 되돌리지 말 것 — 제공사마다 인자도 값의 의미도 달라서 프로필이 들 수
+    없다는 게 네이티브 전환에서 필드를 뺀 이유고, 게다가 이 값은 기동 시점이 아니라
+    요청(방 설정)마다 달라진다.
+    """
     provider, model = _resolve(profile.model)
-    return provider.build(profile, model, _require_api_key(provider))
+    return provider.build(profile, model, _require_api_key(provider), thinking)
 
 
 def resolve_slug(app, model: str | None) -> str:
@@ -182,18 +218,21 @@ def supports_prompt_cache(slug: str) -> bool:
     return _resolve(slug)[0].explicit_prompt_cache
 
 
-def get_chat_llm(app, model: str | None) -> BaseChatModel:
-    # 채팅방별 모델 선택. slug마다 모델 객체를 한 번만 만들어 캐시(warm 커넥션 재사용).
+def get_chat_llm(app, model: str | None, thinking: ThinkingLevel | None = None) -> BaseChatModel:
+    # 채팅방별 모델 선택. 만들어 둔 모델 객체를 캐시한다(warm 커넥션 재사용).
     # 모델 카탈로그(선택지·기본값·검증)는 자바 백엔드가 소유한다. 여기선 받은 slug를 그대로
     # 실행하고, 잘못된 slug는 시끄럽게 실패하게 둔다(조용한 폴백 금지 — 내부 경계에서
     # 잘못된 값은 배선 버그라서 숨기면 안 됨). 호출자가 내부 인증을 통과한 백엔드뿐이므로
-    # 캐시 크기는 백엔드 카탈로그 크기로 유한하다.
+    # 캐시 크기는 (카탈로그 크기 × 레벨 수)로 유한하다.
     slug = resolve_slug(app, model)
+    # ⚠️ 캐시 키에 추론 레벨이 반드시 들어가야 한다. slug만으로 잡으면 그 방에서 처음 쓰인
+    # 레벨의 객체가 계속 재사용돼, 레벨을 바꿔도 아무 일도 안 일어난다(조용히 틀린다).
+    key = (slug, thinking)
     cache = app.state.chat_llm_cache
-    llm = cache.get(slug)
+    llm = cache.get(key)
     if llm is None:
-        # 기동 시 로드해 둔 CHAT_ 프로필에서 model만 갈아끼운다. 나머지(추론·샘플링)는
-        # slug에서 유도되므로 slug 하나로 캐시 키가 유지된다.
-        llm = build_llm(replace(app.state.chat_profile, model=slug))
-        cache[slug] = llm
+        # 기동 시 로드해 둔 CHAT_ 프로필에서 model만 갈아끼운다. 샘플링은 slug에서 유도되고,
+        # 추론만 요청에서 온다.
+        llm = build_llm(replace(app.state.chat_profile, model=slug), thinking)
+        cache[key] = llm
     return llm

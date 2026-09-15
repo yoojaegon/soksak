@@ -6,3 +6,8 @@
 // 슬러그 → 라벨. 목록에 없으면 슬러그를 그대로 돌려준다(백엔드가 목록을 늘렸을 때 안전).
 export const modelLabel = (models, id) =>
   models.find((m) => m.id === id)?.label ?? id
+
+// 슬러그 → 추론 능력 서술(지원하나 / 끌 수 있나 / 어떤 단계가 있나).
+// 목록을 아직 못 받았으면 null — 픽커는 그걸 "고를 수 없음"으로 그린다.
+export const thinkingOf = (models, id) =>
+  (models ?? []).find((m) => m.id === id)?.thinking ?? null

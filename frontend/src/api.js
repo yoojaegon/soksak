@@ -305,6 +305,9 @@ export const api = {
   // 대화 중 사용할 모델 변경. model은 문자열이라 토글과 달리 body로 보낸다(rename과 동일 패턴).
   updateModel: (id, model) =>
     request(`/chatrooms/${id}/model`, { method: 'PATCH', body: { model } }),
+  // 추론 깊이 변경. 모델이 그 레벨을 받는지는 서버가 보낼 때 맞춰주므로 여기서 막지 않는다.
+  updateThinking: (id, thinkingLevel) =>
+    request(`/chatrooms/${id}/thinking`, { method: 'PATCH', body: { thinkingLevel } }),
   // 채팅방 삭제
   deleteChatRoom: (id) => request(`/chatrooms/${id}`, { method: 'DELETE' }),
   // 장기기억(자동 요약문) 조회. 대화 중에 갱신되므로 방 정보와 함께 받지 않고

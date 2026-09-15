@@ -29,19 +29,26 @@ ai-server는 요청에 실려 온 slug를 그대로 실행할 뿐, 목록도 기
 버전 표기는 점이고, 제공사 실제 ID로의 변환(`claude-opus-4.8` → `claude-opus-4-8`)은
 `factory.py` 가 한다.
 
-| slug | 비고 |
-|------|------|
-| `anthropic/claude-opus-4.8` | ⚠️ temperature 미지원(보내면 400) |
-| `anthropic/claude-opus-4.7` | ⚠️ temperature 미지원(보내면 400) |
-| `anthropic/claude-opus-4.6` | |
-| `anthropic/claude-haiku-4.5` | 저가, **요약 기본 모델** |
-| `google/gemini-3.1-pro-preview` | ⚠️ 추론을 끌 수 없다(실측 544~796토큰) |
-| `google/gemini-3.5-flash` | 추론이 기본 켜짐 → factory가 `thinking_budget=0` 으로 끈다 |
-| `google/gemini-3.5-flash-lite` | 최저가, 추론 없음, 샘플링 고정 — **채팅 기본 모델** |
+| slug | 샘플링 | 추론 | 끄는 법 |
+|------|--------|------|---------|
+| `anthropic/claude-opus-4.8` | ⚠️ 미지원(보내면 400) | ✅ `effort` 가 먹는다(추론 61~65) | 필드 생략 |
+| `anthropic/claude-opus-4.7` | ⚠️ 미지원(보내면 400) | ❌ `effort` 를 받지만 추론은 늘 0 | — |
+| `anthropic/claude-opus-4.6` | | ❌ `effort` 를 받지만 추론은 늘 0 | — |
+| `anthropic/claude-haiku-4.5` | | ❌ `effort` 를 보내면 **400** | — |
+| `google/gemini-3.1-pro-preview` | | ✅ 기본으로 추론(57) | **불가** — `budget=0` 도 400 |
+| `google/gemini-3.5-flash` | | ✅ 기본으로 추론(59) | `thinking_budget=0` |
+| `google/gemini-3.5-flash-lite` | 고정 | ✅ 기본은 추론 없음, `medium` 부터 붙는다(`low` 는 0) | 필드 생략(`budget=0` 은 400) |
 
-전부 두 제공사 키로 실제 호출해 확인했다(네이티브 전환 실측 2026-09-10).
-추론 설정은 노브가 아니라 `factory.py` 가 slug를 보고 정한다(제공사마다 인자가 다르다).
-방마다 추론 레벨을 고르게 하는 건 별도 작업.
+저가는 `haiku-4.5`(**요약 기본**)와 `flash-lite`(**채팅 기본**).
+
+전부 두 제공사 키로 실제 호출해 확인했다(2026-09-15 재실측).
+⚠️ **"추론을 지원한다"의 판정 기준은 파라미터를 받아주는가가 아니라 추론 토큰이 실제로 나오는가다** —
+`opus-4.7/4.6` 은 `effort` 를 200으로 받아주면서 추론이 0이라 노브를 열어도 아무 일도 안 일어난다.
+⚠️ **끄는 방법이 모델마다 다르다.** 한 가지로 통일하려 들면 그 방법이 다른 모델에서 400을 낸다.
+
+추론 레벨은 방마다 고를 수 있다(설정 패널). 선택지·검증·모델별 보정은 백엔드 `ModelCatalog` 가
+갖고, ai-server 는 받은 값(`off`/`low`/`medium`/`high`)을 제공사 인자로 옮기기만 한다.
+요청에 값이 없으면 `factory._DEFAULT_THINKING` — 레벨 노출 이전과 같은 거동이다.
 
 ## 튜닝 노브 (전부 선택)
 
