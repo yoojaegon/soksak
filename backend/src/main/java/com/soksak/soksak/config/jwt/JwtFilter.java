@@ -4,7 +4,9 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.soksak.soksak.config.TraceIdFilter;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -31,8 +33,13 @@ public class JwtFilter extends OncePerRequestFilter {
             // 서명 검증+파싱을 한 번만 하고, 그 Claims로 타입 확인·인증 복원까지 재사용한다.
             jwtTokenProvider.parse(token)
                     .filter(claims -> JwtTokenProvider.TYPE_ACCESS.equals(jwtTokenProvider.getTokenType(claims)))
-                    .ifPresent(claims -> SecurityContextHolder.getContext()
-                            .setAuthentication(jwtTokenProvider.getAuthentication(claims)));
+                    .ifPresent(claims -> {
+                        SecurityContextHolder.getContext()
+                                .setAuthentication(jwtTokenProvider.getAuthentication(claims));
+                        // 로그에 "누구의 요청인지"를 붙인다. 치우는 건 바깥의 TraceIdFilter가 한다.
+                        // ⚠️ 토큰 값은 절대 넣지 않는다 — 로그가 그대로 인증 수단이 된다.
+                        MDC.put(TraceIdFilter.USER, claims.getSubject());
+                    });
         }
 
         filterChain.doFilter(request, response);

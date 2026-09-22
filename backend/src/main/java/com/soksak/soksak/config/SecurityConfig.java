@@ -3,6 +3,7 @@ package com.soksak.soksak.config;
 import com.soksak.soksak.config.jwt.JwtFilter;
 import com.soksak.soksak.config.jwt.JwtTokenProvider;
 import com.soksak.soksak.user.CustomUserDetailsService;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,6 +58,13 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
 
             .authorizeHttpRequests(auth -> auth
+                    // SSE가 끝나면 컨테이너가 같은 요청을 ASYNC로 한 번 더 디스패치한다. 그때 이 체인이
+                    // 다시 도는데, JwtFilter(OncePerRequestFilter)는 비동기 디스패치엔 안 끼므로
+                    // SecurityContext가 비어 있다 → 이미 통과한 요청이 여기서 Access Denied가 된다.
+                    // 응답은 이미 커밋된 뒤라 에러 페이지도 못 그려서, AI 실패 1건마다 무관한 ERROR
+                    // 스택이 셋씩 찍혔다(원인인 ChatAiServerClient WARN 한 줄이 파묻히던 이유).
+                    // ASYNC는 새 요청이 아니라 이미 인가된 요청의 연장이므로 통과시키는 게 맞다.
+                    .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                     .requestMatchers("/", "/index.html", "/signup", "/auth/**", "/error").permitAll()
                     // 내 캐릭터 목록은 인증 필요 (아래 공개 규칙보다 먼저 매칭되어야 함)
                     .requestMatchers(HttpMethod.GET, "/characters/me").authenticated()

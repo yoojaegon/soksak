@@ -176,6 +176,11 @@ public class MessageService {
     private void sendError(SseEmitter emitter, Exception e) {
         if (e instanceof BusinessException be) {
             sendError(emitter, be.getErrorCode());   // ROOM_BUSY / 방 소유권 / AI_UNAVAILABLE 등 그대로
+        } else if (e instanceof UncheckedIOException) {
+            // 사용자가 탭을 닫거나 새로고침한 것(sendToken이 올린 것) — 고장이 아니라 정상 경로다.
+            // 알릴 상대가 이미 없으므로 닫기만 한다. warn+스택으로 찍으면 진짜 오류가 묻힌다.
+            log.debug("클라이언트가 스트림을 끊음", e);
+            emitter.complete();
         } else {
             log.warn("스트리밍 처리 중 예기치 못한 오류", e);
             sendError(emitter, ErrorCode.INTERNAL_ERROR);
@@ -189,8 +194,11 @@ public class MessageService {
                     .data(Map.of("code", code.name(), "message", code.getMessage())));
             emitter.complete();
         } catch (Exception ex) {
-            // 이미 끊겼거나 완료된 경우 — 더 보낼 수 없으니 에러로 마무리만.
-            emitter.completeWithError(ex);
+            // 이미 끊겼거나 완료된 경우 — 더 보낼 수 없으니 조용히 닫는다.
+            // completeWithError로 예외를 넘겨봐야 받을 클라이언트가 없고, 응답이 커밋된 뒤라
+            // 에러 페이지도 못 그려 ERROR 로그만 남는다. 흔적은 debug 한 줄이면 충분하다.
+            log.debug("스트림 종료 알림 실패 — 이미 닫힌 연결", ex);
+            emitter.complete();
         }
     }
 }

@@ -3,6 +3,7 @@ package com.soksak.soksak.common;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.sql.SQLException;
 
@@ -78,6 +80,16 @@ public class GlobalExceptionHandler {
         return build(code, request);
     }
 
+    // 매핑이 없는 경로. 안 잡아 주면 handleException으로 떨어져 오타 URL 하나에 500 + 스택
+    // 30줄이 찍힌다(실제로 /api/chat-rooms를 잘못 쳤다가 확인). 클라이언트 실수는 404 한 줄이면 된다.
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResource(
+            NoResourceFoundException e,
+            HttpServletRequest request
+    ) {
+        return build(ErrorCode.ENDPOINT_NOT_FOUND, request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(
             Exception e,
@@ -98,9 +110,18 @@ public class GlobalExceptionHandler {
         return null;
     }
 
+    // 모든 핸들러가 이 한 곳으로 모이므로, 여기 한 줄이면 4xx 전 경로가 덮인다.
+    // 5xx는 스택이 있어야 쓸모가 있어 각 핸들러가 이미 error로 찍는다 — 여기서 또 찍으면 두 줄이 된다.
+    // 단 인증 실패·리프레시 재사용처럼 맥락(loginId 등)이 필요한 4xx는 호출부가 한 줄을 더 남긴다.
+    // 이 줄은 "무슨 요청이 어떤 코드로 끝났나", 저쪽 줄은 "왜"라서 서로 대체가 안 된다.
     private ResponseEntity<ErrorResponse> build(ErrorCode errorCode, HttpServletRequest request) {
+        HttpStatus status = errorCode.getStatus();
+        if (status.is4xxClientError()) {
+            log.warn("{} {} {} code={}", status.value(), request.getMethod(),
+                    request.getRequestURI(), errorCode.name());
+        }
         return ResponseEntity
-                .status(errorCode.getStatus())
+                .status(status)
                 .body(ErrorResponse.of(errorCode, request.getRequestURI()));
     }
 }

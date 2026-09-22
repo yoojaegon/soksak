@@ -19,10 +19,24 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    # show-sql은 System.out으로 직접 찍혀서 로그 레벨·패턴·traceId를 전부 비껴간다(배포에서도 못 끈다).
+    # 같은 일을 logging.level.org.hibernate.SQL이 하므로 아래 logging 블록으로 옮겼다.
     properties:
       hibernate:
         format_sql: true
+
+# 이 프로젝트엔 Spring 프로필이 없다(compose의 profiles는 compose 전용). 그래서 환경별 차이는
+# DB_URL과 같은 방식 — 기본값은 배포에 안전한 값으로 두고, 필요한 쪽에서만 .env로 덮어쓴다.
+# 컨테이너로 내려보내는 자리는 docker-compose.yml의 backend.environment다(거기 없으면 안 먹는다).
+# 참고: 로그 레벨은 DB_URL과 달리 빈 문자열이 주입돼도 안전하다 — Map<String, LogLevel> 바인딩이
+#       빈 값을 가진 키를 아예 버려서 "설정 안 함"이 되고 ROOT 레벨을 그대로 상속한다.
+logging:
+  level:
+    com.soksak: ${LOG_LEVEL_APP:INFO}      # 로컬에서 훑어볼 땐 DEBUG
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:OFF}  # DEBUG로 올리면 실행 SQL이 찍힌다(옛 show-sql)
+  pattern:
+    # [traceId/loginId] — 요청 하나의 로그를 이어붙이는 기준. 비로그인 요청은 뒤가 빈다.
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%5p) %clr([%X{traceId:-}/%X{user:-}]){magenta} %clr(%-40.40logger{39}){cyan} : %m%n%wEx"
 
 # 업로드된 이미지 저장 위치·주소.
 # dir 기본값은 실행 디렉터리(bootRun 기준 레포 루트) 기준 상대 경로이고,
