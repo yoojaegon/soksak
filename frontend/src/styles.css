@@ -130,8 +130,14 @@ a {
 }
 
 /* 상단바 — 웹툰 팝: 굵은 하단 엣지 + 브랜드 물방울 로고 */
+/* 스크롤해도 제자리에 남는다. 사이드바가 이미 `top: var(--topbar-h)`로 붙어 있어서
+   "상단바가 그 자리를 지킨다"를 전제하고 있었다 — 안 붙여두면 스크롤할 때 사이드바 위로
+   빈 띠가 생긴다. z-index는 chat-aside(40) 위, 확인 다이얼로그(100) 아래. */
 .topbar {
-  height: 60px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--topbar-h);
   background: var(--surface);
   border-bottom: 2px solid var(--text);
   display: flex;
