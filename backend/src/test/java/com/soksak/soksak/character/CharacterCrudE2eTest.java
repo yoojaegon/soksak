@@ -3,6 +3,7 @@ package com.soksak.soksak.character;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.soksak.soksak.auth.RefreshTokenRepository;
+import com.soksak.soksak.credit.CreditLedgerRepository;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +37,7 @@ class CharacterCrudE2eTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired UserRepository userRepository;
+    @Autowired CreditLedgerRepository creditLedgerRepository;
     @Autowired CharacterRepository characterRepository;
     @Autowired RefreshTokenRepository refreshTokenRepository;
     @Autowired PasswordEncoder passwordEncoder;
@@ -51,6 +53,7 @@ class CharacterCrudE2eTest {
     void setUp() throws Exception {
         characterRepository.deleteAll();
         refreshTokenRepository.deleteAll();
+        creditLedgerRepository.deleteAll();   // users보다 먼저 — user_id FK가 걸려 있다
         userRepository.deleteAll();
 
         seedUser(OWNER, "주인장", "owner@soksak.com");

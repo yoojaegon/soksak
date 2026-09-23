@@ -159,6 +159,40 @@ a {
   background: linear-gradient(135deg, var(--coral), var(--lilac));
   transform: rotate(-8deg);
 }
+/* 남은 마디 — 채팅 입력칸 왼쪽. 누르면 충전 화면으로 가는 링크다.
+   채팅은 차분 강도라(홈만 팝) 하드섀도우 없이 얇은 테두리로만 세운다. */
+.credit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--outline);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.credit-badge:hover {
+  border-color: var(--champ);
+  color: var(--champ);
+}
+/* 다 쓴 상태는 색이 아니라 반전으로 알린다 — 활성 상태를 잉크 반전으로 쓰는 규칙과 같다.
+   여기선 "충전하러 가라"는 신호를 겸한다. */
+.credit-badge.empty {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+.credit-badge.empty:hover {
+  color: var(--surface);
+  filter: brightness(1.25);
+}
+
 /* 텍스트 버튼 — 대문자·넓은 자간(Reel Theory 잔재)을 걷어낸 한글 톤 */
 .link-btn {
   background: none;
@@ -2228,4 +2262,101 @@ button:disabled {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ── 마디 충전 ───────────────────────────────────────────────────────
+   채팅이 아닌 일반 페이지라 웹툰 팝 강도(2px 잉크 + 하드섀도우)로 간다. */
+/* 현재 잔액 — 충전하러 온 사람이 가장 먼저 찾는 숫자라 제목 옆에서 카드처럼 세운다.
+   일반 페이지라 팝 강도(2px 잉크 + 하드섀도우)로 간다(채팅의 얇은 배지와 다른 이유). */
+.credit-balance-now {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 8px 18px;
+  border: 2px solid var(--text);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--edge);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.credit-balance-now strong {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.credits-note {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 2px dashed var(--outline-strong);
+  border-radius: var(--r-card);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.credits-note strong {
+  color: var(--text);
+}
+.pack-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 20px;
+}
+.pack-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 22px;
+  background: var(--surface);
+  border: 2px solid var(--text);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s;
+}
+.pack-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-pop);
+}
+.pack-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.pack-amount {
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+/* 가격은 받지 않는 표시값이라 본문보다 한 단계 물러나 있다. */
+.pack-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+.pack-card button {
+  width: 100%;
+  margin-top: 14px;
+  border: 2px solid var(--text);
+  box-shadow: 0 4px 0 var(--edge);
+  font-weight: 900;
+  transition: transform 0.18s var(--ease-out), box-shadow 0.18s, filter 0.18s;
+}
+.pack-card button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--edge);
+}
+.pack-card button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--edge);
+}
+.credits-foot {
+  margin-top: 26px;
+  font-size: 13.5px;
+  line-height: 1.7;
 }

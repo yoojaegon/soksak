@@ -14,7 +14,14 @@ import java.util.List;
 @Slf4j
 public final class ModelCatalog {
 
-    public record Entry(String id, String label, Thinking thinking) {}
+    /**
+     * @param cost 이 모델로 한 번 주고받을 때 깎이는 마디.
+     *             <p>
+     *             실제 단가비는 이보다 훨씬 벌어지지만 정량제의 목적은 <b>설명이 쉬운 것</b>이라
+     *             1/2/3으로 뭉친다. 비용은 사용자가 모델을 고를 때 보고 판단하는 값이라
+     *             {@link Thinking}과 같은 자격으로 여기 올린다(제공사 사정인 값과는 다르다).
+     */
+    public record Entry(String id, String label, int cost, Thinking thinking) {}
 
     /**
      * 이 모델이 추론에 대해 무엇을 할 수 있는가. 픽커가 노브를 켤지 끌지, 어떤 값을 보여줄지를
@@ -62,16 +69,16 @@ public final class ModelCatalog {
     // ⚠️ flash-lite의 LOW를 뺀 이유는 400이 나서가 아니다 — 200으로 통과하면서 추론이 0이라
     // OFF와 구별되지 않는다. "고를 수 있다"의 기준은 여기서도 실제 효과다(opus-4.7/4.6과 같은 잣대).
     private static final List<Entry> ENTRIES = List.of(
-            new Entry("anthropic/claude-opus-4.8", "Claude Opus 4.8",
+            new Entry("anthropic/claude-opus-4.8", "Claude Opus 4.8", 3,
                     Thinking.of(ThinkingLevel.OFF, ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH)),
-            new Entry("anthropic/claude-opus-4.7", "Claude Opus 4.7", Thinking.none()),
-            new Entry("anthropic/claude-opus-4.6", "Claude Opus 4.6", Thinking.none()),
-            new Entry("anthropic/claude-haiku-4.5", "Claude Haiku 4.5", Thinking.none()),
-            new Entry("google/gemini-3.1-pro-preview", "Gemini 3.1 Pro Preview",
+            new Entry("anthropic/claude-opus-4.7", "Claude Opus 4.7", 3, Thinking.none()),
+            new Entry("anthropic/claude-opus-4.6", "Claude Opus 4.6", 3, Thinking.none()),
+            new Entry("anthropic/claude-haiku-4.5", "Claude Haiku 4.5", 1, Thinking.none()),
+            new Entry("google/gemini-3.1-pro-preview", "Gemini 3.1 Pro Preview", 2,
                     Thinking.of(ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH)),
-            new Entry("google/gemini-3.5-flash", "Gemini 3.5 Flash",
+            new Entry("google/gemini-3.5-flash", "Gemini 3.5 Flash", 1,
                     Thinking.of(ThinkingLevel.OFF, ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH)),
-            new Entry("google/gemini-3.5-flash-lite", "Gemini 3.5 Flash Lite",
+            new Entry("google/gemini-3.5-flash-lite", "Gemini 3.5 Flash Lite", 1,
                     Thinking.of(ThinkingLevel.OFF, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH))
     );
 
@@ -104,6 +111,26 @@ public final class ModelCatalog {
 
     public static String orNull(String slug) {
         return (slug != null && contains(slug)) ? slug : null;
+    }
+
+    /**
+     * 이 방이 한 턴에 쓸 마디. {@code null}(아직 안 고름)이나 카탈로그에 없는 slug은 기본 모델의
+     * 값으로 본다 — 실제로 발송되는 것도 {@link #resolve} 결과라 둘이 어긋나면 안 된다.
+     * <p>
+     * ⚠️ {@code resolve()}를 부르지 않는 건 경고 로그를 두 번 남기지 않기 위해서다(발송 경로가
+     * 이미 한 번 남긴다).
+     * <p>
+     * 기본 모델조차 없으면 던진다 — 카탈로그에서 {@code DEFAULT_ID}를 빼버린 실수라 조용한
+     * 기본값으로 덮으면 "전부 1마디"로 굴러가며 아무도 모른다.
+     */
+    public static int costOf(String slug) {
+        return ENTRIES.stream()
+                .filter(entry -> entry.id().equals(slug))
+                .findFirst()
+                .or(() -> ENTRIES.stream().filter(entry -> entry.id().equals(DEFAULT_ID)).findFirst())
+                .map(Entry::cost)
+                .orElseThrow(() -> new IllegalStateException(
+                        "기본 모델이 카탈로그에 없다: " + DEFAULT_ID));
     }
 
     public static Thinking thinkingOf(String slug) {

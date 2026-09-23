@@ -8,6 +8,9 @@ import com.soksak.soksak.chatRoom.ChatRoom;
 import com.soksak.soksak.chatRoom.ChatRoomRepository;
 import com.soksak.soksak.chatRoom.chatSummary.ChatSummary;
 import com.soksak.soksak.chatRoom.chatSummary.ChatSummaryRepository;
+import com.soksak.soksak.credit.CreditLedgerRepository;
+import com.soksak.soksak.credit.CreditReason;
+import com.soksak.soksak.credit.CreditService;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +52,8 @@ class MessageE2eTest {
     @Autowired ChatSummaryRepository chatSummaryRepository;
     @Autowired RefreshTokenRepository refreshTokenRepository;
     @Autowired PasswordEncoder passwordEncoder;
+    @Autowired CreditService creditService;
+    @Autowired CreditLedgerRepository creditLedgerRepository;
 
     private static final String OWNER = "owner";
     private static final String OTHER = "other";
@@ -67,6 +72,7 @@ class MessageE2eTest {
         chatRoomRepository.deleteAll();
         characterRepository.deleteAll();
         refreshTokenRepository.deleteAll();
+        creditLedgerRepository.deleteAll();   // users보다 먼저 — user_id FK가 걸려 있다
         userRepository.deleteAll();
 
         owner = seedUser(OWNER, "주인장", "owner@soksak.com");
@@ -554,8 +560,13 @@ class MessageE2eTest {
 
     // ---------- helpers ----------
 
+    // 엔티티를 직접 심는 시드라 가입 경로(UserService)를 안 타므로 마디가 0으로 태어난다.
+    // 실제 가입자는 보너스를 받고 시작하니 여기서도 넉넉히 채워 준다 — 안 채우면 전송 계열
+    // 테스트가 전부 402가 된다(마디 자체를 보는 테스트는 CreditServiceTest가 따로 맡는다).
+    private static final int SEED_CREDITS = 1000;
+
     private User seedUser(String loginId, String nickname, String email) {
-        return userRepository.save(User.builder()
+        User saved = userRepository.save(User.builder()
                 .loginId(loginId)
                 .email(email)
                 .nickname(nickname)
@@ -563,6 +574,8 @@ class MessageE2eTest {
                 .age(20)
                 .gender(com.soksak.soksak.common.Gender.MALE)
                 .build());
+        creditService.grant(saved, SEED_CREDITS, CreditReason.MANUAL_GRANT, "테스트 시드");
+        return saved;
     }
 
     private ChatCharacter seedCharacter(User user, String name) {

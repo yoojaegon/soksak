@@ -72,6 +72,12 @@ public class GlobalExceptionHandler {
             case "23505" -> ErrorCode.DUPLICATE_VALUE;
             case "23502" -> ErrorCode.INVALID_INPUT;
             case "23503" -> ErrorCode.DATA_CONSTRAINT_VIOLATION;
+            // CHECK 위반은 사용자 잘못이 아니라 우리가 스키마가 금지한 값을 쓴 것이다.
+            // 409 "이미 사용 중인 값입니다"로 덮으면 원인을 가리킨 곳이 로그 한 줄뿐이 된다.
+            case "23514" -> {
+                log.error("CHECK 제약 위반 — 엔티티와 스키마가 어긋났다", e);
+                yield ErrorCode.INTERNAL_ERROR;
+            }
             default -> {
                 log.warn("분류되지 않은 무결성 위반 sqlState={}", sqlState, e);
                 yield ErrorCode.DUPLICATE_VALUE;

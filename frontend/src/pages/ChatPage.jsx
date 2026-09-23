@@ -4,6 +4,7 @@ import { api } from '../api.js'
 import ModelPicker from '../components/ModelPicker.jsx'
 import ThinkingPicker from '../components/ThinkingPicker.jsx'
 import CharacterImage from '../components/CharacterImage.jsx'
+import CreditBadge from '../components/CreditBadge.jsx'
 import { modelLabel, thinkingOf } from '../models.js'
 import { useConfirm } from '../confirm.jsx'
 
@@ -100,6 +101,9 @@ function ChatRoom({ roomId }) {
   const [editingId, setEditingId] = useState(null) // 현재 수정 중인 메시지 id
   const [editText, setEditText] = useState('')
   const [error, setError] = useState('')
+  // 마디가 바닥난 상태. 서버가 402로 알려준 뒤에만 켜진다(프론트가 잔액을 미리 계산하지 않는다).
+  // 푸는 길은 셋: 전송·재생성 성공, 그리고 안내줄의 '다시 확인'(recheckCredits).
+  const [noCredit, setNoCredit] = useState(false)
   // 오류는 아니지만 알려야 하는 것(지금은 삭제가 장기기억을 건드린 경우 하나).
   // .error와 달리 중립 톤이고, 사용자가 확인했거나 대화를 이어가면 사라진다.
   const [notice, setNotice] = useState('')
@@ -314,11 +318,18 @@ function ChatRoom({ roomId }) {
       } catch {
         setMessages((prev) => prev.filter((m) => m.id !== tempUser.id && m.id !== aiId))
       }
-      // USER 메시지가 저장되지 않은 게 확실한 실패(방 점유·미인증·연결 실패)에서만 입력값을 되돌린다.
-      // AI 실패 등은 USER가 이미 저장됐을 수 있어 복원하면 중복 전송이 된다.
+      // USER 메시지가 저장되지 않은 게 확실한 실패(방 점유·미인증·연결 실패·마디 부족)에서만
+      // 입력값을 되돌린다. AI 실패 등은 USER가 이미 저장됐을 수 있어 복원하면 중복 전송이 된다.
+      // 마디 부족은 보통 스트림이 열리기 전에 402로 끊긴다. 잔액 확인과 실제 차감 사이에 다른
+      // 요청이 끼면 스트림 '안'에서 올 수도 있는데, 그때도 차감이 USER 저장보다 앞이라 같이
+      // 롤백된다 — 어느 쪽이든 저장된 게 없다는 판정은 같다.
       const userNotSaved =
-        failed.status === 401 || failed.code === 'ROOM_BUSY' || failed.code === 'NETWORK'
+        failed.status === 401 ||
+        failed.code === 'ROOM_BUSY' ||
+        failed.code === 'NETWORK' ||
+        failed.code === 'INSUFFICIENT_CREDIT'
       if (userNotSaved) setInput(content)
+      if (failed.code === 'INSUFFICIENT_CREDIT') setNoCredit(true)
       setError(failed.message)
     } else {
       // 임시 버블들을 실제 저장본(id·시각 포함)으로 교체 → 재생성/수정/삭제가 바로 동작.
@@ -329,8 +340,24 @@ function ChatRoom({ roomId }) {
       } catch (err) {
         setError(err.message)
       }
+      setNoCredit(false)   // 보냈다는 건 마디가 있었다는 뜻
     }
+    // 성공이든 실패든 잔액은 움직였을 수 있다 → 헤더 갱신. 실패해도 0으로 돌아오는 건 아니다:
+    // 답을 못 받았으면 서버가 환불하지만, 중간에 나갔다 돌아온 경우엔 답이 저장돼 차감이 남는다.
+    window.dispatchEvent(new Event('soksak:credits-changed'))
     setSending(false)
+  }
+
+  // 잠긴 상태에서 빠져나오는 길. 전송 성공으로만 풀면, 전송 버튼이 잠겨 있고 재생성 버튼도 없는
+  // 새 방(메시지 0건)에서 402를 맞았을 때 새로고침 말고는 방법이 없다.
+  const recheckCredits = async () => {
+    try {
+      const data = await api.getCredits()
+      if ((data?.balance ?? 0) > 0) setNoCredit(false)
+    } catch {
+      // 잔액을 못 읽은 것뿐이다 — 그게 잠금을 풀 근거는 아니니 그대로 둔다.
+    }
+    window.dispatchEvent(new Event('soksak:credits-changed'))
   }
 
   // 마지막 AI 응답을 다시 생성(스트리밍)
@@ -372,6 +399,10 @@ function ChatRoom({ roomId }) {
       else failed = err
     }
     if (failed) setError(failed.message)
+    // 재생성도 마디를 쓴다(LLM 호출이 한 번 더 나간다) → 헤더 갱신·부족 표시.
+    if (failed?.code === 'INSUFFICIENT_CREDIT') setNoCredit(true)
+    else if (!failed) setNoCredit(false)
+    window.dispatchEvent(new Event('soksak:credits-changed'))
     setActing(false)
   }
 
@@ -601,7 +632,20 @@ function ChatRoom({ roomId }) {
 
       {error && <p className="error">{error}</p>}
 
+      {/* 마디가 바닥나면 보내기만 잠근다. 입력창까지 잠그면 쓰던 문장을 손볼 수도 없고,
+          마디가 채워졌을 때 스스로 빠져나올 방법이 없다 — 그래서 '다시 확인'을 같이 둔다. */}
+      {noCredit && (
+        <p className="notice">
+          <span>마디를 다 썼어요. 충전되면 다시 이어갈 수 있어요.</span>
+          <button type="button" className="notice-action" onClick={recheckCredits}>
+            다시 확인
+          </button>
+        </p>
+      )}
+
       <form className="composer" onSubmit={onSend}>
+        {/* 남은 마디는 쓰는 자리에 둔다 — 누르면 충전 화면으로 간다. */}
+        <CreditBadge />
         <input
           ref={composerRef}
           value={input}
@@ -609,7 +653,7 @@ function ChatRoom({ roomId }) {
           placeholder="당신의 대사나 행동을 적으세요…"
         />
         {/* 아이콘만 남으므로 이름은 aria-label·title로 남긴다(스크린리더·마우스 호버) */}
-        <button type="submit" disabled={sending || !input.trim()} aria-label="전하기" title="전하기">
+        <button type="submit" disabled={sending || noCredit || !input.trim()} aria-label="전하기" title="전하기">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="22" y1="2" x2="11" y2="13" />
             <polygon points="22 2 15 22 11 13 2 15 22 2" />

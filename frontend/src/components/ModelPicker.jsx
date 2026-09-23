@@ -25,9 +25,11 @@ export default function ModelPicker({ models, defaultModel, value, onChange, dis
       aria-label="대화 모델"
     >
       {options.length === 0 && <option value="">모델 불러오는 중…</option>}
+      {/* 마디 계수는 모델을 고르기 전에 보여야 판단이 된다 — 계수의 출처도 라벨과 같은
+          GET /models라 프론트가 따로 알고 있는 값이 없다(목록에 없으면 그냥 안 붙는다). */}
       {options.map((m) => (
         <option key={m.id} value={m.id}>
-          {m.label}
+          {m.cost ? `${m.label} · ${m.cost}마디` : m.label}
         </option>
       ))}
     </select>

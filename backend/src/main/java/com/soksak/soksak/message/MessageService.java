@@ -6,6 +6,9 @@ import com.soksak.soksak.chatRoom.chatSummary.ChatSummary;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.aiClient.ChatAiClient;
+import com.soksak.soksak.aiClient.ModelCatalog;
+import com.soksak.soksak.chatRoom.ChatRoom;
+import com.soksak.soksak.credit.CreditService;
 import com.soksak.soksak.message.dto.DeleteFromResponse;
 import com.soksak.soksak.message.dto.MessageResponse;
 import com.soksak.soksak.message.dto.RegenTarget;
@@ -34,6 +37,7 @@ public class MessageService {
     private final ChatRoomService chatRoomService;
     private final ChatTxService chatTxService;
     private final ChatAiClient chatAiClient;
+    private final CreditService creditService;
     private final ExecutorService chatStreamExecutor;
     private static final Long STREAM_TIMEOUT_MS = 5 * 60 * 1000L;
     private static final int LOCK_STRIPES = 256;
@@ -46,14 +50,21 @@ public class MessageService {
             PreparedChat preparedChat = chatTxService.prepareAndSaveUser(loginId, roomId, content);
             // trySummarize가 p.summaries()에 방금 만든 조각을 더한다 — 반드시 그 뒤에 넘길 것.
             trySummarize(preparedChat);
-            String reply = chatAiClient.reply(preparedChat.room(), content,
-                    preparedChat.priorHistory(), preparedChat.summaries());
-            Message aiMessage = chatTxService.saveAssistant(roomId, reply);
-            return MessageResponse.from(aiMessage);
+            // 차감은 위에서 이미 커밋됐다. 답을 못 만들면 스트림 경로와 같은 규칙으로 돌려준다.
+            try {
+                String reply = chatAiClient.reply(preparedChat.room(), content,
+                        preparedChat.priorHistory(), preparedChat.summaries());
+                Message aiMessage = chatTxService.saveAssistant(roomId, reply);
+                return MessageResponse.from(aiMessage);
+            } catch (Exception e) {
+                tryRefund(preparedChat.room());
+                throw e;
+            }
         });
     }
 
     public SseEmitter sendMessageStream(String loginId, Long roomId, String content) {
+        ensureCredit(loginId, roomId);
         return startStream(roomId, () -> {
             PreparedChat p = chatTxService.prepareAndSaveUser(loginId, roomId, content);
             trySummarize(p);
@@ -86,13 +97,19 @@ public class MessageService {
     public MessageResponse regenerate(String loginId, Long roomId) {
         return withRoomLock(roomId, () -> {
             RegenTarget t = chatTxService.prepareRegenerate(loginId, roomId);
-            String reply = chatAiClient.reply(t.room(), t.lastUserContent(), t.priorHistory(), t.summaries());
-            Message ai = chatTxService.saveAssistant(roomId, reply);
-            return MessageResponse.from(ai);
+            try {
+                String reply = chatAiClient.reply(t.room(), t.lastUserContent(), t.priorHistory(), t.summaries());
+                Message ai = chatTxService.saveAssistant(roomId, reply);
+                return MessageResponse.from(ai);
+            } catch (Exception e) {
+                tryRefund(t.room());
+                throw e;
+            }
         });
     }
 
     public SseEmitter regenerateStream(String loginId, Long roomId) {
+        ensureCredit(loginId, roomId);
         return startStream(roomId, () -> {
             RegenTarget t = chatTxService.prepareRegenerate(loginId, roomId);
             return new StreamJob(t.room(), t.lastUserContent(), t.priorHistory(), t.summaries());
@@ -137,6 +154,24 @@ public class MessageService {
         }
     }
 
+    /**
+     * 스트림을 열기 <b>전에</b> 잔액을 본다 — 여기서 던져야 평범한 402 JSON으로 나간다.
+     * <p>
+     * {@code startStream} 안으로 들어가면 {@code prepare}는 이미 emitter를 돌려준 뒤 별도
+     * 스레드에서 돌기 때문에, 부족을 알리는 길이 SSE {@code event: error}밖에 없다. 동작은 하지만
+     * 프론트가 "스트림 안의 에러"를 따로 다뤄야 해서, 다른 4xx와 같은 모양으로 맞춰 준다.
+     * <p>
+     * ⚠️ <b>이건 가드가 아니다.</b> 여기서 읽고 {@code charge}까지 사이에 다른 요청이 낄 수 있다
+     * (TOCTOU). 진짜 보호는 {@code CreditService.charge}의 원자적 UPDATE고, 둘 다 있어야 한다.
+     * <p>
+     * ⚠️ 방을 한 번 더 읽는 비용이 붙는다. 소유권 확인은 어차피 {@code prepare} 안에서 다시 하므로
+     * 중복이지만, 인덱스 조회 하나로 "스트림이 열리기 전에 거절"을 사는 값이라 싼 편이다.
+     */
+    private void ensureCredit(String loginId, Long roomId) {
+        ChatRoom room = chatRoomService.getOwnedChatRoom(loginId, roomId);
+        creditService.ensureAffordable(room.getUser().getId(), ModelCatalog.costOf(room.getModel()));
+    }
+
     private SseEmitter startStream(Long roomId, Supplier<StreamJob> prepare) {
         SseEmitter emitter = new SseEmitter(STREAM_TIMEOUT_MS);
         chatStreamExecutor.execute(() -> {
@@ -148,8 +183,11 @@ public class MessageService {
             // 브라우저가 아직 듣고 있는가. 끊겨도 생성과 저장은 끝까지 간다(sendToken 참고) —
             // 이 플래그는 "더 보내봐야 소용없다"는 표시일 뿐 흐름을 멈추지 않는다.
             AtomicBoolean listening = new AtomicBoolean(true);
+            // 환불 판정에 쓴다. null이면 prepare가 실패한 것 = 차감도 같이 롤백됐다는 뜻이라
+            // 돌려줄 게 없다. 값이 들어온 뒤의 실패만 "받아놓고 답을 못 준" 경우다.
+            StreamJob job = null;
             try{
-                StreamJob job = prepare.get();
+                job = prepare.get();
                 String full = chatAiClient.replyStream(
                         job.room(), job.content(), job.priorHistory(), job.summaries(),
                         token -> sendToken(emitter, listening, token));
@@ -164,6 +202,7 @@ public class MessageService {
                 }
                 emitter.complete();
             } catch (Exception e) {
+                tryRefund(job == null ? null : job.room());
                 sendError(emitter, e);
             } finally {
                 lock.unlock();
@@ -196,6 +235,28 @@ public class MessageService {
         } catch (IOException | IllegalStateException e) {
             log.debug("클라이언트가 스트림을 끊음 — 생성과 저장은 계속한다", e);
             listening.set(false);
+        }
+    }
+
+    /**
+     * 실패로 끝난 턴의 마디를 돌려준다.
+     * <p>
+     * ⚠️ 여기까지 오는 건 <b>답을 한 글자도 남기지 못한 경우</b>뿐이다. 사용자가 중간에 나간 것은
+     * 더 이상 예외가 아니라서({@link #sendToken}) 이 경로로 오지 않는다 — 그쪽은 답이 저장되므로
+     * 받은 값을 돌려줄 이유가 없다.
+     * <p>
+     * 환불이 실패해도 원래 오류를 덮지 않게 통째로 감싼다. 사용자에게 알려야 하는 건 "답이 안
+     * 나왔다"지 "환불이 안 됐다"가 아니다 — 후자는 로그의 몫이고, 원장을 보면 차감만 남아 있다.
+     */
+    private void tryRefund(ChatRoom room) {
+        if (room == null) {
+            return;     // 준비 단계에서 터진 것 = 차감도 같은 트랜잭션에서 롤백됐다
+        }
+        try {
+            creditService.refund(room.getUser().getId(),
+                    ModelCatalog.costOf(room.getModel()), room.getId());
+        } catch (Exception e) {
+            log.warn("마디 환불 실패 (roomId={})", room.getId(), e);
         }
     }
 

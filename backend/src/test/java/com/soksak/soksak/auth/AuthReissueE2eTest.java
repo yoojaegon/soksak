@@ -2,6 +2,11 @@ package com.soksak.soksak.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.soksak.soksak.character.CharacterRepository;
+import com.soksak.soksak.chatRoom.ChatRoomRepository;
+import com.soksak.soksak.credit.CreditLedgerRepository;
+import com.soksak.soksak.message.MessageRepository;
+import com.soksak.soksak.userPersona.UserPersonaRepository;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +35,11 @@ class AuthReissueE2eTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired UserRepository userRepository;
+    @Autowired CreditLedgerRepository creditLedgerRepository;
+    @Autowired MessageRepository messageRepository;
+    @Autowired ChatRoomRepository chatRoomRepository;
+    @Autowired CharacterRepository characterRepository;
+    @Autowired UserPersonaRepository userPersonaRepository;
     @Autowired RefreshTokenRepository refreshTokenRepository;
     @Autowired PasswordEncoder passwordEncoder;
 
@@ -38,7 +48,14 @@ class AuthReissueE2eTest {
 
     @BeforeEach
     void setUp() {
+        // ⚠️ users를 지우려면 users를 참조하는 것을 먼저 지워야 한다. 다른 테스트 클래스가
+        // 남긴 행이 그대로 남아 있어, 여기서 빠뜨리면 실행 순서에 따라 FK로 터진다.
+        messageRepository.deleteAll();
+        chatRoomRepository.deleteAll();
+        characterRepository.deleteAll();
+        userPersonaRepository.deleteAll();
         refreshTokenRepository.deleteAll();
+        creditLedgerRepository.deleteAll();
         userRepository.deleteAll();
         userRepository.save(User.builder()
                 .loginId(LOGIN_ID)

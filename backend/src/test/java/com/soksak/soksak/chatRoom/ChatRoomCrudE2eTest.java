@@ -13,6 +13,7 @@ import com.soksak.soksak.chatRoom.chatSummary.SummarySelector;
 import com.soksak.soksak.message.Message;
 import com.soksak.soksak.message.MessageRepository;
 import com.soksak.soksak.message.MessageRole;
+import com.soksak.soksak.credit.CreditLedgerRepository;
 import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,7 @@ class ChatRoomCrudE2eTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired UserRepository userRepository;
+    @Autowired CreditLedgerRepository creditLedgerRepository;
     @Autowired CharacterRepository characterRepository;
     @Autowired ChatRoomRepository chatRoomRepository;
     @Autowired MessageRepository messageRepository;
@@ -71,6 +73,7 @@ class ChatRoomCrudE2eTest {
         chatRoomRepository.deleteAll();
         characterRepository.deleteAll();
         refreshTokenRepository.deleteAll();
+        creditLedgerRepository.deleteAll();   // users보다 먼저 — user_id FK가 걸려 있다
         userRepository.deleteAll();
 
         User owner = seedUser(OWNER, "주인장", "owner@soksak.com");

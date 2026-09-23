@@ -8,6 +8,7 @@ import NewCharacterPage from './pages/NewCharacterPage.jsx'
 import CharacterEditPage from './pages/CharacterEditPage.jsx'
 import MyCharactersPage from './pages/MyCharactersPage.jsx'
 import PersonasPage from './pages/PersonasPage.jsx'
+import CreditsPage from './pages/CreditsPage.jsx'
 import ChatPage from './pages/ChatPage.jsx'
 
 // 로그인하지 않았으면 로그인 페이지로 보내는 보호용 래퍼
@@ -23,7 +24,8 @@ function Header() {
   return (
     <header className="topbar">
       <Link to="/" className="logo">속삭</Link>
-      {/* 로그인 안 한 사용자에게는 로그인 진입점을 보여준다. */}
+      {/* 로그인 안 한 사용자에게는 로그인 진입점을 보여준다.
+          남은 마디는 헤더가 아니라 채팅 입력칸 옆에 둔다 — 쓰는 자리에서 보이는 게 맞다. */}
       {!isAuthenticated && (
         <Link to="/login" className="link-btn">로그인</Link>
       )}
@@ -75,6 +77,7 @@ export default function App() {
           <Route path="/characters/:id/edit" element={<CharacterEditPage />} />
           <Route path="/my-characters" element={<MyCharactersPage />} />
           <Route path="/personas" element={<PersonasPage />} />
+          <Route path="/credits" element={<CreditsPage />} />
           <Route path="/chat/:roomId" element={<ChatPage />} />
         </Route>
 

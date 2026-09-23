@@ -22,6 +22,11 @@ public enum ErrorCode {
     // 유저
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."),
 
+    // 마디(소모 재화)
+    // 402를 쓰는 이유: 403(권한 없음)이 아니라 "값을 치르면 되는 상태"라서 의미가 정확하다.
+    INSUFFICIENT_CREDIT(HttpStatus.PAYMENT_REQUIRED, "마디가 모자라요."),
+    UNKNOWN_CREDIT_PACK(HttpStatus.BAD_REQUEST, "없는 마디 묶음입니다."),
+
 
     // 캐릭터
     CHARACTER_NOT_FOUND(HttpStatus.NOT_FOUND, "캐릭터를 찾을 수 없습니다."),

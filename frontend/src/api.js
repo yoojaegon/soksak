@@ -103,14 +103,18 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
 
   if (!res.ok) {
     let message = `요청에 실패했습니다 (${res.status})`
+    let code = null
     try {
       const data = await res.json()
       // 백엔드 ErrorResponse 형식에 message가 있으면 사용
       if (data && data.message) message = data.message
+      // code도 함께 실어 보낸다 — 호출부가 INSUFFICIENT_CREDIT 같은 걸 문구가 아니라
+      // 코드로 가를 수 있어야 한다(문구는 바뀌어도 코드는 계약이다).
+      if (data && data.code) code = data.code
     } catch {
       // 본문이 비어있거나 JSON이 아니면 기본 메시지 사용
     }
-    throw new ApiError(res.status, message)
+    throw new ApiError(res.status, message, code)
   }
 
   if (res.status === 204) return null
@@ -151,7 +155,18 @@ async function streamRequest(path, { body } = {}, { onToken, onDone, onError } =
   }
 
   if (!res.ok || !res.body) {
-    onError?.(new ApiError(res.status, `요청에 실패했습니다 (${res.status})`))
+    // 스트림이 열리기 전에 거절당한 경우다(마디 부족 402 등) — 본문이 SSE가 아니라 평범한
+    // ErrorResponse JSON이라 여기서 code·message를 꺼내 준다. 못 꺼내도 상태코드는 남긴다.
+    let message = `요청에 실패했습니다 (${res.status})`
+    let code = null
+    try {
+      const data = await res.json()
+      if (data?.message) message = data.message
+      if (data?.code) code = data.code
+    } catch {
+      // 본문이 없거나 JSON이 아님 — 기본 문구로 둔다.
+    }
+    onError?.(new ApiError(res.status, message, code))
     return
   }
 
@@ -233,9 +248,17 @@ async function doReissue() {
 }
 
 export const api = {
-  // 모델 카탈로그(선택지·라벨·기본값)의 단일 출처는 백엔드.
-  // 응답 계약: { models: [{ id, label }...], default }
+  // 모델 카탈로그(선택지·라벨·기본값·마디 계수)의 단일 출처는 백엔드.
+  // 응답 계약: { models: [{ id, label, cost, thinking }...], default, thinkingLevels }
   getModels: () => request('/models'),
+
+  // 마디(소모 재화) 잔액. 입력칸 옆 배지가 띄우고, 전송이 끝날 때마다 다시 부른다.
+  getCredits: () => request('/credits/me'),
+  // 살 수 있는 묶음. 모델 카탈로그와 같이 백엔드가 단일 출처다 — 여기에 폴백 목록을 두지 않는다.
+  // 응답 계약: [{ id, amount, priceKrw, label }...]
+  getCreditPacks: () => request('/credits/packs'),
+  // 충전. 수량이 아니라 묶음 id를 보낸다(수량을 보내면 여기서 고쳐 얼마든지 받을 수 있다).
+  topUpCredits: (packId) => request('/credits/topup', { method: 'POST', body: { packId } }),
 
   // 인증
   signup: (body) => request('/signup', { method: 'POST', body, auth: false }),

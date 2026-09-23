@@ -215,7 +215,7 @@ export default function Sidebar() {
             )}
           </nav>
 
-          {/* 2) 내 캐릭터 · 내 페르소나 */}
+          {/* 2) 내 캐릭터 · 내 페르소나 · 마디 충전 */}
           <hr className="sidebar-divider" />
           <nav className="sidebar-nav">
             <NavLink
@@ -229,6 +229,13 @@ export default function Sidebar() {
               className={({ isActive }) => `room-item${isActive ? ' active' : ''}`}
             >
               내 페르소나
+            </NavLink>
+            {/* 입력칸 옆 배지가 주 진입점이지만, 방 밖에서 다 떨어진 걸 알았을 때도 갈 데가 있어야 한다. */}
+            <NavLink
+              to="/credits"
+              className={({ isActive }) => `room-item${isActive ? ' active' : ''}`}
+            >
+              마디 충전
             </NavLink>
           </nav>
 
