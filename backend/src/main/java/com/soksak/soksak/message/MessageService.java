@@ -17,10 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -145,13 +145,23 @@ public class MessageService {
                 sendError(emitter, ErrorCode.ROOM_BUSY);
                 return;
             }
+            // 브라우저가 아직 듣고 있는가. 끊겨도 생성과 저장은 끝까지 간다(sendToken 참고) —
+            // 이 플래그는 "더 보내봐야 소용없다"는 표시일 뿐 흐름을 멈추지 않는다.
+            AtomicBoolean listening = new AtomicBoolean(true);
             try{
                 StreamJob job = prepare.get();
                 String full = chatAiClient.replyStream(
                         job.room(), job.content(), job.priorHistory(), job.summaries(),
-                        token -> sendToken(emitter, token));
+                        token -> sendToken(emitter, listening, token));
                 Message ai = chatTxService.saveAssistant(roomId, full);
-                emitter.send(SseEmitter.event().name("done").data(MessageResponse.from(ai)));
+                if (listening.get()) {
+                    try {
+                        emitter.send(SseEmitter.event().name("done").data(MessageResponse.from(ai)));
+                    } catch (IOException | IllegalStateException e) {
+                        // 마지막 순간에 끊긴 것. 저장은 이미 끝났으므로 알릴 상대가 없을 뿐 실패가 아니다.
+                        log.debug("done 전송 실패 — 이미 닫힌 연결", e);
+                    }
+                }
                 emitter.complete();
             } catch (Exception e) {
                 sendError(emitter, e);
@@ -162,13 +172,30 @@ public class MessageService {
         return emitter;
     }
 
-    // 토큰 한 조각을 프론트로. 문자열 대신 Map으로 보내 JSON 직렬화 → 개행이 있어도 SSE 프레이밍이 안 깨진다.
-    private void sendToken(SseEmitter emitter, String token) {
+    /**
+     * 토큰 한 조각을 프론트로. 문자열 대신 Map으로 보내 JSON 직렬화 → 개행이 있어도 SSE 프레이밍이 안 깨진다.
+     * <p>
+     * ⚠️ <b>전송 실패를 위로 던지지 않는다.</b> 예전엔 {@code UncheckedIOException}으로 올려
+     * 스트림 읽기를 멈췄는데, 그러면 사용자가 탭을 닫는 순간 생성이 중단되고 ASSISTANT가 저장되지
+     * 않아 <b>내 말만 남은 방</b>이 됐다(그 파편이 요약 배치에까지 섞였다). 지금은 받을 사람이
+     * 없어도 끝까지 읽어서 저장한다 — 다시 들어오면 답이 완성돼 있다.
+     * <p>
+     * 대가는 둘이다: 사용자가 안 보더라도 토큰 요금은 끝까지 나가고, 방 락도 생성이 끝날 때까지
+     * 잡혀 있다(끊고 곧바로 다시 보내면 {@code ROOM_BUSY}). 마디를 받은 이상 답을 남겨 주는 쪽이
+     * 맞다고 보고 치르는 값이다.
+     * <p>
+     * {@code IllegalStateException}도 같이 잡는다 — 끊긴 뒤 컨테이너가 emitter를 이미 완료 처리하면
+     * {@code send}가 {@code IOException}이 아니라 이쪽을 던진다.
+     */
+    private void sendToken(SseEmitter emitter, AtomicBoolean listening, String token) {
+        if (!listening.get()) {
+            return;     // 이미 끊긴 뒤 — 남은 토큰마다 예외를 만들어 낼 이유가 없다
+        }
         try {
             emitter.send(SseEmitter.event().name("token").data(Map.of("content", token)));
-        } catch (IOException e) {
-            // 클라이언트가 연결을 끊음 → 예외로 전파해 스트림 읽기를 멈춘다(그 결과 assistant 미저장).
-            throw new UncheckedIOException(e);
+        } catch (IOException | IllegalStateException e) {
+            log.debug("클라이언트가 스트림을 끊음 — 생성과 저장은 계속한다", e);
+            listening.set(false);
         }
     }
 
@@ -176,12 +203,9 @@ public class MessageService {
     private void sendError(SseEmitter emitter, Exception e) {
         if (e instanceof BusinessException be) {
             sendError(emitter, be.getErrorCode());   // ROOM_BUSY / 방 소유권 / AI_UNAVAILABLE 등 그대로
-        } else if (e instanceof UncheckedIOException) {
-            // 사용자가 탭을 닫거나 새로고침한 것(sendToken이 올린 것) — 고장이 아니라 정상 경로다.
-            // 알릴 상대가 이미 없으므로 닫기만 한다. warn+스택으로 찍으면 진짜 오류가 묻힌다.
-            log.debug("클라이언트가 스트림을 끊음", e);
-            emitter.complete();
         } else {
+            // 옛 UncheckedIOException 분기(클라이언트 이탈)는 여기로 오지 않는다 — sendToken이
+            // 더 이상 던지지 않고 플래그만 내린다. 남은 건 진짜 예기치 못한 오류뿐이다.
             log.warn("스트리밍 처리 중 예기치 못한 오류", e);
             sendError(emitter, ErrorCode.INTERNAL_ERROR);
         }
