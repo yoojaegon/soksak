@@ -38,6 +38,11 @@ export default function Sidebar() {
   const menuBtnRef = useRef(null)
   const menuPopRef = useRef(null)
   useOutsideClose([menuBtnRef, menuPopRef], menuId !== null, () => setMenuId(null))
+  // 메뉴는 목록 위에 겹쳐 뜨므로, 아래쪽 방에서 열면 스크롤 영역 밖으로 가려질 수 있다.
+  // 열릴 때 필요한 만큼만 목록을 스크롤해 보이게 한다.
+  useEffect(() => {
+    if (menuId !== null) menuPopRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [menuId])
 
   // 목록은 마운트 시 한 번, 그리고 방 생성 신호(soksak:rooms-changed)를 받을 때만
   // 다시 불러온다. 이름변경·삭제는 아래에서 로컬 상태를 직접 갱신하므로 재요청이 필요 없다.

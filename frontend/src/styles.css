@@ -384,16 +384,23 @@ a {
   background: var(--surface-high);
   color: var(--champ);
 }
-/* 메뉴는 흐름 안(static)에 펼쳐 목록과 함께 스크롤되게 한다 — 잘림 방지 */
+/* 메뉴는 행 위에 겹쳐 띄운다(흐름 안에 두면 아래 목록을 밀어낸다).
+   스크롤 영역(.room-list) 안에 있으므로 아래 행에서 열면 가려질 수 있다 —
+   Sidebar가 열 때 scrollIntoView로 보이게 끌어온다. */
 .room-menu-pop {
+  position: absolute;
+  top: 34px;
+  right: 4px;
+  z-index: 5;
+  min-width: 120px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin: 2px 0 4px;
   padding: 4px;
   background: var(--surface-elev);
   border: 1px solid var(--outline-strong);
   border-radius: var(--r-btn);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 .room-menu-pop button {
   text-align: left;
