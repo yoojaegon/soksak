@@ -21,6 +21,10 @@ public enum ErrorCode {
 
     // 유저
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."),
+    DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+    // 401이 아니라 400 — 프론트는 401을 토큰 만료로 보고 재발급/로그아웃을 탄다.
+    INVALID_CURRENT_PASSWORD(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다."),
+    SAME_AS_CURRENT_PASSWORD(HttpStatus.BAD_REQUEST, "지금과 다른 비밀번호를 입력해 주세요."),
 
     // 마디(소모 재화)
     // 402를 쓰는 이유: 403(권한 없음)이 아니라 "값을 치르면 되는 상태"라서 의미가 정확하다.

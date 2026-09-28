@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByLoginId(String loginId);
 
+    boolean existsByNicknameAndIdNot(String nickname, Long id);
+
     /**
      * 마디 차감 — 읽고-빼고-쓰기가 아니라 <b>조건부 UPDATE 한 방</b>이다.
      * <p>

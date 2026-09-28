@@ -219,7 +219,7 @@ class CreditChatE2eTest {
     @Test
     @DisplayName("가입하면 보너스가 잔액과 원장에 함께 들어온다")
     void signup_grants_the_bonus() throws Exception {
-        mockMvc.perform(post("/signup")
+        mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of(
                                 "loginId", "newbie", "password", "pw123456",

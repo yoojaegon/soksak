@@ -65,7 +65,9 @@ public class SecurityConfig {
                     // 스택이 셋씩 찍혔다(원인인 ChatAiServerClient WARN 한 줄이 파묻히던 이유).
                     // ASYNC는 새 요청이 아니라 이미 인가된 요청의 연장이므로 통과시키는 게 맞다.
                     .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
-                    .requestMatchers("/", "/index.html", "/signup", "/auth/**", "/error").permitAll()
+                    .requestMatchers("/", "/index.html", "/auth/**", "/error").permitAll()
+                    // 회원가입(POST /users)만 공개. 메서드를 빼면 /users의 다른 요청까지 열린다.
+                    .requestMatchers(HttpMethod.POST, "/users").permitAll()
                     // 내 캐릭터 목록은 인증 필요 (아래 공개 규칙보다 먼저 매칭되어야 함)
                     .requestMatchers(HttpMethod.GET, "/characters/me").authenticated()
                     // 로그인 없이도 캐릭터 둘러보기(목록/상세) 가능

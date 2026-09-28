@@ -261,10 +261,17 @@ export const api = {
   topUpCredits: (packId) => request('/credits/topup', { method: 'POST', body: { packId } }),
 
   // 인증
-  signup: (body) => request('/signup', { method: 'POST', body, auth: false }),
+  signup: (body) => request('/users', { method: 'POST', body, auth: false }),
   login: (body) => request('/auth/login', { method: 'POST', body, auth: false }),
   logout: (refreshToken) =>
     request('/auth/logout', { method: 'POST', body: { refreshToken }, auth: false }),
+
+  // 내 계정. 응답 계약: { id, email, loginId, nickname, createdAt }
+  getMe: () => request('/users/me'),
+  updateMe: (nickname) => request('/users/me', { method: 'PATCH', body: { nickname } }),
+  // ⚠️ 성공하면 서버가 이 계정의 refresh 토큰을 지운다 — 호출부가 곧바로 로그아웃시켜야 한다(D14).
+  changePassword: (currentPassword, newPassword) =>
+    request('/users/me/password', { method: 'PATCH', body: { currentPassword, newPassword } }),
 
   // 캐릭터
   // sort는 스프링 페이징 규약 그대로 "<field>,<dir>" (예: likeCount,desc).

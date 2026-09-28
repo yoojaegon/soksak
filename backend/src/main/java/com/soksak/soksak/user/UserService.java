@@ -1,8 +1,14 @@
 package com.soksak.soksak.user;
 
+import com.soksak.soksak.auth.RefreshTokenRepository;
+import com.soksak.soksak.common.BusinessException;
+import com.soksak.soksak.common.ErrorCode;
 import com.soksak.soksak.credit.CreditReason;
 import com.soksak.soksak.credit.CreditService;
+import com.soksak.soksak.user.dto.ChangePasswordRequest;
 import com.soksak.soksak.user.dto.CreateUserRequest;
+import com.soksak.soksak.user.dto.UpdateUserRequest;
+import com.soksak.soksak.user.dto.UserResponse;
 import com.soksak.soksak.userPersona.UserPersonaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +32,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserPersonaService userPersonaService;
     private final CreditService creditService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Transactional
     public User createUser(CreateUserRequest request) {
@@ -48,5 +55,47 @@ public class UserService {
         userPersonaService.createDefault(
                 saved.getLoginId(), saved.getNickname(), saved.getAge(), saved.getGender());
         return saved;
+    }
+
+    public UserResponse getMe(String loginId) {
+        return UserResponse.from(findUser(loginId));
+    }
+
+    @Transactional
+    public UserResponse updateUser(String loginId, UpdateUserRequest request) {
+        User user = findUser(loginId);
+
+        // unique 제약에만 맡기면 커밋 시점에 뭉뚱그린 409("이미 사용 중인 값")가 된다.
+        // 자기 닉네임을 그대로 다시 보내는 경우는 통과해야 하므로 본인은 제외하고 본다.
+        if (userRepository.existsByNicknameAndIdNot(request.nickname(), user.getId())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+        }
+
+        // 기본 페르소나는 가입 때 닉네임으로 만든 독립 데이터라 여기서 따라 바꾸지 않는다.
+        user.updateUser(request.nickname());
+        return UserResponse.from(user);
+    }
+
+    @Transactional
+    public void changePassword(String loginId, ChangePasswordRequest request) {
+        User user = findUser(loginId);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())){
+            throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
+        }
+
+        // 위를 통과했으면 currentPassword가 곧 지금 비밀번호의 평문이라 평문끼리 비교하면 된다.
+        if (request.currentPassword().equals(request.newPassword())) {
+            throw new BusinessException(ErrorCode.SAME_AS_CURRENT_PASSWORD);
+        }
+
+        user.changePassword(passwordEncoder.encode(request.newPassword()));
+        refreshTokenRepository.deleteByUserId(user.getId());
+
+    }
+
+    private User findUser(String loginId) {
+        return userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 }

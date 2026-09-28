@@ -37,4 +37,9 @@ public record CreateUserRequest(
         @NotNull(message = "성별은 필수입니다.")
         Gender gender
 ) {
+    // 앞뒤 공백을 떼고 저장한다 — 안 그러면 " foo"가 "foo"와 다른 닉네임으로 unique를 통과한다.
+    // 검증(@NotBlank·@Size)은 생성 뒤에 돌므로 뗀 값 기준으로 걸린다.
+    public CreateUserRequest {
+        if (nickname != null) nickname = nickname.strip();
+    }
 }

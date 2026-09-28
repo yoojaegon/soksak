@@ -1,11 +1,10 @@
 // 로그인 후 모든 화면 왼쪽에 고정되는 사이드바.
 // - 내 채팅방 목록을 보여주고, 클릭하면 해당 대화로 이동한다.
 // - "+ 새 대화"는 캐릭터 목록(홈)으로 보낸다.
-// - 하단에 로그아웃.
+// - 내 캐릭터·내 페르소나·마디 충전·로그아웃은 상단바 계정 메뉴(AccountMenu)로 옮겼다.
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api.js'
-import { useAuth } from './auth.jsx'
 import { useConfirm } from './confirm.jsx'
 
 export default function Sidebar() {
@@ -27,7 +26,6 @@ export default function Sidebar() {
   const newChatRef = useRef(null)
   const location = useLocation()
   const navigate = useNavigate()
-  const { logout } = useAuth()
   const confirm = useConfirm()
 
   useEffect(() => {
@@ -73,12 +71,6 @@ export default function Sidebar() {
       window.removeEventListener('soksak:rooms-changed', reload)
     }
   }, [])
-
-  const onLogout = async () => {
-    await logout()
-    // 메인은 공개라 로그아웃 후에도 캐릭터 목록을 볼 수 있다.
-    navigate('/')
-  }
 
   // ⋮ → 이름 수정: 인라인 입력으로 전환
   const startRename = (room) => {
@@ -214,34 +206,6 @@ export default function Sidebar() {
               ))
             )}
           </nav>
-
-          {/* 2) 내 캐릭터 · 내 페르소나 · 마디 충전 */}
-          <hr className="sidebar-divider" />
-          <nav className="sidebar-nav">
-            <NavLink
-              to="/my-characters"
-              className={({ isActive }) => `room-item${isActive ? ' active' : ''}`}
-            >
-              내 캐릭터
-            </NavLink>
-            <NavLink
-              to="/personas"
-              className={({ isActive }) => `room-item${isActive ? ' active' : ''}`}
-            >
-              내 페르소나
-            </NavLink>
-            {/* 입력칸 옆 배지가 주 진입점이지만, 방 밖에서 다 떨어진 걸 알았을 때도 갈 데가 있어야 한다. */}
-            <NavLink
-              to="/credits"
-              className={({ isActive }) => `room-item${isActive ? ' active' : ''}`}
-            >
-              마디 충전
-            </NavLink>
-          </nav>
-
-          {/* 3) 로그아웃 */}
-          <hr className="sidebar-divider" />
-          <button className="link-btn logout" onClick={onLogout}>로그아웃</button>
         </>
       )}
     </aside>

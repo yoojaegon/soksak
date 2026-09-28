@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, Link, Outlet } from 'react-router-dom'
 import { useAuth } from './auth.jsx'
 import Sidebar from './Sidebar.jsx'
+import AccountMenu from './components/AccountMenu.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import SignupPage from './pages/SignupPage.jsx'
 import CharactersPage from './pages/CharactersPage.jsx'
@@ -9,6 +10,7 @@ import CharacterEditPage from './pages/CharacterEditPage.jsx'
 import MyCharactersPage from './pages/MyCharactersPage.jsx'
 import PersonasPage from './pages/PersonasPage.jsx'
 import CreditsPage from './pages/CreditsPage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
 import ChatPage from './pages/ChatPage.jsx'
 
 // 로그인하지 않았으면 로그인 페이지로 보내는 보호용 래퍼
@@ -24,9 +26,12 @@ function Header() {
   return (
     <header className="topbar">
       <Link to="/" className="logo">속삭</Link>
-      {/* 로그인 안 한 사용자에게는 로그인 진입점을 보여준다.
-          남은 마디는 헤더가 아니라 채팅 입력칸 옆에 둔다 — 쓰는 자리에서 보이는 게 맞다. */}
-      {!isAuthenticated && (
+      {/* 로그인했으면 계정 메뉴, 아니면 로그인 진입점.
+          남은 마디 배지는 헤더에 두지 않는다 — 쓰는 자리(채팅 입력칸 옆)에서 보이는 게 맞다(D13).
+          계정 메뉴 안의 잔액 줄은 펼쳤을 때만 보이는 정보라 그 결정과 부딪히지 않는다. */}
+      {isAuthenticated ? (
+        <AccountMenu />
+      ) : (
         <Link to="/login" className="link-btn">로그인</Link>
       )}
     </header>
@@ -78,6 +83,7 @@ export default function App() {
           <Route path="/my-characters" element={<MyCharactersPage />} />
           <Route path="/personas" element={<PersonasPage />} />
           <Route path="/credits" element={<CreditsPage />} />
+          <Route path="/me" element={<ProfilePage />} />
           <Route path="/chat/:roomId" element={<ChatPage />} />
         </Route>
 
