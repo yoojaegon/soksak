@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
 import { useConfirm } from '../confirm.jsx'
+import { useOutsideClose } from '../useOutsideClose.js'
 
 // 나이·성별은 따로 받지 않는다. 어차피 페르소나 본문에 함께 쓰게 되고, 대화에 전달되는 것도 본문뿐이다.
 const EMPTY_FORM = { name: '', persona: '' }
@@ -44,13 +45,9 @@ export default function PersonasPage() {
     }
   }, [])
 
-  // 메뉴가 열려 있으면 바깥을 클릭했을 때 닫는다.
-  useEffect(() => {
-    if (menuId === null) return
-    const close = () => setMenuId(null)
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
-  }, [menuId])
+  // 메뉴가 열려 있으면 바깥 클릭 시 닫는다. ref는 열린 메뉴(버튼+팝업)에만 붙는다.
+  const menuRef = useRef(null)
+  useOutsideClose(menuRef, menuId !== null, () => setMenuId(null))
 
   const onChange = (e) => {
     const { name, value } = e.target
@@ -208,20 +205,17 @@ export default function PersonasPage() {
           {personas.map((p) => (
             <div className="char-card" key={p.id}>
               {/* ⋮ 기본 지정·수정·삭제 메뉴 */}
-              <div className="card-menu">
+              <div className="card-menu" ref={menuId === p.id ? menuRef : null}>
                 <button
                   type="button"
                   className="card-menu-btn"
                   aria-label="더보기"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setMenuId((id) => (id === p.id ? null : p.id))
-                  }}
+                  onClick={() => setMenuId((id) => (id === p.id ? null : p.id))}
                 >
                   ⋮
                 </button>
                 {menuId === p.id && (
-                  <div className="card-menu-pop" onClick={(e) => e.stopPropagation()}>
+                  <div className="card-menu-pop">
                     {!p.isDefault && (
                       <button onClick={() => makeDefault(p.id)} disabled={defaultingId === p.id}>
                         {defaultingId === p.id ? '설정 중…' : '기본으로 설정'}

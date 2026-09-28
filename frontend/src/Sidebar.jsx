@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api.js'
 import { useConfirm } from './confirm.jsx'
+import { useOutsideClose } from './useOutsideClose.js'
 
 export default function Sidebar() {
   const [rooms, setRooms] = useState([])
@@ -32,13 +33,11 @@ export default function Sidebar() {
     localStorage.setItem('soksak_sidebar_collapsed', collapsed ? '1' : '0')
   }, [collapsed])
 
-  // 메뉴가 열려 있으면 바깥 클릭 시 닫는다.
-  useEffect(() => {
-    if (menuId === null) return
-    const close = () => setMenuId(null)
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
-  }, [menuId])
+  // 메뉴가 열려 있으면 바깥 클릭 시 닫는다. ref는 열린 방의 ⋮ 버튼과 팝업에만 붙는다
+  // (행 전체를 넣으면 같은 행의 방 링크를 눌러도 메뉴가 안 닫힌다).
+  const menuBtnRef = useRef(null)
+  const menuPopRef = useRef(null)
+  useOutsideClose([menuBtnRef, menuPopRef], menuId !== null, () => setMenuId(null))
 
   // 목록은 마운트 시 한 번, 그리고 방 생성 신호(soksak:rooms-changed)를 받을 때만
   // 다시 불러온다. 이름변경·삭제는 아래에서 로컬 상태를 직접 갱신하므로 재요청이 필요 없다.
@@ -185,19 +184,17 @@ export default function Sidebar() {
                       </NavLink>
                       <button
                         type="button"
+                        ref={menuId === r.id ? menuBtnRef : null}
                         className={`room-menu-btn${menuId === r.id ? ' open' : ''}`}
                         aria-label="채팅방 메뉴"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setMenuId((id) => (id === r.id ? null : r.id))
-                        }}
+                        onClick={() => setMenuId((id) => (id === r.id ? null : r.id))}
                       >
                         ⋮
                       </button>
                     </>
                   )}
                   {menuId === r.id && (
-                    <div className="room-menu-pop" onClick={(e) => e.stopPropagation()}>
+                    <div className="room-menu-pop" ref={menuPopRef}>
                       <button onClick={() => startRename(r)}>이름 수정</button>
                       <button className="danger" onClick={() => removeRoom(r)}>삭제</button>
                     </div>

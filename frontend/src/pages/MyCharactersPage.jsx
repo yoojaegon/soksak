@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import { useConfirm } from '../confirm.jsx'
+import { useOutsideClose } from '../useOutsideClose.js'
 import CharacterImage from '../components/CharacterImage.jsx'
 
 // 내가 만든 캐릭터만 모아 보여주는 페이지.
@@ -38,13 +39,9 @@ export default function MyCharactersPage() {
     }
   }, [])
 
-  // 메뉴가 열려 있으면 바깥을 클릭했을 때 닫는다.
-  useEffect(() => {
-    if (menuId === null) return
-    const close = () => setMenuId(null)
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
-  }, [menuId])
+  // 메뉴가 열려 있으면 바깥 클릭 시 닫는다. ref는 열린 메뉴(버튼+팝업)에만 붙는다.
+  const menuRef = useRef(null)
+  useOutsideClose(menuRef, menuId !== null, () => setMenuId(null))
 
   const startChat = async (characterId) => {
     setStartingId(characterId)
@@ -100,20 +97,17 @@ export default function MyCharactersPage() {
           {characters.map((c) => (
             <div className="char-card" key={c.id}>
               {/* ⋮ 수정·삭제 메뉴 */}
-              <div className="card-menu">
+              <div className="card-menu" ref={menuId === c.id ? menuRef : null}>
                 <button
                   type="button"
                   className="card-menu-btn"
                   aria-label="더보기"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setMenuId((id) => (id === c.id ? null : c.id))
-                  }}
+                  onClick={() => setMenuId((id) => (id === c.id ? null : c.id))}
                 >
                   ⋮
                 </button>
                 {menuId === c.id && (
-                  <div className="card-menu-pop" onClick={(e) => e.stopPropagation()}>
+                  <div className="card-menu-pop">
                     <button onClick={() => navigate(`/characters/${c.id}/edit`)}>캐릭터 수정</button>
                     <button className="danger" onClick={() => remove(c)} disabled={deletingId === c.id}>
                       {deletingId === c.id ? '삭제 중…' : '캐릭터 삭제'}
