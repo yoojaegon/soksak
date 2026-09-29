@@ -517,7 +517,7 @@ class ChatRoomCrudE2eTest {
                 .andExpect(status().isNoContent());
 
         assertThat(chatRoomRepository.findById(id)).isEmpty();
-        assertThat(messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(id)).isEmpty();
+        assertThat(messageRepository.findByChatRoomIdOrderByIdAsc(id)).isEmpty();
     }
 
     @Test
