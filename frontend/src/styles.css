@@ -438,6 +438,39 @@ a {
 .room-rename:focus {
   outline: none;
 }
+/* 좁은 화면: 사이드바를 레이아웃 흐름에서 빼서 본문 위에 겹쳐 띄운다(드로어).
+   접힌 레일(50px)은 늘 보이고 본문은 그 폭만큼만 비켜 선다 — 펼쳐도 본문이 밀리거나 넘치지 않는다.
+   768px은 Sidebar.jsx의 DRAWER_QUERY와 같아야 한다. z-index는 chat-aside(40) 위, 상단바(50) 아래. */
+@media (max-width: 768px) {
+  .layout {
+    padding-left: 50px;
+  }
+  .sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: 0;
+    left: 0;
+    height: auto;
+    z-index: 45;
+  }
+  .sidebar.drawer-open {
+    width: min(280px, 85vw);
+    box-shadow: var(--shadow-pop);
+  }
+}
+.sidebar-backdrop {
+  position: fixed;
+  inset: var(--topbar-h) 0 0 0;
+  z-index: 44;
+  background: oklch(20% 0.03 300 / 0.45);
+  animation: confirm-fade 0.18s ease-out;
+}
+/* 터치 기기엔 hover가 없어 ⋮가 계속 투명하다(눌러야 보이는 버튼이 된다) — 항상 보이게 한다. */
+@media (hover: none) {
+  .room-menu-btn {
+    opacity: 1;
+  }
+}
 h1 {
   font-family: var(--font-display);
   font-weight: 700;

@@ -8,12 +8,33 @@ import { api } from './api.js'
 import { useConfirm } from './confirm.jsx'
 import { useOutsideClose } from './useOutsideClose.js'
 
+// 이 폭 이하에선 사이드바가 본문 위에 겹쳐 뜨는 드로어가 된다. styles.css의 @media 값과 같아야 한다.
+const DRAWER_QUERY = '(max-width: 768px)'
+
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches)
+  useEffect(() => {
+    const mql = window.matchMedia(query)
+    const onChange = () => setMatches(mql.matches)
+    mql.addEventListener('change', onChange)
+    return () => mql.removeEventListener('change', onChange)
+  }, [query])
+  return matches
+}
+
 export default function Sidebar() {
   const [rooms, setRooms] = useState([])
-  // 채팅목록 접기/펼치기 — 새로고침해도 유지되도록 localStorage에 저장
+  // 채팅목록 접기/펼치기 — 새로고침해도 유지되도록 localStorage에 저장 (넓은 화면 전용)
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('soksak_sidebar_collapsed') === '1',
   )
+  // 좁은 화면의 드로어 열림 — collapsed와 따로 둔다. 저장된 '펼침'을 그대로 쓰면
+  // 넓은 화면에서 펼쳐 둔 사람이 폰으로 들어올 때 드로어가 본문을 덮은 채 시작한다.
+  const narrow = useMediaQuery(DRAWER_QUERY)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const folded = narrow ? !drawerOpen : collapsed
+  const asideRef = useRef(null)
+  const toggleRef = useRef(null)
   // ⋮ 메뉴가 열려 있는 방 id, 이름 수정 중인 방 id, 그 입력값
   const [menuId, setMenuId] = useState(null)
   const [renamingId, setRenamingId] = useState(null)
@@ -32,6 +53,44 @@ export default function Sidebar() {
   useEffect(() => {
     localStorage.setItem('soksak_sidebar_collapsed', collapsed ? '1' : '0')
   }, [collapsed])
+
+  // 드로어를 닫는다. 포커스가 안에 있었으면 늘 보이는 토글로 돌려준다
+  // (펼친 목록이 사라지면서 포커스가 body로 떨어지지 않게).
+  const closeDrawer = () => {
+    if (asideRef.current?.contains(document.activeElement)) toggleRef.current?.focus()
+    setDrawerOpen(false)
+  }
+  // 경계 폭을 넘나들면 닫는다 — 열어 둔 채 창을 넓히면 반투명 배경만 남는다.
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [narrow])
+  // 방·새 대화를 누르면 닫는다 — 경로가 그대로인 경우(보던 방을 다시 누름)도 있어 클릭에서 직접 닫는다.
+  const onNavClick = () => {
+    if (narrow) closeDrawer()
+  }
+  // 클릭 없이 경로가 바뀌어도(보던 방 삭제 → 홈) 닫는다. (closeDrawer는 매 렌더 새 함수라 의존성에서 뺀다)
+  useEffect(() => {
+    if (drawerOpen) closeDrawer()
+  }, [location.pathname])
+  // 열려 있는 동안 뒤 본문이 같이 스크롤되지 않게 잠근다.
+  useEffect(() => {
+    if (!drawerOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [drawerOpen])
+  // Esc: ⋮ 메뉴가 열려 있으면 그것부터, 아니면 드로어를 닫는다.
+  // 드로어 안에서 난 키만 받는다 — 확인 다이얼로그의 Esc가 드로어까지 닫지 않게.
+  const onAsideKeyDown = (e) => {
+    if (e.key !== 'Escape' || !drawerOpen) return
+    if (menuId !== null) {
+      // 팝업 버튼에 포커스가 있었으면 팝업과 함께 사라져 body로 떨어진다 → ⋮로 돌려준다.
+      menuBtnRef.current?.focus()
+      setMenuId(null)
+    } else closeDrawer()
+  }
 
   // 메뉴가 열려 있으면 바깥 클릭 시 닫는다. ref는 열린 방의 ⋮ 버튼과 팝업에만 붙는다
   // (행 전체를 넣으면 같은 행의 방 링크를 눌러도 메뉴가 안 닫힌다).
@@ -134,82 +193,95 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
-      <button
-        type="button"
-        className="sidebar-toggle"
-        onClick={() => setCollapsed((c) => !c)}
-        aria-label={collapsed ? '채팅목록 펼치기' : '채팅목록 접기'}
-        title={collapsed ? '채팅목록 펼치기' : '채팅목록 접기'}
+    <>
+      {/* 드로어 뒤 반투명 배경 — 누르면 닫힌다. 확인 다이얼로그(z 100)는 이보다 위라 그 클릭은 여기 안 닿는다. */}
+      {drawerOpen && <div className="sidebar-backdrop" aria-hidden="true" onClick={closeDrawer} />}
+      <aside
+        ref={asideRef}
+        className={`sidebar${folded ? ' collapsed' : ''}${drawerOpen ? ' drawer-open' : ''}`}
+        onKeyDown={onAsideKeyDown}
       >
-        {collapsed ? '»' : '«'}
-      </button>
+        <button
+          type="button"
+          ref={toggleRef}
+          className="sidebar-toggle"
+          onClick={() => (narrow ? setDrawerOpen((o) => !o) : setCollapsed((c) => !c))}
+          aria-label={folded ? '채팅목록 펼치기' : '채팅목록 접기'}
+          aria-expanded={!folded}
+          title={folded ? '채팅목록 펼치기' : '채팅목록 접기'}
+        >
+          {folded ? '»' : '«'}
+        </button>
 
-      {!collapsed && (
-        <>
-          {/* 1) 채팅방 목록 */}
-          <NavLink to="/" end className="new-chat" ref={newChatRef}>+ 새 대화</NavLink>
-          <nav className="room-list">
-            {rooms.length === 0 ? (
-              <p className="muted">아직 대화가 없어요.</p>
-            ) : (
-              rooms.map((r) => (
-                <div className="room-row" key={r.id}>
-                  {renamingId === r.id ? (
-                    // 이름 수정 — 인라인 입력 (Enter 저장 / Esc·blur 취소)
-                    <input
-                      className="room-rename"
-                      autoFocus
-                      value={renameValue}
-                      disabled={busyId === r.id}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') submitRename(r)
-                        if (e.key === 'Escape') {
-                          skipBlurSave.current = true
-                          cancelRename()
-                        }
-                      }}
-                      onBlur={() => {
-                        // Esc로 막 취소한 경우엔 저장하지 않는다.
-                        if (skipBlurSave.current) {
-                          skipBlurSave.current = false
-                          return
-                        }
-                        submitRename(r)
-                      }}
-                    />
-                  ) : (
-                    <>
-                      <NavLink
-                        to={`/chat/${r.id}`}
-                        className={({ isActive }) => `room-item${isActive ? ' active' : ''}`}
-                      >
-                        {r.title}
-                      </NavLink>
-                      <button
-                        type="button"
-                        ref={menuId === r.id ? menuBtnRef : null}
-                        className={`room-menu-btn${menuId === r.id ? ' open' : ''}`}
-                        aria-label="채팅방 메뉴"
-                        onClick={() => setMenuId((id) => (id === r.id ? null : r.id))}
-                      >
-                        ⋮
-                      </button>
-                    </>
-                  )}
-                  {menuId === r.id && (
-                    <div className="room-menu-pop" ref={menuPopRef}>
-                      <button onClick={() => startRename(r)}>이름 수정</button>
-                      <button className="danger" onClick={() => removeRoom(r)}>삭제</button>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </nav>
-        </>
-      )}
-    </aside>
+        {!folded && (
+          <>
+            {/* 1) 채팅방 목록 */}
+            <NavLink to="/" end className="new-chat" ref={newChatRef} onClick={onNavClick}>+ 새 대화</NavLink>
+            <nav className="room-list">
+              {rooms.length === 0 ? (
+                <p className="muted">아직 대화가 없어요.</p>
+              ) : (
+                rooms.map((r) => (
+                  <div className="room-row" key={r.id}>
+                    {renamingId === r.id ? (
+                      // 이름 수정 — 인라인 입력 (Enter 저장 / Esc·blur 취소)
+                      <input
+                        className="room-rename"
+                        autoFocus
+                        value={renameValue}
+                        disabled={busyId === r.id}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') submitRename(r)
+                          if (e.key === 'Escape') {
+                            // 이름 수정 취소만 하고 드로어까지 닫히지 않게 한다.
+                            e.stopPropagation()
+                            skipBlurSave.current = true
+                            cancelRename()
+                          }
+                        }}
+                        onBlur={() => {
+                          // Esc로 막 취소한 경우엔 저장하지 않는다.
+                          if (skipBlurSave.current) {
+                            skipBlurSave.current = false
+                            return
+                          }
+                          submitRename(r)
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <NavLink
+                          to={`/chat/${r.id}`}
+                          onClick={onNavClick}
+                          className={({ isActive }) => `room-item${isActive ? ' active' : ''}`}
+                        >
+                          {r.title}
+                        </NavLink>
+                        <button
+                          type="button"
+                          ref={menuId === r.id ? menuBtnRef : null}
+                          className={`room-menu-btn${menuId === r.id ? ' open' : ''}`}
+                          aria-label="채팅방 메뉴"
+                          onClick={() => setMenuId((id) => (id === r.id ? null : r.id))}
+                        >
+                          ⋮
+                        </button>
+                      </>
+                    )}
+                    {menuId === r.id && (
+                      <div className="room-menu-pop" ref={menuPopRef}>
+                        <button onClick={() => startRename(r)}>이름 수정</button>
+                        <button className="danger" onClick={() => removeRoom(r)}>삭제</button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </nav>
+          </>
+        )}
+      </aside>
+    </>
   )
 }
