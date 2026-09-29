@@ -57,6 +57,13 @@ logs/
 ### 업로드된 캐릭터 이미지 (로컬 실행 시 레포 루트에 쌓인다) ###
 uploads/
 
+### DB 덤프·백업 아카이브 (레포 루트에서 떠 둔 것) ###
+# 루트에만 건다 — 나중에 마이그레이션 .sql 같은 소스 파일까지 막지 않게.
+/*.dump
+/*.sql
+/*.tgz
+/*.tar.gz
+
 ### Claude Code ###
 .claude/
 !.claude/settings.json
