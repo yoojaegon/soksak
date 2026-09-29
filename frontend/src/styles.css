@@ -440,7 +440,7 @@ a {
 }
 /* 좁은 화면: 사이드바를 레이아웃 흐름에서 빼서 본문 위에 겹쳐 띄운다(드로어).
    접힌 레일(50px)은 늘 보이고 본문은 그 폭만큼만 비켜 선다 — 펼쳐도 본문이 밀리거나 넘치지 않는다.
-   768px은 Sidebar.jsx의 DRAWER_QUERY와 같아야 한다. z-index는 chat-aside(40) 위, 상단바(50) 아래. */
+   768px은 useMediaQuery.js의 DRAWER_QUERY와 같아야 한다. z-index는 chat-aside(40) 위, 상단바(50) 아래. */
 @media (max-width: 768px) {
   .layout {
     padding-left: 50px;
@@ -2582,34 +2582,54 @@ button:disabled {
   color: var(--text-2);
 }
 
-/* 모바일: 닉네임을 빼고 아바타만. 메뉴는 화면 폭에 맞춰 좌우 12px 여백으로 펼친다. */
 @media (max-width: 600px) {
   .topbar {
     padding: 0 16px;
   }
-  .account-trigger {
-    padding: 4px;
-  }
-  .account-avatar {
-    width: 34px;
-    height: 34px;
-    font-size: 15px;
-  }
-  .account-name,
-  .account-chevron {
-    display: none;
-  }
-  .account-pop {
-    position: fixed;
-    top: calc(var(--topbar-h) + 6px);
-    left: 12px;
-    right: 12px;
-    width: auto;
-  }
-  .account-item {
-    min-height: 48px;
-    font-size: 15.5px;
-  }
+}
+
+/* 좁은 화면: 계정 메뉴가 사이드바 드로어 맨 아래에 붙는다(Sidebar.jsx).
+   목록(.room-list, flex:1)이 남는 높이를 다 먹으므로 이 줄은 자연히 바닥에 놓인다.
+   메뉴는 위로 펼쳐 목록 위에 겹친다 — 사이드바가 overflow:hidden이라 드로어 폭 안에 머물러야 한다. */
+.sidebar-account {
+  flex-shrink: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--outline);
+}
+.account.up .account-trigger {
+  width: 100%;
+  padding: 6px 12px 6px 6px;
+}
+.account.up .account-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+.account.up .account-name {
+  flex: 1;
+  max-width: none;
+  text-align: left;
+}
+.account.up .account-trigger.open .account-chevron {
+  transform: none;
+}
+.account.up .account-chevron {
+  transform: rotate(180deg);
+}
+.account.up .account-pop {
+  top: auto;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  width: auto;
+  max-height: calc(100vh - var(--topbar-h) - 110px);
+  /* 모바일 100vh는 주소창이 숨은 높이라 실제보다 크다 — 지원하면 보이는 높이(dvh)로 */
+  max-height: calc(100dvh - var(--topbar-h) - 110px);
+  overflow-y: auto;
+}
+.account.up .account-item {
+  min-height: 48px;
+  font-size: 15.5px;
 }
 
 /* ── 내 정보 (ProfilePage) ─────────────────────────────────────────── */

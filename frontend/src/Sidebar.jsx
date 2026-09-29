@@ -2,25 +2,14 @@
 // - 내 채팅방 목록을 보여주고, 클릭하면 해당 대화로 이동한다.
 // - "+ 새 대화"는 캐릭터 목록(홈)으로 보낸다.
 // - 내 캐릭터·내 페르소나·마디 충전·로그아웃은 상단바 계정 메뉴(AccountMenu)로 옮겼다.
+//   좁은 화면에선 상단바 대신 드로어 맨 아래에 같은 메뉴를 둔다(모바일 앱들의 흔한 배치).
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { api } from './api.js'
 import { useConfirm } from './confirm.jsx'
 import { useOutsideClose } from './useOutsideClose.js'
-
-// 이 폭 이하에선 사이드바가 본문 위에 겹쳐 뜨는 드로어가 된다. styles.css의 @media 값과 같아야 한다.
-const DRAWER_QUERY = '(max-width: 768px)'
-
-function useMediaQuery(query) {
-  const [matches, setMatches] = useState(() => window.matchMedia(query).matches)
-  useEffect(() => {
-    const mql = window.matchMedia(query)
-    const onChange = () => setMatches(mql.matches)
-    mql.addEventListener('change', onChange)
-    return () => mql.removeEventListener('change', onChange)
-  }, [query])
-  return matches
-}
+import { DRAWER_QUERY, useMediaQuery } from './useMediaQuery.js'
+import AccountMenu from './components/AccountMenu.jsx'
 
 export default function Sidebar() {
   const [rooms, setRooms] = useState([])
@@ -279,6 +268,14 @@ export default function Sidebar() {
                 ))
               )}
             </nav>
+
+            {/* 2) 좁은 화면 전용 계정 메뉴 — 상단바에선 빠진다(App.jsx Header).
+                메뉴 안 링크를 누르면 드로어도 닫는다 — 지금 보는 화면 링크면 경로가 안 바뀌어 위 effect가 못 잡는다. */}
+            {narrow && (
+              <div className="sidebar-account" onClick={(e) => e.target.closest('a') && closeDrawer()}>
+                <AccountMenu placement="up" />
+              </div>
+            )}
           </>
         )}
       </aside>

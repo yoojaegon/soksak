@@ -8,7 +8,8 @@ import { useAuth } from '../auth.jsx'
 // - 닉네임은 마운트 때 한 번 읽고, 내 정보에서 바꾸면 'soksak:me-changed' 신호로 다시 읽는다
 //   (CreditBadge의 credits-changed와 같은 방식).
 // - 마디 잔액은 메뉴를 열 때마다 읽는다. 닫혀 있을 땐 보이지 않으니 신호를 들을 필요가 없다.
-export default function AccountMenu() {
+// - placement='up'은 좁은 화면의 사이드바 드로어 맨 아래용: 트리거가 폭을 꽉 채우고 메뉴가 위로 펼쳐진다.
+export default function AccountMenu({ placement = 'down' }) {
   const [me, setMe] = useState(null)
   const [open, setOpen] = useState(false)
   const [balance, setBalance] = useState(null)
@@ -84,10 +85,19 @@ export default function AccountMenu() {
     navigate('/')
   }
 
+  // 메뉴 안에서 난 Esc는 여기서 처리하고 전파를 끊는다 — 드로어 안에 있을 때 드로어까지 같이 닫히지 않게.
+  // (React의 stopPropagation은 네이티브 전파도 끊으므로 위 document 리스너와 두 번 돌지 않는다.)
+  const onRootKeyDown = (e) => {
+    if (e.key !== 'Escape' || !open) return
+    e.stopPropagation()
+    setOpen(false)
+    triggerRef.current?.focus()
+  }
+
   const initial = me?.nickname?.[0] ?? '?'
 
   return (
-    <div className="account" ref={rootRef}>
+    <div className={`account${placement === 'up' ? ' up' : ''}`} ref={rootRef} onKeyDown={onRootKeyDown}>
       <button
         type="button"
         ref={triggerRef}

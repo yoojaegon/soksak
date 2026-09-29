@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, Link, Outlet } from 'react-router-dom'
 import { useAuth } from './auth.jsx'
 import Sidebar from './Sidebar.jsx'
 import AccountMenu from './components/AccountMenu.jsx'
+import { DRAWER_QUERY, useMediaQuery } from './useMediaQuery.js'
 import LoginPage from './pages/LoginPage.jsx'
 import SignupPage from './pages/SignupPage.jsx'
 import CharactersPage from './pages/CharactersPage.jsx'
@@ -21,8 +22,18 @@ function RequireAuth({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />
 }
 
+// 로그인/회원가입은 비로그인 전용. 로그인된 채 들어오면 홈으로 보낸다 —
+// 이 화면엔 사이드바가 없어서 좁은 화면이면 계정 메뉴(로그아웃 포함)에 닿을 길이 없다.
+function GuestOnly({ children }) {
+  const { isAuthenticated, loading } = useAuth()
+  if (loading) return null
+  return isAuthenticated ? <Navigate to="/" replace /> : children
+}
+
 function Header() {
   const { isAuthenticated } = useAuth()
+  // 좁은 화면에선 계정 메뉴가 사이드바 드로어 아래로 내려간다(Sidebar.jsx).
+  const narrow = useMediaQuery(DRAWER_QUERY)
   return (
     <header className="topbar">
       <Link to="/" className="logo">속삭</Link>
@@ -30,7 +41,7 @@ function Header() {
           남은 마디 배지는 헤더에 두지 않는다 — 쓰는 자리(채팅 입력칸 옆)에서 보이는 게 맞다(D13).
           계정 메뉴 안의 잔액 줄은 펼쳤을 때만 보이는 정보라 그 결정과 부딪히지 않는다. */}
       {isAuthenticated ? (
-        <AccountMenu />
+        !narrow && <AccountMenu />
       ) : (
         <Link to="/login" className="link-btn">로그인</Link>
       )}
@@ -68,8 +79,8 @@ export default function App() {
       <Header />
       <Routes>
         {/* 로그인/회원가입은 사이드바 없이 단독 화면 */}
-        <Route path="/login" element={<main className="content"><LoginPage /></main>} />
-        <Route path="/signup" element={<main className="content"><SignupPage /></main>} />
+        <Route path="/login" element={<GuestOnly><main className="content"><LoginPage /></main></GuestOnly>} />
+        <Route path="/signup" element={<GuestOnly><main className="content"><SignupPage /></main></GuestOnly>} />
 
         {/* 공개 메인: 로그인 없이도 캐릭터 둘러보기 */}
         <Route path="/" element={<HomeLayout />}>
