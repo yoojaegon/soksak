@@ -44,7 +44,7 @@ class ImageUploadServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ImageUploadService(imageStorageService, imageModerator, imageUploadRepository, userRepository, 10, 30);
+        service = new ImageUploadService(imageStorageService, imageModerator, imageUploadRepository, userRepository, 10, 30, 3, 500);
         user = new User();
         ReflectionTestUtils.setField(user, "id", 1L);
         lenient().when(userRepository.findByLoginId("tester")).thenReturn(Optional.of(user));
@@ -84,6 +84,41 @@ class ImageUploadServiceTest {
         assertThatThrownBy(() -> service.upload("tester", png()))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_UPLOAD_LIMITED);
+    }
+
+    @Test
+    @DisplayName("24시간 차단이 3회면 업로드 잠금 403 — 개인 한도보다 먼저, 검사도 하지 않는다")
+    void block_lock() {
+        when(imageUploadRepository.countByUser_IdAndBlockedTrueAndCreatedAtAfter(eq(1L), any())).thenReturn(3L);
+
+        assertThatThrownBy(() -> service.upload("tester", png()))
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.IMAGE_UPLOAD_LOCKED);
+        verify(imageModerator, never()).score(any(), anyString());
+        verify(imageUploadRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("차단 2회까지는 잠그지 않는다")
+    void two_blocks_not_locked() {
+        when(imageUploadRepository.countByUser_IdAndBlockedTrueAndCreatedAtAfter(eq(1L), any())).thenReturn(2L);
+        usedThisHour(2, 2);
+        when(imageUploadRepository.findFirstBySha256OrderByIdDesc(anyString())).thenReturn(Optional.of(cachedRow(0.1)));
+
+        assertThat(service.upload("tester", png())).isEqualTo("/api/uploads/x.png");
+    }
+
+    @Test
+    @DisplayName("전체 24시간 상한에 차면 503 — 검사도 저장도 하지 않는다")
+    void global_limit() {
+        usedThisHour(0, 0);
+        when(imageUploadRepository.countByCreatedAtAfter(any())).thenReturn(500L);
+
+        assertThatThrownBy(() -> service.upload("tester", png()))
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.IMAGE_UPLOAD_BUSY);
+        verify(imageModerator, never()).score(any(), anyString());
+        verify(imageStorageService, never()).store(any(), any());
     }
 
     @Test

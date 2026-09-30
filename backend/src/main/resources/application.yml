@@ -49,6 +49,10 @@ uploads:
   limit:
     per-hour: 10
     per-day: 30
+    # 최근 24시간 차단이 이만큼이면 업로드만 잠근다(기준점에 걸리는 정상 이미지도 있어 1~2회는 봐준다).
+    block-lock: 3
+    # 전체 사용자 합산 24시간 상한 — 다계정 우회 대비. 지금 규모에선 닿지 않는 값.
+    global-per-day: 500
 
 # 업로드 이미지 검사(OpenAI omni-moderation). 기준점은 코드(ModerationPolicy)에 있다 — 결정 기록 D17.
 # 키가 비어 있어도 앱은 뜨지만 업로드는 전부 503으로 거부된다(fail-closed).

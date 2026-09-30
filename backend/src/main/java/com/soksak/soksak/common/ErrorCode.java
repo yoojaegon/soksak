@@ -64,7 +64,11 @@ public enum ErrorCode {
     IMAGE_REJECTED(HttpStatus.BAD_REQUEST, "운영 정책에 맞지 않는 이미지입니다. 다른 이미지로 시도해주세요."),
     IMAGE_MODERATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "지금은 이미지를 검사할 수 없습니다. 잠시 후 다시 시도해주세요."),
     // 한도는 uploads.limit.* (기본 1시간 10장·24시간 30장).
-    IMAGE_UPLOAD_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "이미지를 너무 자주 올렸습니다. 잠시 후 다시 시도해주세요.");
+    IMAGE_UPLOAD_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "이미지를 너무 자주 올렸습니다. 잠시 후 다시 시도해주세요."),
+    // 최근 24시간 차단이 uploads.limit.block-lock회 이상이면 업로드만 잠근다(롤링이라 저절로 풀린다).
+    IMAGE_UPLOAD_LOCKED(HttpStatus.FORBIDDEN, "정책에 맞지 않는 이미지가 반복되어 당분간 이미지를 올릴 수 없습니다."),
+    // 전체 사용자 합산 상한(uploads.limit.global-per-day) — 여러 계정으로 개인 한도를 우회하는 걸 막는 최후선.
+    IMAGE_UPLOAD_BUSY(HttpStatus.SERVICE_UNAVAILABLE, "지금은 이미지를 올릴 수 없습니다. 잠시 후 다시 시도해주세요.");
 
     private final HttpStatus status;
     private final String message;

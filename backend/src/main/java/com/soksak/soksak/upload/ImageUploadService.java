@@ -18,7 +18,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 
-// 업로드 한 건의 순서를 잡는다: 형식 판별 → 횟수 제한 → 검사(같은 파일이면 캐시) → 기록 → 저장.
+// 업로드 한 건의 순서를 잡는다: 형식 판별 → 잠금·횟수 제한 → 검사(같은 파일이면 캐시) → 기록 → 저장.
 // @Transactional을 붙이지 않는다. 붙이면
 //  ① 차단 시 던지는 예외에 기록 INSERT가 같이 롤백돼 차단 이력이 사라지고
 //  ② OpenAI 응답을 기다리는 동안(최대 read-timeout) DB 커넥션을 붙잡는다.
@@ -33,6 +33,8 @@ public class ImageUploadService {
     private final UserRepository userRepository;
     private final int perHour;
     private final int perDay;
+    private final int blockLock;
+    private final int globalPerDay;
 
     public ImageUploadService(
             ImageStorageService imageStorageService,
@@ -40,7 +42,9 @@ public class ImageUploadService {
             ImageUploadRepository imageUploadRepository,
             UserRepository userRepository,
             @Value("${uploads.limit.per-hour:10}") int perHour,
-            @Value("${uploads.limit.per-day:30}") int perDay
+            @Value("${uploads.limit.per-day:30}") int perDay,
+            @Value("${uploads.limit.block-lock:3}") int blockLock,
+            @Value("${uploads.limit.global-per-day:500}") int globalPerDay
     ) {
         this.imageStorageService = imageStorageService;
         this.imageModerator = imageModerator;
@@ -48,6 +52,8 @@ public class ImageUploadService {
         this.userRepository = userRepository;
         this.perHour = perHour;
         this.perDay = perDay;
+        this.blockLock = blockLock;
+        this.globalPerDay = globalPerDay;
     }
 
     public String upload(String loginId, MultipartFile file) {
@@ -102,11 +108,20 @@ public class ImageUploadService {
         return imageStorageService.store(bytes, type);
     }
 
+    // 구체적인 사유부터 알려 준다: 잠금 → 개인 한도 → 전체 상한.
     private void checkLimit(Long userId) {
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime dayAgo = now.minusDays(1);
+        if (imageUploadRepository.countByUser_IdAndBlockedTrueAndCreatedAtAfter(userId, dayAgo) >= blockLock) {
+            throw new BusinessException(ErrorCode.IMAGE_UPLOAD_LOCKED);
+        }
         if (imageUploadRepository.countByUser_IdAndCreatedAtAfter(userId, now.minusHours(1)) >= perHour
-                || imageUploadRepository.countByUser_IdAndCreatedAtAfter(userId, now.minusDays(1)) >= perDay) {
+                || imageUploadRepository.countByUser_IdAndCreatedAtAfter(userId, dayAgo) >= perDay) {
             throw new BusinessException(ErrorCode.IMAGE_UPLOAD_LIMITED);
+        }
+        if (imageUploadRepository.countByCreatedAtAfter(dayAgo) >= globalPerDay) {
+            log.warn("이미지 업로드 전체 상한 도달 limit={}", globalPerDay);
+            throw new BusinessException(ErrorCode.IMAGE_UPLOAD_BUSY);
         }
     }
 
