@@ -55,9 +55,16 @@ public enum ErrorCode {
     LORE_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 캐릭터의 로어가 아닙니다."),
 
     // 이미지 업로드
-    UNSUPPORTED_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "jpg·png·webp·gif 이미지만 올릴 수 있습니다."),
+    UNSUPPORTED_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "jpg·png·webp 이미지만 올릴 수 있습니다."),
+    // 모더레이션이 첫 프레임만 보므로 움짤(gif·움직이는 webp·apng)은 받지 않는다.
+    ANIMATED_IMAGE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "움직이는 이미지는 올릴 수 없습니다. 정지 이미지로 올려주세요."),
     IMAGE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "이미지가 너무 큽니다. 5MB 이하로 올려주세요."),
-    IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이미지를 저장하지 못했습니다.");
+    IMAGE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이미지를 저장하지 못했습니다."),
+    // 어느 항목에 걸렸는지는 알려주지 않는다 — 알려주면 기준점에 맞춰 깎아 가며 우회를 시도할 수 있다.
+    IMAGE_REJECTED(HttpStatus.BAD_REQUEST, "운영 정책에 맞지 않는 이미지입니다. 다른 이미지로 시도해주세요."),
+    IMAGE_MODERATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "지금은 이미지를 검사할 수 없습니다. 잠시 후 다시 시도해주세요."),
+    // 한도는 uploads.limit.* (기본 1시간 10장·24시간 30장).
+    IMAGE_UPLOAD_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "이미지를 너무 자주 올렸습니다. 잠시 후 다시 시도해주세요.");
 
     private final HttpStatus status;
     private final String message;

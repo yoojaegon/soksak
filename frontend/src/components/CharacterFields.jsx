@@ -61,7 +61,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, onSetFiel
             <input
               ref={fileRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
+              accept="image/jpeg,image/png,image/webp"
               onChange={pickImage}
               hidden
             />
@@ -78,7 +78,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, onSetFiel
             {uploadError ? (
               <p className="field-error">! {uploadError}</p>
             ) : (
-              <p className="field-hint">jpg·png·webp·gif, 5MB까지. 없으면 이름 첫 글자로 보여요.</p>
+              <p className="field-hint">jpg·png·webp, 5MB까지. 없으면 이름 첫 글자로 보여요.</p>
             )}
           </div>
         </div>

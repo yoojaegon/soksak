@@ -9,7 +9,7 @@ const MAX_SIDE = 1024
 const RE_ENCODABLE = ['image/jpeg', 'image/png', 'image/webp']
 
 export async function resizeImage(file) {
-  // gif는 건드리지 않는다. canvas로 다시 그리면 첫 프레임만 남아 애니메이션이 죽는다.
+  // 그 밖의 형식은 손대지 않고 보내 판정을 서버에 맡긴다(gif는 서버가 거절한다).
   if (!RE_ENCODABLE.includes(file.type)) return file
 
   let bitmap

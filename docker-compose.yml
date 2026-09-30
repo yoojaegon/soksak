@@ -39,6 +39,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       INTERNAL_AUTH_SECRET: ${INTERNAL_AUTH_SECRET}
+      # 업로드 이미지 검사용. 비면 업로드가 전부 거부된다(fail-closed).
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       # 컨테이너끼리는 서비스 이름으로 통신한다(localhost가 아니다).
       AI_SERVER_BASE_URL: http://ai-server:8000
       UPLOADS_DIR: /data/uploads
