@@ -30,6 +30,9 @@ export default function CharactersPage() {
   const [menuId, setMenuId] = useState(null)
   // 신고 창을 띄운 캐릭터 id (null = 닫힘)
   const [reportId, setReportId] = useState(null)
+  // 신고 후 목록을 다시 받기 위한 키. 서버가 숨김 여부를 안 알려주므로(204) 다시 받아 반영한다.
+  const [reloadKey, setReloadKey] = useState(0)
+  const lastFilterRef = useRef(null)
   // 내 캐릭터 카드엔 ⋮(신고)을 안 띄운다 — 서버가 REPORT_OWN_CHARACTER로 거절한다.
   const [myId, setMyId] = useState(null)
 
@@ -56,7 +59,10 @@ export default function CharactersPage() {
 
   useEffect(() => {
     let alive = true
-    setLoading(true)
+    // 신고 후 재조회는 조용히 — 로딩으로 그리드를 지우면 알림이 포커스를 돌려줄 ⋮ 버튼까지 사라진다.
+    const filter = `${debouncedQuery}|${sort}|${tag}`
+    if (lastFilterRef.current !== filter) setLoading(true)
+    lastFilterRef.current = filter
     api
       .getCharacters({ q: debouncedQuery, sort, tag })
       .then((page) => {
@@ -72,7 +78,7 @@ export default function CharactersPage() {
     return () => {
       alive = false
     }
-  }, [debouncedQuery, sort, tag])
+  }, [debouncedQuery, sort, tag, reloadKey])
 
   const startChat = async (characterId) => {
     // 로그인 안 했으면 대화 시작 대신 로그인으로 보낸다.
@@ -111,6 +117,8 @@ export default function CharactersPage() {
     setReportId(null)
     // 신고 창의 제출 버튼이 사라진 뒤라 알림이 돌려줄 곳이 없다 → ⋮ 버튼으로.
     await alert({ title: '신고가 접수되었어요', message: '검토 후 운영 정책에 따라 처리합니다.', focusFallback: menuBtnRef })
+    // 이번 신고로 숨겨졌을 수 있으니 다시 받는다. 알림이 닫힌 뒤라 카드가 빠져도 포커스 복귀는 끝난 상태.
+    setReloadKey((k) => k + 1)
   }
 
   // 장르 필터 칩을 마우스로 끌어서 가로 스크롤. (native overflow는 클릭-드래그 팬을 지원 안 함)
