@@ -38,6 +38,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/soksak-${{ matrix.name }}
           tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branc
 
       - uses: docker/build-push-action@v6
         with:
