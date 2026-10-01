@@ -35,6 +35,8 @@ public enum ErrorCode {
     // 캐릭터
     CHARACTER_NOT_FOUND(HttpStatus.NOT_FOUND, "캐릭터를 찾을 수 없습니다."),
     CHARACTER_FORBIDDEN(HttpStatus.FORBIDDEN, "본인 캐릭터가 아닙니다."),
+    // 신고 누적으로 숨겨진 캐릭터 — 기존 방은 계속 쓰고 새 방만 막는다.
+    CHARACTER_HIDDEN(HttpStatus.FORBIDDEN, "지금은 이 캐릭터와 새 대화를 시작할 수 없습니다."),
 
     // 채팅방
     CHATROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."),
@@ -44,6 +46,10 @@ public enum ErrorCode {
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."),
     MESSAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 방의 메시지가 아닙니다."),
     ROOM_BUSY(HttpStatus.CONFLICT, "이미 응답을 생성 중입니다. 잠시 후 다시 시도해 주세요."),
+
+    // 신고
+    REPORT_OWN_CHARACTER(HttpStatus.BAD_REQUEST, "본인 캐릭터는 신고할 수 없습니다."),
+    REPORT_NOT_ASSISTANT(HttpStatus.BAD_REQUEST, "캐릭터의 응답만 신고할 수 있습니다."),
 
     // 유저 페르소나
     USER_PERSONA_NOT_FOUND(HttpStatus.NOT_FOUND, "페르소나를 찾을 수 없습니다."),

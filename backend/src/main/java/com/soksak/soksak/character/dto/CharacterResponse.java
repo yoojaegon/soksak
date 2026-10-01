@@ -15,7 +15,8 @@ public record CharacterResponse (
         int chatCount,
         List<String> tags,
         Long userId,
-        String userName
+        String userName,
+        boolean hidden   // 내 캐릭터 목록의 "검토 중" 배지용
 ) {
     public static CharacterResponse from(ChatCharacter character) {
         return new CharacterResponse(
@@ -29,7 +30,8 @@ public record CharacterResponse (
                 character.getChatCount(),
                 character.getTags().stream().sorted().map(Enum::name).toList(),
                 character.getUser().getId(),
-                character.getUser().getNickname()
+                character.getUser().getNickname(),
+                character.isHidden()
         );
     }
 }

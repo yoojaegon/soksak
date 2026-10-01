@@ -2007,6 +2007,20 @@ button:disabled {
   color: var(--crimson);
 }
 
+/* 카탈로그 카드는 ⋮가 그림 위에 얹히므로 바탕을 깔아 어떤 이미지에서도 보이게 */
+.wp-card .card-menu-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  box-shadow: 0 2px 0 var(--edge);
+}
+.wp-card .card-menu-btn:hover {
+  background: var(--surface-high);
+  color: var(--text);
+  border-color: var(--text);
+}
+
 /* 캐릭터 만들기 — 탭과 공용 하단 바에 맞춰 폼을 전체폭으로 */
 .create-card {
   max-width: none;
@@ -2762,4 +2776,49 @@ button:disabled {
   .pw-body .pw-actions button {
     flex: 1;
   }
+}
+
+/* 채팅 헤더의 캐릭터 신고 버튼 — 톱니 버튼 모양을 빌리되 돌지 않는다. */
+.report-btn:hover {
+  transform: none;
+}
+
+/* 신고 창 — 비밀번호 변경 창(.pw-dialog) 틀에 선택지만 얹는다. */
+.report-dialog {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+.report-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.report-group legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+.report-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.report-option input {
+  width: auto;
+  margin: 0;
+}
+.report-detail {
+  width: 100%;
+  resize: vertical;
+}
+
+/* 내 캐릭터 카드의 "검토 중" 배지 */
+.hidden-badge {
+  align-self: center;
+  background: var(--surface-elev);
+  color: var(--text-2);
+  border: 1px solid var(--outline-strong);
 }

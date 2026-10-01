@@ -297,6 +297,11 @@ export const api = {
   updateCharacter: (id, body) => request(`/characters/${id}`, { method: 'PUT', body }),
   deleteCharacter: (id) => request(`/characters/${id}`, { method: 'DELETE' }),
 
+  // 신고 — body: { target: 'IMAGE'|'CONCEPT', reason, detail } / { reason, detail }. 응답은 204(결과는 알려주지 않음).
+  reportCharacter: (id, body) => request(`/characters/${id}/report`, { method: 'POST', body }),
+  reportMessage: (roomId, messageId, body) =>
+    request(`/chatrooms/${roomId}/messages/${messageId}/report`, { method: 'POST', body }),
+
   // 로어북 (캐릭터별 설정 지식 — 소유자만 접근)
   getLores: (characterId) => request(`/characters/${characterId}/lores`),
   getLore: (characterId, id) => request(`/characters/${characterId}/lores/${id}`),

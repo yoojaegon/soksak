@@ -48,6 +48,7 @@ public class CharacterLikeService {
     @Transactional(readOnly = true)
     public List<CharacterResponse> getLikedCharacters(String loginId) {
         return characterLikeRepository.findByUser_LoginId(loginId).stream()
+                .filter(cl -> !cl.getCharacter().isHidden())   // 숨겨진 캐릭터는 좋아요 목록에서도 뺀다
                 .map(cl -> CharacterResponse.from(cl.getCharacter()))
                 .toList();
     }

@@ -40,6 +40,10 @@ public class ChatRoomService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         ChatCharacter character = characterRepository.findById(request.characterId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
+        // 기존 방은 계속 쓰게 두고 새 방만 막는다 — 신고 누적이 곧 위반 확정은 아니라서.
+        if (character.isHidden()) {
+            throw new BusinessException(ErrorCode.CHARACTER_HIDDEN);
+        }
 
         ChatRoom chatRoom = chatRoomRepository.save(
                 ChatRoom.builder()

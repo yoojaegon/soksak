@@ -18,6 +18,9 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     List<String> findTitlesByUserAndCharacter(@Param("loginId") String loginId,
                                               @Param("characterId") Long characterId);
 
+    // 숨겨진 캐릭터를 볼 수 있는지 — 이미 이 캐릭터와 방이 있는 사람은 계속 본다.
+    boolean existsByUser_LoginIdAndCharacter_Id(String loginId, Long characterId);
+
     @Query("select r from ChatRoom r join fetch r.character join fetch r.user where r.id = :id")
     Optional<ChatRoom> findByWithDetails(@Param("id") Long id);
 }
