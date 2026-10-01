@@ -21,7 +21,10 @@ jobs:
         include:
           - name: backend
             context: ./backend
-
+          - name: ai-server
+            context: ./ai-server
+          - name: web
+            context: ./frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -43,8 +46,7 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: ./backend
-#          context: ${{ matrix.context }}
+          context: ${{ matrix.context }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
