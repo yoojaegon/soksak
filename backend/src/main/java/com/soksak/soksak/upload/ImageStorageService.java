@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 import java.util.UUID;
 
 // 검사를 통과한 이미지를 서버 파일시스템에 저장하고, 화면에서 쓸 주소를 돌려준다.
-// 저장 위치는 uploads.dir(기본 ./uploads), 주소는 (컨텍스트 경로 + uploads.public-path).
+// 저장 위치는 uploads.dir(yml 기본 ./uploads), 주소는 (컨텍스트 경로 + uploads.public-path).
 // 나중에 오브젝트 스토리지로 옮기더라도 "파일을 주면 주소를 준다"는 이 계약은 그대로 두면 되고,
 // 컨트롤러·프론트·DB(characters.image_url)는 손대지 않아도 된다.
 // 검사·횟수 제한은 ImageUploadService가 맡는다 — 스토리지를 바꿀 때 이 클래스만 갈아 끼우도록.
@@ -24,8 +24,8 @@ public class ImageStorageService {
     private final String urlPrefix;
 
     public ImageStorageService(
-            @Value("${uploads.dir:uploads}") String dir,
-            @Value("${uploads.public-path:/uploads}") String publicPath,
+            @Value("${uploads.dir}") String dir,
+            @Value("${uploads.public-path}") String publicPath,
             // 정적 리소스 매핑(WebConfig)은 컨텍스트 경로가 벗겨진 뒤에 걸리지만,
             // 브라우저가 요청하는 주소에는 그게 붙어 있다. 여기서 만드는 건 DB에 저장돼
             // <img src>로 쓰일 '브라우저 기준' 주소라 앞에 컨텍스트 경로를 더해 준다.
