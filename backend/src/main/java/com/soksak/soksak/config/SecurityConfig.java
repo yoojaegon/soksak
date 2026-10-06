@@ -49,10 +49,6 @@ public class SecurityConfig {
             .formLogin(form -> form.disable())
             // 세션을 만들지 않고 매 요청을 토큰으로만 인증한다(stateless).
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // 같은 사이트 안에서만 iframe으로 띄울 수 있게 한다(기본값은 전부 차단).
-            .headers(header -> header
-                    .frameOptions(frame -> frame.sameOrigin())
-            )
             // 인증 안 된 요청은 기본 403 대신 다른 에러와 같은 형식의 401 JSON으로 응답한다.
             .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
             // 경로별 접근 규칙. 위에서부터 순서대로 검사해서 처음 맞는 규칙이 적용된다.
