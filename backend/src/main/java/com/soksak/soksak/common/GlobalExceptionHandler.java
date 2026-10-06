@@ -18,6 +18,7 @@ import java.sql.SQLException;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    // 서비스가 의도적으로 던진 에러. 상태·메시지는 ErrorCode가 들고 있으니 그대로 옮기기만 한다.
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusiness(
             BusinessException e,
@@ -26,6 +27,7 @@ public class GlobalExceptionHandler {
         return build(e.getErrorCode(), request);
     }
 
+    // @Valid 검증 실패(@NotBlank, @Size 등). 어느 필드가 틀렸는지는 응답에 싣지 않고 400 한 종류로 묶는다.
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException e,
@@ -45,6 +47,8 @@ public class GlobalExceptionHandler {
         return build(ErrorCode.INVALID_INPUT, request);
     }
 
+    // 로그인 실패(AuthService.login의 authenticate). 아이디가 없는 경우도 Spring Security가
+    // BadCredentials로 감춰 주므로, 아이디·비번 중 무엇이 틀렸는지 구분되지 않는 401 하나로 나간다.
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(
             BadCredentialsException e,
@@ -62,6 +66,8 @@ public class GlobalExceptionHandler {
         return build(ErrorCode.IMAGE_TOO_LARGE, request);
     }
 
+    // DB 제약 위반. 서비스가 미리 걸러내지 못한 경우(동시 요청 등)의 마지막 그물로,
+    // SQLSTATE로 종류를 가른다: 23505 UNIQUE, 23502 NOT NULL, 23503 FK, 23514 CHECK.
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(
             DataIntegrityViolationException e,
@@ -96,6 +102,8 @@ public class GlobalExceptionHandler {
         return build(ErrorCode.ENDPOINT_NOT_FOUND, request);
     }
 
+    // 위 핸들러 어디에도 안 걸린 나머지 전부. 더 구체적인 타입의 핸들러가 항상 먼저 선택되므로
+    // 여기 오는 건 진짜 예상 못 한 에러뿐이다 — 스택은 로그에만 남기고 응답에는 500 한 줄만 준다.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(
             Exception e,
@@ -105,6 +113,8 @@ public class GlobalExceptionHandler {
         return build(ErrorCode.INTERNAL_ERROR, request);
     }
 
+    // DataIntegrityViolationException은 Spring이 감싼 껍데기라 SQLSTATE가 없다.
+    // cause 사슬을 타고 내려가 JDBC 드라이버가 던진 원본 SQLException에서 꺼낸다.
     private String extractSqlState(Throwable e) {
         Throwable t = e;
         while (t != null) {
