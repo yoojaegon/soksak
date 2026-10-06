@@ -1,8 +1,7 @@
 package com.soksak.soksak.common;
 
-// 유저와 페르소나의 성별.
+// 회원가입시 받는 유저 성별 기본 페르소나 문장 생성에 사용.
 public enum Gender {
     MALE,
-    FEMALE,
-    OTHER
+    FEMALE
 }
