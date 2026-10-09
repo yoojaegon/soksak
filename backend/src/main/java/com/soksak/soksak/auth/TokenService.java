@@ -26,12 +26,12 @@ public class TokenService {
 
     @Transactional
     public TokenResponse reissue(String refreshToken){
-        // 서명 검증+파싱을 한 번만 하고, 그 Claims로 타입 확인·인증 복원까지 재사용한다.
+        // 서명 검증과 파싱은 한 번만 하고, 꺼낸 Claims로 토큰 종류 확인과 인증 정보 복원까지 한다.
         Claims claims = jwtTokenProvider.parse(refreshToken)
                 .filter(c -> JwtTokenProvider.TYPE_REFRESH.equals(jwtTokenProvider.getTokenType(c)))
                 .orElseThrow(() -> {
-                    // 서명이 깨졌거나 만료됐거나 액세스 토큰을 보낸 경우. 만료는 흔하지만
-                    // 서명 위조도 같은 자리로 떨어지므로 warn으로 둔다.
+                    // 서명이 깨졌거나 만료됐거나 액세스 토큰을 보낸 경우다.
+                    // 대부분은 만료지만 위조된 토큰도 여기로 오기 때문에 warn으로 남긴다.
                     log.warn("재발급 거부 — 리프레시 토큰이 유효하지 않음");
                     return new BusinessException(ErrorCode.INVALID_TOKEN);
                 });
@@ -44,9 +44,9 @@ public class TokenService {
                 .plus(Duration.ofMillis(jwtProperties.getRefreshTokenExpiration()));
 
         if (refreshTokenRepository.rotate(refreshToken, newRefresh, expiresAt) != 1) {
-            // 서명은 멀쩡한데 DB에 그 토큰이 없다 = 이미 한 번 회전됐다는 뜻.
-            // 정상 사용자는 옛 토큰을 다시 쓸 일이 없으므로 **탈취된 토큰의 재사용 신호**로 본다.
-            // (로그아웃 후 재시도 같은 양성도 섞이니 경보가 아니라 단서로 쓸 것.)
+            // 서명은 정상인데 DB에 이 토큰이 없으면 이미 재발급에 한 번 쓰인 토큰이다.
+            // 정상 사용자는 옛 토큰을 다시 쓸 일이 없으니, 탈취된 토큰이 재사용됐을 수 있다.
+            // 다만 로그아웃 뒤 재시도나 다른 기기 로그인처럼 정상적인 경우도 섞이니 경보가 아니라 단서로 본다.
             log.warn("리프레시 토큰 재사용 탐지 loginId={}", claims.getSubject());
             throw new BusinessException(ErrorCode.INVALID_TOKEN);
         }

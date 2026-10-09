@@ -35,8 +35,7 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(request.loginId(), request.password())
             );
         } catch (AuthenticationException e) {
-            // 실패는 warn — 한 아이디에 연속으로 쌓이면 그게 공격 신호다.
-            // ⚠️ 비밀번호는 틀린 값이라도 절대 찍지 않는다(오타가 곧 다른 계정의 진짜 비번인 경우가 많다).
+            // 실패는 warn으로 남긴다. 한 아이디에 실패가 연달아 쌓이면 공격을 의심할 수 있다.
             log.warn("로그인 실패 loginId={}", forLog(request.loginId()));
             throw e;
         }
@@ -48,6 +47,8 @@ public class AuthService {
         LocalDateTime expiresAt = LocalDateTime.now()
                 .plus(Duration.ofMillis(jwtProperties.getRefreshTokenExpiration()));
 
+        // 리프레시 토큰은 사용자당 하나만 둔다. 이미 있으면 값만 바꾸고, 처음이면 새로 만든다.
+        // 그래서 다른 기기에서 로그인하면 이전 기기의 리프레시 토큰은 더 이상 쓸 수 없다.
         refreshTokenRepository.findByUserId(user.getId())
                         .ifPresentOrElse(
                                 rt -> rt.rotate(refreshToken, expiresAt),
@@ -59,13 +60,10 @@ public class AuthService {
         return new TokenResponse(accessToken, refreshToken);
     }
 
-    /**
-     * 로그 한 줄에 실을 수 있게 다듬는다.
-     * <p>
-     * 로그인 <b>실패</b> 경로의 loginId는 존재하는 계정도 아니고 형식 제약도 없는 순수 입력값이다
-     * (회원가입의 `^[a-z0-9]{4,20}$`는 여기 안 걸린다). 개행이 섞이면 로그에 가짜 줄을 통째로
-     * 심을 수 있어 — "로그인 성공 loginId=admin" 같은 걸 — 개행을 걷어내고 길이도 자른다.
-     */
+    // loginId를 로그 한 줄에 안전하게 넣을 수 있게 다듬는다.
+    // 로그인 실패 때의 loginId는 회원가입 형식 검사를 거치지 않은, 사용자가 보낸 값 그대로다.
+    // 줄바꿈이 섞여 있으면 "로그인 성공 loginId=admin" 같은 가짜 로그 줄을 끼워 넣을 수 있어서,
+    // 줄바꿈을 지우고 길이도 20자로 자른다.
     private String forLog(String loginId) {
         if (loginId == null) {
             return "";
@@ -77,7 +75,7 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
         refreshTokenRepository.deleteByRefreshToken(refreshToken);
-        // 토큰 값은 남기지 않는다. 누구인지는 MDC의 user가 알려준다(액세스 토큰이 함께 온 경우).
+        // 토큰 값은 로그에 남기지 않는다. 누가 로그아웃했는지는 MDC의 user로 알 수 있다(액세스 토큰을 같이 보낸 경우).
         log.info("로그아웃");
     }
 }

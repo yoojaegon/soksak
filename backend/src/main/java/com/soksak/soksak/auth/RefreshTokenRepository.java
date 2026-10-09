@@ -19,6 +19,8 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Query("delete from RefreshToken r where r.expiresAt < :now")
     int deleteAllByExpiresAtBefore(@Param("now")LocalDateTime now);
 
+    // 옛 토큰이 DB에 있을 때만 새 토큰으로 바꾼다.
+    // 바뀐 줄 수(0 또는 1)를 보고 이미 쓰인 토큰인지 판단한다(TokenService.reissue).
     @Modifying()
     @Query("update RefreshToken r set r.refreshToken = :newToken, r.expiresAt = :expiresAt " + "where r.refreshToken = :oldToken")
     int rotate(@Param("oldToken") String oldToken,

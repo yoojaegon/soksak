@@ -20,6 +20,7 @@ public class RefreshToken extends BaseTimeEntity {
     @Column(name = "id", updatable = false)
     private Long id;
 
+    // 사용자당 한 줄만 둔다. 다시 로그인하면 새 줄을 만들지 않고 이 줄의 값을 바꾼다.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
