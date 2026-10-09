@@ -75,7 +75,7 @@ public class MessageService {
     @Transactional
     public List<MessageResponse> getMessages(String loginId, Long roomId) {
         chatRoomService.getOwnedChatRoom(loginId, roomId);
-        return messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId).stream()
+        return messageRepository.findByChatRoomIdOrderByIdAsc(roomId).stream()
                 .map(MessageResponse::from).toList();
     }
 

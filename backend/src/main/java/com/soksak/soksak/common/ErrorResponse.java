@@ -4,6 +4,7 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+// 모든 에러 응답의 공통 형식. 프론트는 status보다 code(ErrorCode 이름)를 보고 분기한다.
 @Getter
 public class ErrorResponse {
     private final String code;

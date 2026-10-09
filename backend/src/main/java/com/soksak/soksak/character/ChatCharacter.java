@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.BatchSize;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -48,6 +49,16 @@ public class ChatCharacter extends BaseTimeEntity {
     @Column(name = "chat_count", nullable = false)
     private int chatCount;
 
+    // 신고가 모여 자동으로 숨겨진 상태(카탈로그·새 대화에서 빠진다). 해제는 운영자가 DB에서만 한다 — unhide()를 두지 않는 이유.
+    // 기존 행이 있는 테이블에 붙이므로 기본값을 DB에 박는다(ddl-auto=update는 기본값 없는 NOT NULL을 못 붙인다).
+    @Column(name = "hidden", nullable = false, columnDefinition = "boolean not null default false")
+    private boolean hidden;
+
+    // 제작자가 내용을 마지막으로 고친 시각(null = 고친 적 없음). 이보다 앞선 신고는 숨김 판정에서 뺀다 —
+    // 고쳤으면 다시 신고가 모여야 숨긴다. updatedAt은 hide() 같은 내부 변경에도 바뀌어서 따로 둔다.
+    @Column(name = "content_updated_at")
+    private LocalDateTime contentUpdatedAt;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "character_tags", joinColumns = @JoinColumn(name = "character_id"))
     @Enumerated(EnumType.STRING)
@@ -79,5 +90,10 @@ public class ChatCharacter extends BaseTimeEntity {
         this.imageUrl = imageUrl;
         this.tags.clear();
         if (tags != null) this.tags.addAll(tags);
+        this.contentUpdatedAt = LocalDateTime.now();   // 숨김은 그대로 둔다 — 고쳐서 스스로 푸는 우회로를 막으려고.
+    }
+
+    public void hide() {
+        this.hidden = true;
     }
 }

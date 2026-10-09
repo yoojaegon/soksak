@@ -41,7 +41,7 @@ public class ChatTxService {
         // 차감한 만큼의 답은 방에 남는다 — 환불이 필요한 건 답이 아예 안 나온 경우뿐이다.
         charge(room, CreditReason.MESSAGE);
 
-        List<Message> priorHistory = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
+        List<Message> priorHistory = messageRepository.findByChatRoomIdOrderByIdAsc(roomId);
         List<ChatSummary> summaries = chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId);
 
         messageRepository.save(Message.builder()
@@ -105,7 +105,7 @@ public class ChatTxService {
     @Transactional
     public RegenTarget prepareRegenerate(String loginId, Long roomId) {
         ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(loginId, roomId);
-        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
+        List<Message> messages = messageRepository.findByChatRoomIdOrderByIdAsc(roomId);
         if (messages.isEmpty()) {
             throw new BusinessException(ErrorCode.MESSAGE_NOT_FOUND);
         }
@@ -149,7 +149,7 @@ public class ChatTxService {
             throw new BusinessException(ErrorCode.MESSAGE_FORBIDDEN);
         }
 
-        List<Message> messages = messageRepository.findByChatRoomIdOrderByCreatedAtAscIdAsc(roomId);
+        List<Message> messages = messageRepository.findByChatRoomIdOrderByIdAsc(roomId);
         int idx = -1;
         for (int i = 0; i < messages.size(); i++) {
             if (messages.get(i).getId().equals(messageId)) { idx = i; break; }

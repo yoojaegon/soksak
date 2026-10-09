@@ -45,6 +45,29 @@ logging:
 uploads:
   dir: ${UPLOADS_DIR:uploads}
   public-path: /uploads
+  # 사용자별 업로드 한도(검사까지 간 것만 센다 — 차단 포함, 형식 오류·검사 실패 제외). 창은 롤링.
+  limit:
+    per-hour: 10
+    per-day: 30
+    # 최근 24시간 차단이 이만큼이면 업로드만 잠근다(기준점에 걸리는 정상 이미지도 있어 1~2회는 봐준다).
+    block-lock: 3
+    # 전체 사용자 합산 24시간 상한 — 다계정 우회 대비. 지금 규모에선 닿지 않는 값.
+    global-per-day: 500
+
+# 캐릭터 신고 자동 숨김. 창 = max(캐릭터 마지막 수정, 지금 - window-days) 안의 서로 다른 신고자 수로 판정한다.
+# 같은 사람의 신고는 몇 번이든 1명 — 창이 지나거나 캐릭터가 고쳐진 뒤 다시 신고하면 새로 센다.
+reports:
+  hide-threshold: 30
+  window-days: 30
+
+# 업로드 이미지 검사(OpenAI omni-moderation). 기준점은 코드(ModerationPolicy)에 있다 — 결정 기록 D17.
+# 키가 비어 있어도 앱은 뜨지만 업로드는 전부 503으로 거부된다(fail-closed).
+moderation:
+  api-key: ${OPENAI_API_KEY:}
+  base-url: https://api.openai.com/v1
+  model: omni-moderation-latest
+  connect-timeout: 3000
+  read-timeout: 10000   # 사용자가 업로드 버튼을 누르고 기다리는 시간이라 LLM 호출보다 짧게.
 
 jwt:
   issuer: soksak

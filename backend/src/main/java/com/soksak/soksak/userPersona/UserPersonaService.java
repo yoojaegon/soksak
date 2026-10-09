@@ -123,7 +123,6 @@ public class UserPersonaService {
         return switch (gender) {
             case MALE -> String.format("내 이름은 %s, %d세 남성이다.", name, age);
             case FEMALE -> String.format("내 이름은 %s, %d세 여성이다.", name, age);
-            case OTHER -> String.format("내 이름은 %s, %d세이다.", name, age);
         };
     }
 }

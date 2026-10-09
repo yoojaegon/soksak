@@ -5,5 +5,4 @@
 export const GENDERS = [
   { value: 'MALE', label: '남성' },
   { value: 'FEMALE', label: '여성' },
-  { value: 'OTHER', label: '기타' },
 ]

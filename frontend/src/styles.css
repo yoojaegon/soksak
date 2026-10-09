@@ -438,6 +438,39 @@ a {
 .room-rename:focus {
   outline: none;
 }
+/* 좁은 화면: 사이드바를 레이아웃 흐름에서 빼서 본문 위에 겹쳐 띄운다(드로어).
+   접힌 레일(50px)은 늘 보이고 본문은 그 폭만큼만 비켜 선다 — 펼쳐도 본문이 밀리거나 넘치지 않는다.
+   768px은 useMediaQuery.js의 DRAWER_QUERY와 같아야 한다. z-index는 chat-aside(40) 위, 상단바(50) 아래. */
+@media (max-width: 768px) {
+  .layout {
+    padding-left: 50px;
+  }
+  .sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: 0;
+    left: 0;
+    height: auto;
+    z-index: 45;
+  }
+  .sidebar.drawer-open {
+    width: min(280px, 85vw);
+    box-shadow: var(--shadow-pop);
+  }
+}
+.sidebar-backdrop {
+  position: fixed;
+  inset: var(--topbar-h) 0 0 0;
+  z-index: 44;
+  background: oklch(20% 0.03 300 / 0.45);
+  animation: confirm-fade 0.18s ease-out;
+}
+/* 터치 기기엔 hover가 없어 ⋮가 계속 투명하다(눌러야 보이는 버튼이 된다) — 항상 보이게 한다. */
+@media (hover: none) {
+  .room-menu-btn {
+    opacity: 1;
+  }
+}
 h1 {
   font-family: var(--font-display);
   font-weight: 700;
@@ -1974,6 +2007,20 @@ button:disabled {
   color: var(--crimson);
 }
 
+/* 카탈로그 카드는 ⋮가 그림 위에 얹히므로 바탕을 깔아 어떤 이미지에서도 보이게 */
+.wp-card .card-menu-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--text);
+  border-radius: 999px;
+  box-shadow: 0 2px 0 var(--edge);
+}
+.wp-card .card-menu-btn:hover {
+  background: var(--surface-high);
+  color: var(--text);
+  border-color: var(--text);
+}
+
 /* 캐릭터 만들기 — 탭과 공용 하단 바에 맞춰 폼을 전체폭으로 */
 .create-card {
   max-width: none;
@@ -2549,34 +2596,54 @@ button:disabled {
   color: var(--text-2);
 }
 
-/* 모바일: 닉네임을 빼고 아바타만. 메뉴는 화면 폭에 맞춰 좌우 12px 여백으로 펼친다. */
 @media (max-width: 600px) {
   .topbar {
     padding: 0 16px;
   }
-  .account-trigger {
-    padding: 4px;
-  }
-  .account-avatar {
-    width: 34px;
-    height: 34px;
-    font-size: 15px;
-  }
-  .account-name,
-  .account-chevron {
-    display: none;
-  }
-  .account-pop {
-    position: fixed;
-    top: calc(var(--topbar-h) + 6px);
-    left: 12px;
-    right: 12px;
-    width: auto;
-  }
-  .account-item {
-    min-height: 48px;
-    font-size: 15.5px;
-  }
+}
+
+/* 좁은 화면: 계정 메뉴가 사이드바 드로어 맨 아래에 붙는다(Sidebar.jsx).
+   목록(.room-list, flex:1)이 남는 높이를 다 먹으므로 이 줄은 자연히 바닥에 놓인다.
+   메뉴는 위로 펼쳐 목록 위에 겹친다 — 사이드바가 overflow:hidden이라 드로어 폭 안에 머물러야 한다. */
+.sidebar-account {
+  flex-shrink: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--outline);
+}
+.account.up .account-trigger {
+  width: 100%;
+  padding: 6px 12px 6px 6px;
+}
+.account.up .account-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+.account.up .account-name {
+  flex: 1;
+  max-width: none;
+  text-align: left;
+}
+.account.up .account-trigger.open .account-chevron {
+  transform: none;
+}
+.account.up .account-chevron {
+  transform: rotate(180deg);
+}
+.account.up .account-pop {
+  top: auto;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  width: auto;
+  max-height: calc(100vh - var(--topbar-h) - 110px);
+  /* 모바일 100vh는 주소창이 숨은 높이라 실제보다 크다 — 지원하면 보이는 높이(dvh)로 */
+  max-height: calc(100dvh - var(--topbar-h) - 110px);
+  overflow-y: auto;
+}
+.account.up .account-item {
+  min-height: 48px;
+  font-size: 15.5px;
 }
 
 /* ── 내 정보 (ProfilePage) ─────────────────────────────────────────── */
@@ -2709,4 +2776,49 @@ button:disabled {
   .pw-body .pw-actions button {
     flex: 1;
   }
+}
+
+/* 채팅 헤더의 캐릭터 신고 버튼 — 톱니 버튼 모양을 빌리되 돌지 않는다. */
+.report-btn:hover {
+  transform: none;
+}
+
+/* 신고 창 — 비밀번호 변경 창(.pw-dialog) 틀에 선택지만 얹는다. */
+.report-dialog {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+.report-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.report-group legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+.report-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.report-option input {
+  width: auto;
+  margin: 0;
+}
+.report-detail {
+  width: 100%;
+  resize: vertical;
+}
+
+/* 내 캐릭터 카드의 "검토 중" 배지 */
+.hidden-badge {
+  align-self: center;
+  background: var(--surface-elev);
+  color: var(--text-2);
+  border: 1px solid var(--outline-strong);
 }

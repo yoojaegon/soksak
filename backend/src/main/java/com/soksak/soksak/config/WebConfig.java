@@ -13,10 +13,10 @@ import java.nio.file.Paths;
 @EnableSpringDataWebSupport(pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${uploads.dir:uploads}")
+    @Value("${uploads.dir}")
     private String uploadsDir;
 
-    @Value("${uploads.public-path:/uploads}")
+    @Value("${uploads.public-path}")
     private String uploadsPublicPath;
 
     // 업로드된 이미지를 정적 파일로 내보낸다(POST /uploads/images 는 컨트롤러가 먼저 잡는다).

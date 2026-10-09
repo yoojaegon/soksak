@@ -24,6 +24,7 @@ import java.util.List;
 public class CharacterService {
     private final CharacterRepository characterRepository;
     private final UserRepository userRepository;
+    private final ChatRoomRepository chatRoomRepository;
 
     @Transactional
     public ChatCharacter createCharacter(String loginId, CreateCharacterRequest request) {
@@ -43,10 +44,20 @@ public class CharacterService {
     }
 
     @Transactional(readOnly = true)
-    public CharacterResponse getCharacter(Long id) {
+    public CharacterResponse getCharacter(Long id, String loginId) {
         ChatCharacter chatCharacter = characterRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
+        if (chatCharacter.isHidden() && !canSeeHidden(chatCharacter, loginId)) {
+            throw new BusinessException(ErrorCode.CHARACTER_NOT_FOUND);   // 숨겨졌다는 사실도 드러내지 않는다
+        }
         return CharacterResponse.from(chatCharacter);
+    }
+
+    // 숨겨진 캐릭터는 제작자와 이미 방이 있는 사람만 본다(비로그인이면 loginId가 null).
+    private boolean canSeeHidden(ChatCharacter character, String loginId) {
+        if (loginId == null) return false;
+        return character.getUser().getLoginId().equals(loginId)
+                || chatRoomRepository.existsByUser_LoginIdAndCharacter_Id(loginId, character.getId());
     }
 
     @Transactional(readOnly = true)

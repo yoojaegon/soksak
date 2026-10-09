@@ -26,3 +26,9 @@ ai-server:
   connect-timeout: 3000
   read-timeout: 30000
   internal-auth-secret: test-internal-secret
+
+# WebConfig·ImageStorageService가 기본값 없이 요구하므로 채워둔다.
+# build/ 아래라 gradle clean으로 같이 지워진다.
+uploads:
+  dir: build/test-uploads
+  public-path: /uploads

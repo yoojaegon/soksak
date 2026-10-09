@@ -6,7 +6,8 @@ import ThinkingPicker from '../components/ThinkingPicker.jsx'
 import CharacterImage from '../components/CharacterImage.jsx'
 import CreditBadge from '../components/CreditBadge.jsx'
 import { modelLabel, thinkingOf } from '../models.js'
-import { useConfirm } from '../confirm.jsx'
+import ReportDialog from '../components/ReportDialog.jsx'
+import { useAlert, useConfirm } from '../confirm.jsx'
 
 // 장기기억 길이 상한. 백엔드 UpdateSummaryRequest의 @Size(max)와 같은 값이어야 한다 —
 // 다르면 사용자가 다 쓰고 저장할 때야 400을 받는다.
@@ -61,7 +62,14 @@ export default function ChatPage() {
 
 function ChatRoom({ roomId }) {
   const confirm = useConfirm()
+  const alert = useAlert()
+  // 열려 있는 신고 창. null | { kind: 'character' } | { kind: 'message', messageId }
+  const [report, setReport] = useState(null)
+  // 신고 창이 닫힐 때 포커스를 돌려줄 버튼(헤더 신고 버튼 또는 누른 메시지의 신고 버튼).
+  const reportOpenerRef = useRef(null)
   const [character, setCharacter] = useState(null)
+  // 내 캐릭터면 캐릭터 신고 버튼을 숨긴다(서버가 REPORT_OWN_CHARACTER로 거절). 못 읽으면 그냥 보여준다.
+  const [myId, setMyId] = useState(null)
   const [messages, setMessages] = useState([])
   const [config, setConfig] = useState({ writingToggle: false, foldSpoilerToggle: false })
   // config를 바꿀 땐 ref도 함께 맞춰, 빠른 연속 토글에서도 최신값을 동기적으로 읽는다.
@@ -151,6 +159,12 @@ function ChatRoom({ roomId }) {
         })
         setModel(room.model || null)
         setThinking(room.thinkingLevel || null)
+        api
+          .getMe()
+          .then((me) => {
+            if (alive) setMyId(me.id)
+          })
+          .catch(() => {})
         // 캐릭터(헤더) 정보 실패는 대화를 막지 않도록 조용히 무시한다.
         api
           .getCharacter(room.characterId)
@@ -462,6 +476,20 @@ function ChatRoom({ roomId }) {
     }
   }
 
+  // 신고 창 열기 — 누른 버튼을 기억해 두었다가 창이 닫히면 거기로 포커스를 돌린다.
+  const openReport = (next, e) => {
+    reportOpenerRef.current = e.currentTarget
+    setReport(next)
+  }
+  const submitReport = (body) =>
+    report.kind === 'character'
+      ? api.reportCharacter(character.id, body)
+      : api.reportMessage(roomId, report.messageId, body)
+  const onReported = async () => {
+    setReport(null)
+    await alert({ title: '신고가 접수되었어요', message: '검토 후 운영 정책에 따라 처리합니다.' })
+  }
+
   // 방을 불러오지 못했으면 빈 대화 화면 대신 명확한 안내를 보여준다.
   if (roomError) {
     return (
@@ -506,6 +534,23 @@ function ChatRoom({ roomId }) {
                 )}
               </div>
             </div>
+            {character && character.userId !== myId && (
+              <button
+                type="button"
+                className="gear-btn report-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  openReport({ kind: 'character' }, e)
+                }}
+                aria-label="캐릭터 신고"
+                title="캐릭터 신고"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                  <line x1="4" y1="22" x2="4" y2="15" />
+                </svg>
+              </button>
+            )}
             <button
               type="button"
               className={`gear-btn ${showSettings ? 'on' : ''}`}
@@ -602,6 +647,15 @@ function ChatRoom({ roomId }) {
                     <button className="msg-action" onClick={() => onDeleteFrom(m.id)} disabled={acting || sending}>
                       삭제
                     </button>
+                    {/* 캐릭터 응답만 신고할 수 있다(서버도 USER 메시지는 거절) */}
+                    {m.role === 'ASSISTANT' && (
+                      <button
+                        className="msg-action"
+                        onClick={(e) => openReport({ kind: 'message', messageId: m.id }, e)}
+                      >
+                        신고
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -661,6 +715,16 @@ function ChatRoom({ roomId }) {
         </button>
       </form>
       </div>
+
+      {report && (
+        <ReportDialog
+          kind={report.kind}
+          onSubmit={submitReport}
+          onClose={() => setReport(null)}
+          onDone={onReported}
+          returnFocusRef={reportOpenerRef}
+        />
+      )}
 
       {showSettings && (
         <aside className="chat-aside">

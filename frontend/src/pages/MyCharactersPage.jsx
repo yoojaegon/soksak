@@ -120,8 +120,15 @@ export default function MyCharactersPage() {
                 <CharacterImage src={c.imageUrl}>{c.characterName?.[0] ?? '?'}</CharacterImage>
               </div>
               <h3>{c.characterName}</h3>
+              {/* 신고가 모여 자동으로 숨겨진 상태 — 카탈로그·새 대화에서 빠져 있다 */}
+              {c.hidden && (
+                <span className="badge hidden-badge" title="신고가 접수되어 검토 중이에요. 그동안 목록에 보이지 않고 새 대화를 시작할 수 없어요.">
+                  검토 중
+                </span>
+              )}
               <p className="muted">{c.description || '소개가 없습니다.'}</p>
-              <button onClick={() => startChat(c.id)} disabled={startingId === c.id}>
+              {/* 숨겨진 캐릭터는 제작자도 새 방을 못 연다(서버 CHARACTER_HIDDEN) — 눌러봐야 에러뿐이라 막아 둔다 */}
+              <button onClick={() => startChat(c.id)} disabled={c.hidden || startingId === c.id}>
                 {startingId === c.id ? '입장 중…' : '대화하기'}
               </button>
             </div>

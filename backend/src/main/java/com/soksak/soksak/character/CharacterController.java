@@ -34,8 +34,10 @@ public class CharacterController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CharacterResponse> getCharacter(@PathVariable Long id) {
-        return ResponseEntity.ok(characterService.getCharacter(id));
+    public ResponseEntity<CharacterResponse> getCharacter(Authentication authentication, @PathVariable Long id) {
+        // permitAll 경로라 비로그인이면 authentication이 null이다.
+        String loginId = (authentication != null) ? authentication.getName() : null;
+        return ResponseEntity.ok(characterService.getCharacter(id, loginId));
     }
 
     @GetMapping("/me")
