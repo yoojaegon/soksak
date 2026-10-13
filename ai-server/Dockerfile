@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 # uv는 공식 이미지에서 실행 파일만 복사해 쓴다(별도 설치 단계 없이 가장 빠름).
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.12.4 /uv /usr/local/bin/uv
 
 WORKDIR /app
 ENV UV_LINK_MODE=copy \
