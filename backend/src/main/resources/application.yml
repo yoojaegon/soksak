@@ -1,5 +1,5 @@
 # API 경로 접두사. 화면 라우트(/characters/3/edit)와 API 경로(/characters/3)가 겹쳐서,
-# 배포 환경의 nginx가 둘을 가르는 기준이 이 접두사다. 프론트(api.js의 API_BASE)도 같은 값을 쓴다.
+# 배포 환경의 Caddy가 둘을 가르는 기준이 이 접두사다. 프론트(api.js의 API_BASE)도 같은 값을 쓴다.
 server:
   servlet:
     context-path: /api

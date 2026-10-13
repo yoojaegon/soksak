@@ -40,8 +40,8 @@ docker compose up -d --build
 ```
 
 Notes:
-- **All API paths live under `/api`** (`server.servlet.context-path`), because SPA routes and API paths collide (`/characters/3/edit` is a screen, `/characters/3` is an API). nginx routes `/api/*` to the backend and everything else to `index.html`; the frontend prepends the same prefix in `api.js` (`API_BASE`).
-- Only `web` (port 80) is exposed. backend/ai-server are reachable only inside the compose network, by service name (`http://ai-server:8000`, not localhost).
+- **All API paths live under `/api`** (`server.servlet.context-path`), because SPA routes and API paths collide (`/characters/3/edit` is a screen, `/characters/3` is an API). Caddy (`frontend/Caddyfile`) routes `/api/*` to the backend and everything else to `index.html`; the frontend prepends the same prefix in `api.js` (`API_BASE`).
+- Only `web` (ports 80, 443) is exposed. backend/ai-server are reachable only inside the compose network, by service name (`http://ai-server:8000`, not localhost).
 - Uploaded images live in the `uploads` volume (`UPLOADS_DIR=/data/uploads` in the container). Without that volume they vanish whenever the container is recreated.
 - Frontend hot reload is gone with this setup — `npm run dev` (Vite, :5173, proxies `/api` → :8080) still works if the backend is up.
 

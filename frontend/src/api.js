@@ -5,7 +5,7 @@
 
 // 모든 API 경로 앞에 붙는 접두사(백엔드 server.servlet.context-path와 같은 값).
 // 화면 라우트와 API 경로가 겹쳐서(/characters/3/edit 은 화면, /characters/3 은 API),
-// 배포 환경의 nginx가 정적 파일 요청과 API 요청을 가르는 기준이 이 접두사다.
+// 배포 환경의 Caddy가 정적 파일 요청과 API 요청을 가르는 기준이 이 접두사다.
 // ⚠️ 업로드된 이미지 주소(imageUrl)는 서버가 이미 접두사를 붙여 내려주므로 여기서 또 붙이지 않는다.
 const API_BASE = '/api'
 

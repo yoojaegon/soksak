@@ -1,0 +1,30 @@
+# 주소가 도메인이면 Caddy가 HTTPS 인증서 발급, 갱신, http에서 https로의 리다이렉트를 알아서 한다.
+# 로컬은 SITE_ADDRESS가 없어서 :80이 되고, 도메인이 없으니 HTTP로만 뜬다.
+{$SITE_ADDRESS::80} {
+	# 업로드 한도. 백엔드의 multipart 한도(5MB)보다 약간 크게 잡는다.
+	# 여기가 더 작으면 백엔드의 친절한 413 대신 Caddy가 먼저 잘라버린다.
+	request_body {
+		max_size 6MiB
+	}
+
+	# API는 전부 /api 아래로 보낸다.
+	# 접두사가 없으면 /characters, /signup 같은 경로가 화면 라우트인지 API인지 구분할 수 없다
+	# (둘 다 존재한다. /characters/3/edit 은 화면, /characters/3 은 API).
+	# 백엔드도 server.servlet.context-path=/api 로 같은 값을 쓴다.
+	handle /api/* {
+		reverse_proxy backend:8080 {
+			# 채팅 응답은 SSE라서 받는 즉시 흘려보내야 토큰이 실시간으로 나온다.
+			flush_interval -1
+		}
+	}
+
+	# SPA. 새로고침이나 링크로 직접 들어온 경로도 index.html이 받아 라우터가 처리한다.
+	handle {
+		# 다른 사이트가 화면을 iframe으로 띄우지 못하게 막는다(클릭재킹 방지).
+		# /api 응답은 백엔드(Spring Security 기본값)가 같은 헤더를 붙이므로 여기에만 둔다.
+		header X-Frame-Options DENY
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

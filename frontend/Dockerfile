@@ -6,8 +6,9 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# 2) 실행 — nginx가 정적 파일을 서빙하고 /api 요청만 백엔드로 넘긴다.
-FROM nginx:alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
+# 2) 실행 — Caddy가 정적 파일을 서빙하고 /api 요청만 백엔드로 넘긴다.
+# 배포에서는 HTTPS도 Caddy가 맡는다.
+FROM caddy:2.10.2-alpine
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/dist /srv
+EXPOSE 80 443

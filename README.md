@@ -57,7 +57,7 @@
 | **Backend** | Java 17, Spring Boot 3.5, Spring Web, Spring Security, Spring Data JPA, Bean Validation, JJWT, Lombok |
 | **Database** | PostgreSQL 16 (배포: AWS RDS), H2 (테스트) |
 | **AI Server** | Python 3.11+, FastAPI, LangChain, langchain-anthropic, langchain-google-genai |
-| **Infra** | Docker Compose, nginx, AWS EC2 + RDS (커스텀 VPC), spring-dotenv |
+| **Infra** | Docker Compose, Caddy, AWS EC2 + RDS (커스텀 VPC), spring-dotenv |
 | **Test** | JUnit 5, Spring Boot Test, MockMvc |
 
 ---
@@ -151,7 +151,7 @@ soksak/
 
 ```mermaid
 flowchart LR
-    U[브라우저] --> NG["nginx<br/>(정적 파일 + /api 프록시)"]
+    U[브라우저] --> NG["Caddy<br/>(HTTPS + 정적 파일 + /api 프록시)"]
     NG -->|"/api/* — REST / SSE"| BE["Backend<br/>Spring Boot"]
     BE -->|JPA| DB[(PostgreSQL<br/>RDS)]
     BE -->|"내부 HTTP<br/>(shared secret)"| AI["AI Server<br/>FastAPI + LangChain"]
@@ -187,8 +187,8 @@ flowchart LR
   <!-- TODO (선택) 같은 traceId로 묶인 채팅 한 번의 로그 캡처: docs/images/trace-log.png
   <img src="docs/images/trace-log.png" alt="같은 traceId로 묶인 로그" width="720" />
   -->
-- **배포** — EC2 한 대에서 docker compose로 nginx·backend·ai-server를 띄우고 DB는 RDS(프라이빗 서브넷)를 씁니다.
-  외부에 열리는 건 nginx(80)뿐이고, backend·ai-server는 compose 네트워크 안에서 서비스 이름으로만 닿습니다.
+- **배포** — EC2 한 대에서 docker compose로 Caddy·backend·ai-server를 띄우고 DB는 RDS(프라이빗 서브넷)를 씁니다.
+  외부에 열리는 건 Caddy(80, 443)뿐이고, backend·ai-server는 compose 네트워크 안에서 서비스 이름으로만 닿습니다.
   로컬과 배포는 같은 compose 파일을 쓰며 차이는 `--profile local`과 `.env` 값뿐입니다.
 
 LLM 설정은 [`ai-server/docs/llm-config.md`](ai-server/docs/llm-config.md),
