@@ -2,7 +2,7 @@ package com.soksak.soksak.auth;
 
 import com.soksak.soksak.auth.dto.TokenResponse;
 import com.soksak.soksak.common.BusinessException;
-import com.soksak.soksak.config.jwt.JwtProperties;
+import com.soksak.soksak.config.jwt.IssuedToken;
 import com.soksak.soksak.config.jwt.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.DisplayName;
@@ -27,7 +27,6 @@ class TokenServiceTest {
 
     @Mock JwtTokenProvider tokenProvider;
     @Mock RefreshTokenRepository refreshTokenRepository;
-    @Mock JwtProperties jwtProperties;
 
     @InjectMocks TokenService tokenService;
 
@@ -43,8 +42,8 @@ class TokenServiceTest {
         when(tokenProvider.getTokenType(claims)).thenReturn(JwtTokenProvider.TYPE_REFRESH);
         when(tokenProvider.getAuthentication(claims)).thenReturn(auth);
         when(tokenProvider.generateAccessToken(auth)).thenReturn("new-access");
-        when(tokenProvider.generateRefreshToken(auth)).thenReturn("new-refresh");
-        when(jwtProperties.getRefreshTokenExpiration()).thenReturn(1209600000L); // 14일(ms)
+        when(tokenProvider.generateRefreshToken(auth))
+                .thenReturn(new IssuedToken("new-refresh", LocalDateTime.now().plusDays(14)));
         // 원자 회전이 정확히 1행을 갱신 → 재발급 성공
         when(refreshTokenRepository.rotate(eq(oldRefresh), eq("new-refresh"), any(LocalDateTime.class)))
                 .thenReturn(1);
@@ -85,8 +84,8 @@ class TokenServiceTest {
         when(tokenProvider.getTokenType(claims)).thenReturn(JwtTokenProvider.TYPE_REFRESH);
         when(tokenProvider.getAuthentication(claims)).thenReturn(auth);
         when(tokenProvider.generateAccessToken(auth)).thenReturn("new-access");
-        when(tokenProvider.generateRefreshToken(auth)).thenReturn("new-refresh");
-        when(jwtProperties.getRefreshTokenExpiration()).thenReturn(1209600000L);
+        when(tokenProvider.generateRefreshToken(auth))
+                .thenReturn(new IssuedToken("new-refresh", LocalDateTime.now().plusDays(14)));
         // 이미 회전돼 old 토큰이 DB에 없음 → 0행
         when(refreshTokenRepository.rotate(eq(oldRefresh), eq("new-refresh"), any(LocalDateTime.class)))
                 .thenReturn(0);

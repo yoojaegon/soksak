@@ -2,7 +2,7 @@ package com.soksak.soksak.auth;
 
 import com.soksak.soksak.auth.dto.LoginRequest;
 import com.soksak.soksak.auth.dto.TokenResponse;
-import com.soksak.soksak.config.jwt.JwtProperties;
+import com.soksak.soksak.config.jwt.IssuedToken;
 import com.soksak.soksak.config.jwt.JwtTokenProvider;
 import com.soksak.soksak.user.CustomUserDetails;
 import com.soksak.soksak.user.User;
@@ -15,8 +15,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +23,6 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final AuthenticationManager authenticationManager;
-    private final JwtProperties jwtProperties;
 
     @Transactional
     public TokenResponse login(LoginRequest request) {
@@ -41,23 +38,21 @@ public class AuthService {
         }
 
         String accessToken = jwtTokenProvider.generateAccessToken(authentication);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
+        IssuedToken refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
         User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
-        LocalDateTime expiresAt = LocalDateTime.now()
-                .plus(Duration.ofMillis(jwtProperties.getRefreshTokenExpiration()));
 
         // 리프레시 토큰은 사용자당 하나만 둔다. 이미 있으면 값만 바꾸고, 처음이면 새로 만든다.
         // 그래서 다른 기기에서 로그인하면 이전 기기의 리프레시 토큰은 더 이상 쓸 수 없다.
         refreshTokenRepository.findByUserId(user.getId())
                         .ifPresentOrElse(
-                                rt -> rt.rotate(refreshToken, expiresAt),
+                                rt -> rt.rotate(refreshToken.value(), refreshToken.expiresAt()),
                                 () -> refreshTokenRepository.save(RefreshToken.builder()
-                                        .user(user).refreshToken(refreshToken).expiresAt(expiresAt).build())
+                                        .user(user).refreshToken(refreshToken.value()).expiresAt(refreshToken.expiresAt()).build())
                         );
 
         log.info("로그인 성공 loginId={} userId={}", user.getLoginId(), user.getId());
-        return new TokenResponse(accessToken, refreshToken);
+        return new TokenResponse(accessToken, refreshToken.value());
     }
 
     // loginId를 로그 한 줄에 안전하게 넣을 수 있게 다듬는다.

@@ -14,6 +14,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -39,14 +41,16 @@ public class JwtTokenProvider {
     }
 
     // accessToken 생성
-    public String generateToken(Authentication authentication, Long validTime, String type) {
+    private String generateToken(Authentication authentication, Long validTime, String type) {
+        Date now = new Date();
+        return buildToken(authentication, now, new Date(now.getTime() + validTime), type);
+    }
+
+    private String buildToken(Authentication authentication, Date now, Date expiration, String type) {
         // 권한 목록을 문자열로
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
-
-        Date now = new Date();
-        Date expiration = new Date(now.getTime() + validTime);
 
         return Jwts.builder()
                 .subject(authentication.getName())
@@ -63,8 +67,12 @@ public class JwtTokenProvider {
         return generateToken(authentication, jwtProperties.getAccessTokenExpiration(), TYPE_ACCESS);
     }
 
-    public String generateRefreshToken(Authentication authentication) {
-        return generateToken(authentication, jwtProperties.getRefreshTokenExpiration(), TYPE_REFRESH);
+    // 토큰의 exp와 DB에 저장할 만료 시각이 같은 시각에서 나오도록 여기서 함께 계산한다.
+    public IssuedToken generateRefreshToken(Authentication authentication) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + jwtProperties.getRefreshTokenExpiration());
+        String token = buildToken(authentication, now, expiration, TYPE_REFRESH);
+        return new IssuedToken(token, LocalDateTime.ofInstant(expiration.toInstant(), ZoneId.systemDefault()));
     }
 
     // 서명·만료·형식까지 검증하고 Claims를 돌려준다. 실패하면 empty.

@@ -3,7 +3,7 @@ package com.soksak.soksak.auth;
 import com.soksak.soksak.auth.dto.TokenResponse;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
-import com.soksak.soksak.config.jwt.JwtProperties;
+import com.soksak.soksak.config.jwt.IssuedToken;
 import com.soksak.soksak.config.jwt.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
@@ -12,15 +12,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class TokenService {
     private final JwtTokenProvider jwtTokenProvider;
-    private final JwtProperties jwtProperties;
     private final RefreshTokenRepository refreshTokenRepository;
 
 
@@ -38,12 +34,9 @@ public class TokenService {
         Authentication auth = jwtTokenProvider.getAuthentication(claims);
 
         String newAccess = jwtTokenProvider.generateAccessToken(auth);
-        String newRefresh = jwtTokenProvider.generateRefreshToken(auth);
+        IssuedToken newRefresh = jwtTokenProvider.generateRefreshToken(auth);
 
-        LocalDateTime expiresAt = LocalDateTime.now()
-                .plus(Duration.ofMillis(jwtProperties.getRefreshTokenExpiration()));
-
-        if (refreshTokenRepository.rotate(refreshToken, newRefresh, expiresAt) != 1) {
+        if (refreshTokenRepository.rotate(refreshToken, newRefresh.value(), newRefresh.expiresAt()) != 1) {
             // 서명은 정상인데 DB에 이 토큰이 없으면 이미 재발급에 한 번 쓰인 토큰이다.
             // 정상 사용자는 옛 토큰을 다시 쓸 일이 없으니, 탈취된 토큰이 재사용됐을 수 있다.
             // 다만 로그아웃 뒤 재시도나 다른 기기 로그인처럼 정상적인 경우도 섞이니 경보가 아니라 단서로 본다.
@@ -52,6 +45,6 @@ public class TokenService {
         }
 
         log.info("토큰 재발급 loginId={}", claims.getSubject());
-        return new TokenResponse(newAccess, newRefresh);
+        return new TokenResponse(newAccess, newRefresh.value());
     }
 }
