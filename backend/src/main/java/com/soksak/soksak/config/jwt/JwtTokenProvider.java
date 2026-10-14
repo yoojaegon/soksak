@@ -29,25 +29,25 @@ import java.util.stream.Collectors;
 public class JwtTokenProvider {
     private final JwtProperties jwtProperties;
     private SecretKey key;
-    public static final String AUTHORITIES_KEY = "auth"; //
+    public static final String AUTHORITIES_KEY = "auth";
     public static final String TOKEN_TYPE_KEY = "type";
     public static final String TYPE_ACCESS = "access";
     public static final String TYPE_REFRESH = "refresh";
 
-    //
+    // yml의 비밀키(Base64)를 서명용 키로 한 번만 바꿔 둔다.
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecretKey()));
     }
 
-    // accessToken 생성
+    // 지금부터 validTime(ms) 동안 유효한 토큰을 만든다.
     private String generateToken(Authentication authentication, Long validTime, String type) {
         Date now = new Date();
         return buildToken(authentication, now, new Date(now.getTime() + validTime), type);
     }
 
     private String buildToken(Authentication authentication, Date now, Date expiration, String type) {
-        // 권한 목록을 문자열로
+        // 권한 목록은 "ROLE_USER,ROLE_ADMIN"처럼 쉼표로 이어 claim 하나에 담는다.
         String authorities = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
@@ -75,20 +75,20 @@ public class JwtTokenProvider {
         return new IssuedToken(token, LocalDateTime.ofInstant(expiration.toInstant(), ZoneId.systemDefault()));
     }
 
-    // 서명·만료·형식까지 검증하고 Claims를 돌려준다. 실패하면 empty.
-    // (검증과 파싱을 한 번에 처리해 요청당 토큰 재파싱을 없앤다.)
+    // 서명, 만료, issuer를 검증하고 Claims를 돌려준다. 하나라도 실패하면 empty다.
+    // 검증과 파싱을 한 번에 해서, 호출하는 쪽이 같은 토큰을 다시 파싱하지 않아도 된다.
     public Optional<Claims> parse(String token) {
         try {
             return Optional.of(parseClaims(token));
         } catch (JwtException | IllegalArgumentException e) {
-            return Optional.empty(); // 만료 위조 형식 오류
+            return Optional.empty(); // 만료, 위조, 형식 오류가 모두 여기로 온다
         }
     }
 
     // 검증한 Claims에서 인증 정보를 복원한다.
     public Authentication getAuthentication(Claims claims) {
-        // "auth" claim을 다시 권한 목록으로 복원
-        // auth claim이 없으면 NPE(500) 대신 권한 없는 인증으로 처리한다.
+        // "auth" claim을 다시 권한 목록으로 되돌린다.
+        // claim이 없거나 비어 있으면 split에서 NPE가 나지 않게 권한 없는 인증으로 만든다.
         String authoritiesClaim = claims.get(AUTHORITIES_KEY, String.class);
         Collection<? extends GrantedAuthority> authorities =
                 (authoritiesClaim == null || authoritiesClaim.isBlank())
@@ -97,6 +97,7 @@ public class JwtTokenProvider {
                         .map(SimpleGrantedAuthority::new)
                         .toList();
 
+        // 인자 3개짜리 생성자여야 인증된 상태로 만들어진다. 2개짜리를 쓰면 인증 안 된 것으로 보고 401이 난다.
         return new UsernamePasswordAuthenticationToken(claims.getSubject(), "", authorities);
     }
 
@@ -104,11 +105,11 @@ public class JwtTokenProvider {
         return claims.get(TOKEN_TYPE_KEY, String.class);
     }
 
-    // 토큰에서 claims 꺼내기 (서명 검증 포함, 실패 시 예외)
+    // 서명과 issuer를 검증하고 Claims를 꺼낸다. 실패하면 예외를 던진다.
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(key)
-                // 발급 시 넣은 issuer와 일치하지 않으면 거부
+                // 발급할 때 넣은 issuer와 다르면 거부한다.
                 .requireIssuer(jwtProperties.getIssuer())
                 .build()
                 .parseSignedClaims(token)
