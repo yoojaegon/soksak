@@ -15,7 +15,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -69,8 +68,15 @@ public class AuthService {
 
     @Transactional
     public void logout(String refreshToken) {
-        refreshTokenRepository.deleteByRefreshToken(refreshToken);
-        // 토큰 값은 로그에 남기지 않는다. 누가 로그아웃했는지는 MDC의 user로 알 수 있다(액세스 토큰을 같이 보낸 경우).
-        log.info("로그아웃");
+        // 이미 지워진 토큰(다른 탭에서 로그아웃했거나 만료되어 정리된 경우)으로 와도 정상이라 debug로만 남긴다.
+        // 토큰 값은 로그에 남기지 않는다.
+        refreshTokenRepository.findByRefreshToken(refreshToken)
+                .ifPresentOrElse(
+                        rt -> {
+                            refreshTokenRepository.delete(rt);
+                            log.info("로그아웃 성공 loginId={} userId={}", rt.getUser().getLoginId(), rt.getUser().getId());
+                        },
+                        () -> log.debug("로그아웃 요청에 없는 refreshToken")
+                );
     }
 }
