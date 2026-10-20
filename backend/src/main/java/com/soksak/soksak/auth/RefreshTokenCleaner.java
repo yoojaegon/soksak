@@ -17,7 +17,7 @@ public class RefreshTokenCleaner {
     // 매일 새벽 4시에 만료된 리프레시 토큰을 지운다.
     // 만료된 토큰은 어차피 재발급 때 거부되므로, DB에 쌓이지 않게 치우는 용도다.
     @Transactional
-    @Scheduled(cron = " 0 0 4 * * *")
+    @Scheduled(cron = "0 0 4 * * *", zone = "Asia/Seoul")
     public void cleanExpiredTokens() {
         int deleted = refreshTokenRepository.deleteAllByExpiresAtBefore(LocalDateTime.now());
         log.info("만료된 refresh 토큰 {}건 정리", deleted);

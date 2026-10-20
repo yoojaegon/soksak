@@ -45,6 +45,8 @@ services:
       # 컨테이너끼리는 서비스 이름으로 통신한다(localhost가 아니다).
       AI_SERVER_BASE_URL: http://ai-server:8000
       UPLOADS_DIR: /data/uploads
+      # JVM 기본 타임존. LocalDateTime.now()와 createdAt이 이 기준으로 찍힌다.
+      TZ: Asia/Seoul
       # 로그 레벨. 컨테이너 안에는 .env가 없으므로(Dockerfile이 복사하지 않는다) 여기 적힌 것만
       # 전달된다 — 이 두 줄이 없으면 .env에 LOG_LEVEL_APP을 넣어도 컨테이너에선 안 먹는다.
       LOG_LEVEL_APP: ${LOG_LEVEL_APP:-INFO}
