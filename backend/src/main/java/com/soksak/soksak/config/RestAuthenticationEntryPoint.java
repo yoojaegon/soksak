@@ -15,8 +15,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-// 인증되지 않은 요청이 보호 자원에 접근할 때 스프링 시큐리티 기본 403 대신
-// 앱 공통 에러 응답(ErrorResponse) 형태의 401 JSON을 내려준다.
+// 로그인이 필요한 경로에 인증 없이 들어온 요청에 401 응답을 돌려준다.
+// 응답 본문은 다른 에러와 같은 ErrorResponse JSON 모양으로 맞춘다.
+// SecurityConfig의 exceptionHandling에 등록되어 있고, 스프링 시큐리티가 직접 호출한다.
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -27,8 +28,8 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
-        // 이 경로는 GlobalExceptionHandler를 타지 않는다 — 여기서 안 찍으면 401은 서버 로그에
-        // 단 한 줄도 안 남아, 응답 헤더의 traceId를 들고 와도 찾을 대상이 없다.
+        // 이 응답은 필터 단계에서 나가서 GlobalExceptionHandler를 거치지 않는다.
+        // 여기서 로그를 남기지 않으면 traceId로 401 요청을 찾을 수 없다.
         log.warn("401 {} {}", request.getMethod(), request.getRequestURI());
 
         ErrorResponse body = ErrorResponse.of(ErrorCode.INVALID_TOKEN, request.getRequestURI());
