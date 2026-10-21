@@ -2,7 +2,6 @@ package com.soksak.soksak.config;
 
 import com.soksak.soksak.config.jwt.JwtFilter;
 import com.soksak.soksak.config.jwt.JwtTokenProvider;
-import com.soksak.soksak.user.CustomUserDetailsService;
 import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
