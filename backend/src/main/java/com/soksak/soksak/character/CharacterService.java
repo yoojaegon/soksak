@@ -13,15 +13,21 @@ import com.soksak.soksak.user.User;
 import com.soksak.soksak.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class CharacterService {
+    // 화면의 정렬 옵션(최신순·인기순·대화 많은순)과 같은 목록
+    private static final Set<String> SORTABLE = Set.of("createdAt", "likeCount", "chatCount");
+
     private final CharacterRepository characterRepository;
     private final UserRepository userRepository;
     private final ChatRoomRepository chatRoomRepository;
@@ -70,8 +76,20 @@ public class CharacterService {
     @Transactional(readOnly = true)
     public Page<CharacterResponse> getCharacters(String q, Genre tag, Pageable pageable) {
         String keyword = (q == null || q.isBlank()) ? null : escapeLike(q);
-        return characterRepository.search(keyword, tag, pageable)
+        return characterRepository.search(keyword, tag, catalogPage(pageable))
                 .map(CharacterResponse::from);
+    }
+
+    // 정렬은 SORTABLE에 있는 필드만 받는다. 나머지는 쿼리에 그대로 붙어 500이 나거나 엉뚱한 필드로 정렬된다.
+    // 정렬 값이 같은 캐릭터끼리는 순서가 정해지지 않아 페이지를 넘길 때 겹치거나 빠지므로 id로 한 번 더 정렬한다.
+    private static Pageable catalogPage(Pageable pageable) {
+        for (Sort.Order order : pageable.getSort()) {
+            if (!SORTABLE.contains(order.getProperty())) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT);
+            }
+        }
+        Sort sort = pageable.getSort().and(Sort.by(Sort.Direction.DESC, "id"));
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 
     // LIKE 메타문자(%,_)와 이스케이프 문자(\) 자체를 리터럴로 다루도록 '\'로 이스케이프한다.
