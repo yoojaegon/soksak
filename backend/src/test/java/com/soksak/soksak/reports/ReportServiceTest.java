@@ -55,8 +55,9 @@ class ReportServiceTest {
                 chatRoomService, messageRepository, 3, 30);
         owner = user(1L, "owner");
         reporter = user(2L, "reporter");
-        character = ChatCharacter.builder().id(10L).user(owner).name("여우").description("d")
+        character = ChatCharacter.builder().user(owner).name("여우").description("d")
                 .persona("p").greeting("g").imageUrl("/api/uploads/a.png").build();
+        ReflectionTestUtils.setField(character, "id", 10L);
         // 오래전에 만들어져 고친 적 없는 캐릭터 — 창 시작은 "지금 - 30일"이 된다.
         ReflectionTestUtils.setField(character, "createdAt", LocalDateTime.now().minusDays(100));
         lenient().when(characterRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(character));
@@ -183,8 +184,10 @@ class ReportServiceTest {
 
     // ── 채팅 응답 신고 ──
 
-    private ChatRoom room() {
-        return ChatRoom.builder().id(5L).user(reporter).character(character).title("여우").build();
+    private ChatRoom room(Long id, User user) {
+        ChatRoom r = ChatRoom.builder().user(user).character(character).title("여우").build();
+        ReflectionTestUtils.setField(r, "id", id);
+        return r;
     }
 
     private Message message(Long id, ChatRoom room, MessageRole role, String content) {
@@ -196,7 +199,7 @@ class ReportServiceTest {
     @Test
     @DisplayName("채팅 신고는 MINOR여도 캐릭터를 숨기지 않고, 앞 사용자 메시지와 응답을 스냅샷으로 남긴다")
     void chat_report_never_hides() {
-        ChatRoom room = room();
+        ChatRoom room = room(5L, reporter);
         when(chatRoomService.getOwnedChatRoomWithDetails("reporter", 5L)).thenReturn(room);
         when(messageRepository.findById(42L)).thenReturn(Optional.of(message(42L, room, MessageRole.ASSISTANT, "응답")));
         when(messageRepository.findFirstByChatRoomIdAndIdLessThanAndRoleOrderByIdDesc(5L, 42L, MessageRole.USER))
@@ -216,7 +219,7 @@ class ReportServiceTest {
     @Test
     @DisplayName("사용자 메시지는 신고할 수 없다")
     void user_message_rejected() {
-        ChatRoom room = room();
+        ChatRoom room = room(5L, reporter);
         when(chatRoomService.getOwnedChatRoomWithDetails("reporter", 5L)).thenReturn(room);
         when(messageRepository.findById(41L)).thenReturn(Optional.of(message(41L, room, MessageRole.USER, "질문")));
 
@@ -228,8 +231,8 @@ class ReportServiceTest {
     @Test
     @DisplayName("다른 방의 메시지는 신고할 수 없다")
     void other_room_message_rejected() {
-        ChatRoom mine = room();
-        ChatRoom other = ChatRoom.builder().id(6L).user(owner).character(character).title("x").build();
+        ChatRoom mine = room(5L, reporter);
+        ChatRoom other = room(6L, owner);
         when(chatRoomService.getOwnedChatRoomWithDetails("reporter", 5L)).thenReturn(mine);
         when(messageRepository.findById(99L)).thenReturn(Optional.of(message(99L, other, MessageRole.ASSISTANT, "남의 응답")));
 

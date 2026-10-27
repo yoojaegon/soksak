@@ -35,8 +35,7 @@ public class UserPersona extends BaseTimeEntity {
     private boolean isDefault;
 
     @Builder
-    public UserPersona(Long id, User user, String name, String persona, boolean isDefault) {
-        this.id = id;
+    public UserPersona(User user, String name, String persona, boolean isDefault) {
         this.user = user;
         this.name = name;
         this.persona = persona;

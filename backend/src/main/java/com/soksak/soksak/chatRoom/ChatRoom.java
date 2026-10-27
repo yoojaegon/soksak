@@ -50,8 +50,7 @@ public class ChatRoom extends BaseTimeEntity {
     private ThinkingLevel thinkingLevel;
 
     @Builder
-    public ChatRoom(Long id, User user, ChatCharacter character, String title) {
-        this.id = id;
+    public ChatRoom(User user, ChatCharacter character, String title) {
         this.user = user;
         this.character = character;
         this.title = title;

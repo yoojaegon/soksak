@@ -67,9 +67,8 @@ public class ChatCharacter extends BaseTimeEntity {
     private Set<Genre> tags = new HashSet<>();
 
     @Builder
-    public ChatCharacter(Long id, User user, String name, String description,
+    public ChatCharacter(User user, String name, String description,
                          String persona, String greeting, String imageUrl, Set<Genre> tags) {
-        this.id = id;
         this.user = user;
         this.name = name;
         this.description = description;
