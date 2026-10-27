@@ -19,9 +19,6 @@ public interface CharacterRepository extends JpaRepository<ChatCharacter, Long> 
     @Query("select c from ChatCharacter c join fetch c.user u where u.loginId = :loginId")
     List<ChatCharacter> findByUser_LoginId(@Param("loginId") String loginId);
 
-    @EntityGraph(attributePaths = "user")
-    Page<ChatCharacter> findAll(Pageable pageable);
-
     // 신고 판정용 행 잠금 — 같은 캐릭터의 신고를 줄 세워, 동시에 들어온 신고끼리 서로를 못 보고
     // 둘 다 기준 미달로 끝나는 경쟁을 막는다.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
