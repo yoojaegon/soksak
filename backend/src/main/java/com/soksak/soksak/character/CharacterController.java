@@ -28,9 +28,8 @@ public class CharacterController {
     public ResponseEntity<CharacterResponse> createCharacter(
             Authentication authentication,
             @Valid @RequestBody CreateCharacterRequest request) {
-        ChatCharacter chatCharacter = characterService.createCharacter(authentication.getName(), request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(CharacterResponse.from(chatCharacter));
+                .body(characterService.createCharacter(authentication.getName(), request));
     }
 
     @GetMapping("/{id}")

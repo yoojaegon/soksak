@@ -29,7 +29,7 @@ public class CharacterService {
     private final ChatRoomRepository chatRoomRepository;
 
     @Transactional
-    public ChatCharacter createCharacter(String loginId, CreateCharacterRequest request) {
+    public CharacterResponse createCharacter(String loginId, CreateCharacterRequest request) {
         User user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
@@ -42,7 +42,7 @@ public class CharacterService {
                 .imageUrl(normalizeImageUrl(request.imageUrl()))
                 .tags(request.tags())
                 .build();
-        return characterRepository.save(chatCharacter);
+        return CharacterResponse.from(characterRepository.save(chatCharacter));
     }
 
     @Transactional(readOnly = true)
