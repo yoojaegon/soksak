@@ -55,9 +55,8 @@ public class CharacterService {
         return CharacterResponse.from(chatCharacter);
     }
 
-    // 숨겨진 캐릭터는 제작자와 이미 방이 있는 사람만 본다(비로그인이면 loginId가 null).
+    // 숨겨진 캐릭터는 제작자와 이미 방이 있는 사람만 본다.
     private boolean canSeeHidden(ChatCharacter character, String loginId) {
-        if (loginId == null) return false;
         return character.getUser().getLoginId().equals(loginId)
                 || chatRoomRepository.existsByUser_LoginIdAndCharacter_Id(loginId, character.getId());
     }

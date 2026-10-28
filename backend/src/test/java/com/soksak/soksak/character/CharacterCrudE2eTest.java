@@ -103,6 +103,17 @@ class CharacterCrudE2eTest {
     // ---------- READ ----------
 
     @Test
+    @DisplayName("카탈로그 말고는 토큰 없이 조회하면 401을 반환한다")
+    void read_without_token_returns_401_except_catalog() throws Exception {
+        long id = createCharacter(ownerToken, "릴리", "d", "p");
+
+        mockMvc.perform(get("/characters")).andExpect(status().isOk());
+        mockMvc.perform(get("/characters/{id}", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/characters/me")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/characters/liked")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("단건 조회는 200과 캐릭터를 반환한다")
     void get_one_returns_200() throws Exception {
         long id = createCharacter(ownerToken, "릴리", "d", "p");

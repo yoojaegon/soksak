@@ -59,10 +59,9 @@ public class SecurityConfig {
                     .requestMatchers("/", "/index.html", "/auth/**", "/error").permitAll()
                     // 회원가입(POST /users)만 공개한다. HttpMethod를 빼면 /users의 다른 요청까지 열린다.
                     .requestMatchers(HttpMethod.POST, "/users").permitAll()
-                    // 내 캐릭터 목록은 로그인 필요. 아래 /characters/* 규칙에도 걸리는 경로라 반드시 그보다 위에 둔다.
-                    .requestMatchers(HttpMethod.GET, "/characters/me").authenticated()
-                    // 캐릭터 목록과 상세는 로그인 없이도 볼 수 있다.
-                    .requestMatchers(HttpMethod.GET, "/characters", "/characters/*").permitAll()
+                    // 캐릭터 카탈로그만 로그인 없이 볼 수 있다.
+                    // /characters/*로 넓히면 /characters/me, /characters/liked 같은 내 정보 경로까지 공개로 열린다.
+                    .requestMatchers(HttpMethod.GET, "/characters").permitAll()
                     // 업로드된 이미지 보기는 공개한다. 비로그인 상태의 캐릭터 목록에도 이미지가 떠야 해서.
                     // 올리는 건(POST /uploads/images) 아래 anyRequest 규칙에 따라 로그인이 필요하다.
                     .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
