@@ -54,7 +54,7 @@ export default function CharacterEditPage() {
       <div className="page-head">
         <div>
           <Link to="/my-characters" className="back-link">← 내 캐릭터</Link>
-          <h1>{character.characterName}</h1>
+          <h1>{character.name}</h1>
         </div>
       </div>
 
@@ -77,7 +77,7 @@ export default function CharacterEditPage() {
         <CharacterForm
           key={id}
           initial={{
-            name: character.characterName,
+            name: character.name,
             description: character.description ?? '',
             tags: character.tags ?? [],
             persona: character.persona ?? '',

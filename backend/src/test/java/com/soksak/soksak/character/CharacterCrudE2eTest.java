@@ -74,7 +74,7 @@ class CharacterCrudE2eTest {
                         .content(json(Map.of("name", "릴리", "description", "상냥한 마법사", "persona", "다정하다",
                                 "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.characterName").value("릴리"))
+                .andExpect(jsonPath("$.name").value("릴리"))
                 .andExpect(jsonPath("$.persona").value("다정하다"))
                 .andExpect(jsonPath("$.userName").value("주인장"))
                 .andExpect(jsonPath("$.id").isNumber());
@@ -122,7 +122,7 @@ class CharacterCrudE2eTest {
                         .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value((int) id))
-                .andExpect(jsonPath("$.characterName").value("릴리"));
+                .andExpect(jsonPath("$.name").value("릴리"));
     }
 
     @Test
@@ -139,7 +139,7 @@ class CharacterCrudE2eTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.page.totalElements").value(3))
-                .andExpect(jsonPath("$.content[0].characterName").value("내캐릭3"))
+                .andExpect(jsonPath("$.content[0].name").value("내캐릭3"))
                 .andExpect(jsonPath("$.content[*].userName", org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("주인장"))));
     }
 
@@ -183,7 +183,7 @@ class CharacterCrudE2eTest {
                         .content(json(Map.of("name", "바뀐이름", "description", "바뀐설명", "persona", "바뀐페르소나",
                                 "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.characterName").value("바뀐이름"));
+                .andExpect(jsonPath("$.name").value("바뀐이름"));
 
         // dirty checking으로 실제 반영됐는지 DB에서 확인
         ChatCharacter saved = characterRepository.findById(id).orElseThrow();

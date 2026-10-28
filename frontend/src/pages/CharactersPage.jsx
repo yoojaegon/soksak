@@ -265,11 +265,11 @@ export default function CharactersPage() {
               <div className={`wp-art wp-g${(i % 8) + 1}`}>
                 {(c.likeCount ?? 0) >= 1000 && <span className="wp-badge hot">인기</span>}
                 <CharacterImage src={c.imageUrl} className="wp-img" loading="lazy">
-                  <span className="wp-mono" aria-hidden="true">{c.characterName?.[0] ?? '?'}</span>
+                  <span className="wp-mono" aria-hidden="true">{c.name?.[0] ?? '?'}</span>
                 </CharacterImage>
               </div>
               <div className="wp-body">
-                <h3 className="wp-name">{c.characterName}</h3>
+                <h3 className="wp-name">{c.name}</h3>
                 <p className="wp-line">{c.description || '소개가 없습니다.'}</p>
                 {(c.tags ?? []).length > 0 && (
                   <div className="card-tags">

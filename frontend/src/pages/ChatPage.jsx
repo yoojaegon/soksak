@@ -515,10 +515,10 @@ function ChatRoom({ roomId }) {
           <header className="chat-head">
             {/* 아바타는 캐릭터 이미지가 붙기 전까지 이름 첫 글자 모노그램 */}
             <div className="chat-avatar" aria-hidden="true">
-              <CharacterImage src={character.imageUrl}>{character.characterName?.[0] ?? '?'}</CharacterImage>
+              <CharacterImage src={character.imageUrl}>{character.name?.[0] ?? '?'}</CharacterImage>
             </div>
             <div className="chat-head-main">
-              <h1 className="ch-name">{character.characterName}</h1>
+              <h1 className="ch-name">{character.name}</h1>
               <div className="chat-meta">
                 {character.userName && <span className="cap">@{character.userName}</span>}
                 {(model ?? defaultModel) && (
@@ -577,9 +577,9 @@ function ChatRoom({ roomId }) {
           // 아직 한 마디도 없을 땐 캐릭터 소개를 대화 자리에 크게 보여준다(헤더는 한 줄로 줄었으므로).
           <div className="chat-intro">
             <div className="chat-avatar" aria-hidden="true">
-              <CharacterImage src={character?.imageUrl}>{character?.characterName?.[0] ?? '?'}</CharacterImage>
+              <CharacterImage src={character?.imageUrl}>{character?.name?.[0] ?? '?'}</CharacterImage>
             </div>
-            <h2>{character?.characterName ?? '캐릭터'}</h2>
+            <h2>{character?.name ?? '캐릭터'}</h2>
             {character?.description && <p>{character.description}</p>}
             <p className="chat-intro-cta">첫 메시지를 보내 대화를 시작해보세요.</p>
           </div>
@@ -587,7 +587,7 @@ function ChatRoom({ roomId }) {
           messages.map((m, idx) => {
             const isTemp = typeof m.id === 'string' && m.id.startsWith('temp-')
             const side = m.role === 'USER' ? 'me' : 'them'
-            const who = m.role === 'USER' ? '나' : character?.characterName ?? '캐릭터'
+            const who = m.role === 'USER' ? '나' : character?.name ?? '캐릭터'
             // 내 마지막 메시지 아래에만 재생성 노출 (응답 대기 중엔 숨김)
             const showRegenerate = idx === lastUserIdx && !isTemp && !sending
 

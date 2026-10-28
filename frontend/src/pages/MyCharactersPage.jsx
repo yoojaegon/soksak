@@ -91,7 +91,7 @@ export default function MyCharactersPage() {
     setMenuId(null)
     const ok = await confirm({
       title: '이 캐릭터를 삭제할까요?',
-      message: `'${c.characterName}'와(과) 나눈 대화도 함께 사라질 수 있어요. 되돌릴 수 없습니다.`,
+      message: `'${c.name}'와(과) 나눈 대화도 함께 사라질 수 있어요. 되돌릴 수 없습니다.`,
       confirmLabel: '삭제',
       danger: true,
       // ⋮ 메뉴를 닫으면서 눌렀던 버튼이 사라진다 → 취소해도 돌아갈 곳이 없다.
@@ -162,9 +162,9 @@ export default function MyCharactersPage() {
               </div>
 
               <div className="char-avatar" aria-hidden="true">
-                <CharacterImage src={c.imageUrl}>{c.characterName?.[0] ?? '?'}</CharacterImage>
+                <CharacterImage src={c.imageUrl}>{c.name?.[0] ?? '?'}</CharacterImage>
               </div>
-              <h3>{c.characterName}</h3>
+              <h3>{c.name}</h3>
               {/* 신고가 모여 자동으로 숨겨진 상태 — 카탈로그·새 대화에서 빠져 있다 */}
               {c.hidden && (
                 <span className="badge hidden-badge" title="신고가 접수되어 검토 중이에요. 그동안 목록에 보이지 않고 새 대화를 시작할 수 없어요.">

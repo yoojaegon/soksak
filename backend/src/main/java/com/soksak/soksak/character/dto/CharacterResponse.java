@@ -6,7 +6,7 @@ import java.util.List;
 
 public record CharacterResponse (
         Long id,
-        String characterName,
+        String name,
         String description,
         String persona,
         String greeting,

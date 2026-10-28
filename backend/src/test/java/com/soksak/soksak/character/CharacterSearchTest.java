@@ -41,7 +41,7 @@ class CharacterSearchTest {
                 characterService.getCharacters(null, Genre.ROMANCE, PageRequest.of(0, 20));
 
         assertThat(page.getContent())
-                .extracting(CharacterResponse::characterName)
+                .extracting(CharacterResponse::name)
                 .contains("로맨스캐릭")
                 .doesNotContain("판타지캐릭");
     }
@@ -58,7 +58,7 @@ class CharacterSearchTest {
                 characterService.getCharacters("100%", null, PageRequest.of(0, 20));
 
         assertThat(page.getContent())
-                .extracting(CharacterResponse::characterName)
+                .extracting(CharacterResponse::name)
                 .contains("100%세일")
                 .doesNotContain("1004번");
     }
