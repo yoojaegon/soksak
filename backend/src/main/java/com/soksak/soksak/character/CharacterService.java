@@ -16,7 +16,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Set;
 
 @Service
@@ -64,22 +63,21 @@ public class CharacterService {
     }
 
     @Transactional(readOnly = true)
-    public List<CharacterResponse> getMyCharacters(String loginId) {
-        return characterRepository.findByUser_LoginId(loginId).stream()
-                .map(CharacterResponse::from)
-                .toList();
+    public Page<CharacterResponse> getMyCharacters(String loginId, Pageable pageable) {
+        return characterRepository.findByUser_LoginId(loginId, sortablePage(pageable))
+                .map(CharacterResponse::from);
     }
 
     @Transactional(readOnly = true)
     public Page<CharacterResponse> getCharacters(String q, Genre tag, Pageable pageable) {
         String keyword = (q == null || q.isBlank()) ? null : escapeLike(q);
-        return characterRepository.search(keyword, tag, catalogPage(pageable))
+        return characterRepository.search(keyword, tag, sortablePage(pageable))
                 .map(CharacterResponse::from);
     }
 
     // 정렬은 SORTABLE에 있는 필드만 받는다. 나머지는 쿼리에 그대로 붙어 500이 나거나 엉뚱한 필드로 정렬된다.
     // 정렬 값이 같은 캐릭터끼리는 순서가 정해지지 않아 페이지를 넘길 때 겹치거나 빠지므로 id로 한 번 더 정렬한다.
-    private static Pageable catalogPage(Pageable pageable) {
+    private static Pageable sortablePage(Pageable pageable) {
         for (Sort.Order order : pageable.getSort()) {
             if (!SORTABLE.contains(order.getProperty())) {
                 throw new BusinessException(ErrorCode.INVALID_INPUT);

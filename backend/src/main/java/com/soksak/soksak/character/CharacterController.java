@@ -41,8 +41,10 @@ public class CharacterController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<List<CharacterResponse>> getMyCharacters(Authentication authentication) {
-        return ResponseEntity.ok(characterService.getMyCharacters(authentication.getName()));
+    public ResponseEntity<Page<CharacterResponse>> getMyCharacters(
+            Authentication authentication,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(characterService.getMyCharacters(authentication.getName(), pageable));
     }
 
     @GetMapping("/liked")

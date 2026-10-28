@@ -115,17 +115,31 @@ class CharacterCrudE2eTest {
     }
 
     @Test
-    @DisplayName("내 목록 조회는 본인 캐릭터만 반환한다")
+    @DisplayName("내 목록 조회는 본인 캐릭터만 최신순으로 페이징해 반환한다")
     void get_my_characters_returns_only_mine() throws Exception {
         createCharacter(ownerToken, "내캐릭1", "d", "p");
         createCharacter(ownerToken, "내캐릭2", "d", "p");
+        createCharacter(ownerToken, "내캐릭3", "d", "p");
         createCharacter(otherToken, "남의캐릭", "d", "p");
 
         mockMvc.perform(get("/characters/me")
+                        .param("size", "2")
                         .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[*].userName", org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("주인장"))));
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.page.totalElements").value(3))
+                .andExpect(jsonPath("$.content[0].characterName").value("내캐릭3"))
+                .andExpect(jsonPath("$.content[*].userName", org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("주인장"))));
+    }
+
+    @Test
+    @DisplayName("내 목록도 허용하지 않은 필드로는 정렬할 수 없다")
+    void get_my_characters_rejects_unknown_sort() throws Exception {
+        mockMvc.perform(get("/characters/me")
+                        .param("sort", "user.password,asc")
+                        .header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
     }
 
     @Test

@@ -589,6 +589,13 @@ button:disabled {
   box-shadow: 0 2px 0 var(--edge);
 }
 
+/* 목록 아래 "더 보기" 버튼 */
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
 /* 카탈로그 상단 검색·정렬 툴바 */
 .catalog-toolbar {
   display: flex;

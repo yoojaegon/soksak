@@ -11,13 +11,15 @@ import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface CharacterRepository extends JpaRepository<ChatCharacter, Long> {
     // user를 한 번의 join fetch로 같이 로딩 (where 조건도 같은 join 재사용 → users join 1번)
-    @Query("select c from ChatCharacter c join fetch c.user u where u.loginId = :loginId")
-    List<ChatCharacter> findByUser_LoginId(@Param("loginId") String loginId);
+    // join fetch가 있는 쿼리는 count로 바꿀 수 없어서 countQuery를 따로 적는다.
+    // 숨겨진 캐릭터도 포함한다. 제작자는 "검토 중" 배지로 상태를 봐야 한다.
+    @Query(value = "select c from ChatCharacter c join fetch c.user u where u.loginId = :loginId",
+            countQuery = "select count(c) from ChatCharacter c where c.user.loginId = :loginId")
+    Page<ChatCharacter> findByUser_LoginId(@Param("loginId") String loginId, Pageable pageable);
 
     // 신고 판정용 행 잠금 — 같은 캐릭터의 신고를 줄 세워, 동시에 들어온 신고끼리 서로를 못 보고
     // 둘 다 기준 미달로 끝나는 경쟁을 막는다.

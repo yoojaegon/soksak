@@ -7,12 +7,7 @@ import { useOutsideClose } from '../useOutsideClose.js'
 import { useAlert } from '../confirm.jsx'
 import CharacterImage from '../components/CharacterImage.jsx'
 import ReportDialog from '../components/ReportDialog.jsx'
-
-const SORT_OPTIONS = [
-  { value: 'createdAt,desc', label: '최신순' },
-  { value: 'likeCount,desc', label: '인기순' },
-  { value: 'chatCount,desc', label: '대화 많은순' },
-]
+import { SORT_OPTIONS } from '../characterSort.js'
 
 export default function CharactersPage() {
   const navigate = useNavigate()

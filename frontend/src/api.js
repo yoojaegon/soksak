@@ -283,8 +283,9 @@ export const api = {
     return request(`/characters?${params.toString()}`)
   },
   getCharacter: (id) => request(`/characters/${id}`),
-  // 내가 만든 캐릭터 목록 (소유 판별·로어북 진입에 사용)
-  getMyCharacters: () => request('/characters/me'),
+  // 내가 만든 캐릭터 목록. 카탈로그와 같은 Page 형태라 목록은 page.content에 있다.
+  getMyCharacters: ({ page = 0, size = 20, sort = 'createdAt,desc' } = {}) =>
+    request(`/characters/me?${new URLSearchParams({ page, size, sort }).toString()}`),
   // 이미지 업로드 — 파일을 보내면 저장된 주소({ url })를 돌려준다.
   // 캐릭터 저장과는 별개라, 업로드만 하고 저장을 취소하면 파일은 서버에 남는다(고아 파일).
   uploadImage: (file) => {
