@@ -18,15 +18,13 @@ export default function CharacterEditPage() {
 
   useEffect(() => {
     let alive = true
-    // 캐릭터 정보와 함께 '내 캐릭터' 목록을 받아, 이 캐릭터가 내 것인지 확인한다.
-    // 소유 목록 조회가 실패하면(mine === null) 편집을 막지 않는다. 저장은 서버가 소유자만 허용.
-    Promise.all([api.getCharacter(id), api.getMyCharacters().catch(() => null)])
-      .then(([c, mine]) => {
+    // 캐릭터 정보와 함께 내 계정을 받아, 제작자 id가 나인지로 소유를 확인한다.
+    // 내 계정 조회가 실패하면(me === null) 편집을 막지 않는다. 저장은 서버가 소유자만 허용.
+    Promise.all([api.getCharacter(id), api.getMe().catch(() => null)])
+      .then(([c, me]) => {
         if (!alive) return
         setCharacter(c)
-        if (Array.isArray(mine)) {
-          setNotOwned(!mine.some((m) => String(m.id) === String(id)))
-        }
+        if (me) setNotOwned(c.userId !== me.id)
       })
       .catch((err) => {
         if (alive) setError(err.message || '캐릭터를 불러오지 못했습니다.')
