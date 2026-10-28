@@ -172,6 +172,10 @@ export default function MyCharactersPage() {
                 </span>
               )}
               <p className="muted">{c.description || '소개가 없습니다.'}</p>
+              <div className="card-stats">
+                <span className="card-stat" title="좋아요">♥ {(c.likeCount ?? 0).toLocaleString()}</span>
+                <span className="card-stat" title="대화수">💬 {(c.chatCount ?? 0).toLocaleString()}</span>
+              </div>
               {/* 숨겨진 캐릭터는 제작자도 새 방을 못 연다(서버 CHARACTER_HIDDEN) — 눌러봐야 에러뿐이라 막아 둔다 */}
               <button onClick={() => startChat(c.id)} disabled={c.hidden || startingId === c.id}>
                 {startingId === c.id ? '입장 중…' : '대화하기'}
