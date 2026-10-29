@@ -36,6 +36,18 @@ public class UserService {
 
     @Transactional
     public User createUser(CreateUserRequest request) {
+        // unique 제약에만 맡기면 어떤 값이 겹쳤는지 모르는 409가 되므로 저장 전에 하나씩 확인한다.
+        // 동시에 같은 값으로 가입하면 둘 다 여기를 통과할 수 있는데, 그때는 unique 제약이 막는다.
+        if (userRepository.existsByLoginId(request.loginId())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_LOGIN_ID);
+        }
+        if (userRepository.existsByEmail(request.email())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
+        if (userRepository.existsByNickname(request.nickname())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+        }
+
         User user = User.builder()
                 .email(request.email())
                 .loginId(request.loginId())
