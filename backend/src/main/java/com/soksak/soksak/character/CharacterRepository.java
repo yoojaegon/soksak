@@ -14,20 +14,28 @@ import jakarta.persistence.LockModeType;
 import java.util.Optional;
 
 public interface CharacterRepository extends JpaRepository<ChatCharacter, Long> {
-    // user를 한 번의 join fetch로 같이 로딩 (where 조건도 같은 join 재사용 → users join 1번)
-    // join fetch가 있는 쿼리는 count로 바꿀 수 없어서 countQuery를 따로 적는다.
-    // 숨겨진 캐릭터도 포함한다. 제작자는 "검토 중" 배지로 상태를 봐야 한다.
+    /**
+     * 내 캐릭터 목록. user를 join fetch로 같이 읽고, where 조건도 같은 join을 써서 users join은 한 번이다.
+     * join fetch가 있는 쿼리는 count 쿼리로 바꿀 수 없어서 countQuery를 따로 적는다.
+     * 숨겨진 캐릭터도 포함한다. 제작자가 "검토 중" 배지로 상태를 봐야 하기 때문이다.
+     */
     @Query(value = "select c from ChatCharacter c join fetch c.user u where u.loginId = :loginId",
             countQuery = "select count(c) from ChatCharacter c where c.user.loginId = :loginId")
     Page<ChatCharacter> findByUser_LoginId(@Param("loginId") String loginId, Pageable pageable);
 
-    // 신고 판정용 행 잠금 — 같은 캐릭터의 신고를 줄 세워, 동시에 들어온 신고끼리 서로를 못 보고
-    // 둘 다 기준 미달로 끝나는 경쟁을 막는다.
+    /**
+     * 신고 판정용 행 잠금. 같은 캐릭터에 들어온 신고를 한 줄로 세워서,
+     * 동시에 들어온 신고끼리 서로를 못 보고 둘 다 기준 미달로 끝나는 일을 막는다.
+     * join fetch를 쓰지 않는 건 FOR UPDATE가 제작자의 users 행까지 잠그기 때문이다.
+     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select c from ChatCharacter c where c.id = :id")   // join fetch면 FOR UPDATE가 제작자 users 행까지 잠근다
+    @Query("select c from ChatCharacter c where c.id = :id")
     Optional<ChatCharacter> findByIdForUpdate(@Param("id") Long id);
 
-    // 카운터는 동시 갱신 시 유실되지 않도록 엔티티 읽고-수정-쓰기 대신 DB 원자 연산으로 증감한다.
+    /**
+     * 좋아요 수와 대화 수는 엔티티를 읽고 고쳐 쓰지 않고 UPDATE 한 번으로 더하고 뺀다.
+     * 그래야 동시에 갱신해도 값이 빠지지 않는다.
+     */
     @Modifying
     @Query("update ChatCharacter c set c.likeCount = c.likeCount + 1 where c.id = :id")
     void incrementLikeCount(@Param("id") Long id);
@@ -40,10 +48,12 @@ public interface CharacterRepository extends JpaRepository<ChatCharacter, Long> 
     @Query("update ChatCharacter c set c.chatCount = c.chatCount + 1 where c.id = :id")
     void incrementChatCount(@Param("id") Long id);
 
-    // q가 null일 때 Postgres가 파라미터를 bytea로 추론해 lower(bytea) 에러가 나므로
-    // concat 안의 :q는 cast(:q as string)으로 타입을 명시해 준다.
-    // :q 안의 LIKE 메타문자(%,_,\)는 서비스에서 '\'로 이스케이프해 넘기므로 escape '\'로 리터럴 취급한다.
-    // 숨겨진(신고 누적) 캐릭터는 카탈로그·검색에서 뺀다.
+    /**
+     * 카탈로그와 검색. 신고가 모여 숨겨진 캐릭터는 뺀다.
+     * q가 null이면 Postgres가 파라미터 타입을 bytea로 추론해 lower()를 쓸 수 없어서,
+     * concat 안의 :q는 cast(:q as string)으로 타입을 정해 준다.
+     * :q의 LIKE 메타문자(%, _, \)는 서비스에서 이스케이프해 넘기고, 쿼리는 escape '\'로 받는다.
+     */
     @EntityGraph(attributePaths = "user")
     @Query("select c from ChatCharacter c where c.hidden = false and (:q is null " +
             "or lower(c.name) like lower(concat('%', cast(:q as string), '%')) escape '\\' " +

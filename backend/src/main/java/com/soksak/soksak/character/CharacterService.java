@@ -21,7 +21,7 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class CharacterService {
-    // 화면의 정렬 옵션(최신순·인기순·대화 많은순)과 같은 목록
+    /** 화면의 정렬 옵션(최신순, 인기순, 대화 많은순)과 같은 목록. */
     private static final Set<String> SORTABLE = Set.of("createdAt", "likeCount", "chatCount");
 
     private final CharacterRepository characterRepository;
@@ -55,7 +55,7 @@ public class CharacterService {
         return CharacterResponse.from(chatCharacter);
     }
 
-    // 숨겨진 캐릭터는 제작자와 이미 방이 있는 사람만 본다.
+    /** 숨겨진 캐릭터는 제작자와 이미 대화방이 있는 사람만 본다. */
     private boolean canSeeHidden(ChatCharacter character, String loginId) {
         return character.getUser().getLoginId().equals(loginId)
                 || chatRoomRepository.existsByUser_LoginIdAndCharacter_Id(loginId, character.getId());
@@ -74,8 +74,11 @@ public class CharacterService {
                 .map(CharacterResponse::from);
     }
 
-    // 정렬은 SORTABLE에 있는 필드만 받는다. 나머지는 쿼리에 그대로 붙어 500이 나거나 엉뚱한 필드로 정렬된다.
-    // 정렬 값이 같은 캐릭터끼리는 순서가 정해지지 않아 페이지를 넘길 때 겹치거나 빠지므로 id로 한 번 더 정렬한다.
+    /**
+     * 정렬은 SORTABLE에 있는 필드만 받는다. 들어온 값이 쿼리에 그대로 붙기 때문이다.
+     * 정렬 값이 같은 캐릭터끼리는 순서가 정해지지 않으니 id로 한 번 더 정렬해서
+     * 페이지를 넘길 때 겹치거나 빠지지 않게 한다.
+     */
     private static Pageable sortablePage(Pageable pageable) {
         for (Sort.Order order : pageable.getSort()) {
             if (!SORTABLE.contains(order.getProperty())) {
@@ -86,14 +89,18 @@ public class CharacterService {
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 
-    // LIKE 메타문자(%,_)와 이스케이프 문자(\) 자체를 리터럴로 다루도록 '\'로 이스케이프한다.
-    // (쿼리의 escape '\'와 짝. \를 먼저 치환해야 뒤에 붙는 \가 다시 이스케이프되지 않는다.)
+    /**
+     * LIKE 메타문자(%, _)와 이스케이프 문자(\)를 글자 그대로 찾도록 앞에 \를 붙인다.
+     * 쿼리의 escape '\'와 짝이다. \를 먼저 바꿔야 뒤에서 붙인 \가 다시 바뀌지 않는다.
+     */
     private static String escapeLike(String raw) {
         return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
-    // 이미지는 선택 입력이라 폼에서 미입력이 빈 문자열('')로 올라온다.
-    // 저장 전에 null로 통일해 두지 않으면 DB에 ''과 null이 섞여 "이미지 없음" 판정이 경로마다 갈린다.
+    /**
+     * 이미지는 선택 입력이라 폼에서 비워 두면 빈 문자열로 온다.
+     * 저장 전에 null로 맞춰서 "이미지 없음"을 null 하나로 판단하게 한다.
+     */
     private static String normalizeImageUrl(String raw) {
         return (raw == null || raw.isBlank()) ? null : raw.strip();
     }

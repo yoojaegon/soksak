@@ -41,21 +41,29 @@ public class ChatCharacter extends BaseTimeEntity {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    // 좋아요·대화 수를 매번 집계하지 않도록 캐릭터 행에 들고 있는 비정규화 카운터.
-    // 증감은 동시성 안전을 위해 CharacterRepository의 원자적 update 쿼리로만 한다.
+    /**
+     * 좋아요 수와 대화 수를 매번 세지 않으려고 캐릭터 행에 들고 있는 카운터.
+     * 증감은 CharacterRepository의 UPDATE 쿼리로만 한다. 동시에 갱신해도 값이 빠지지 않게 하기 위해서다.
+     */
     @Column(name = "like_count", nullable = false)
     private int likeCount;
 
     @Column(name = "chat_count", nullable = false)
     private int chatCount;
 
-    // 신고가 모여 자동으로 숨겨진 상태(카탈로그·새 대화에서 빠진다). 해제는 운영자가 DB에서만 한다 — unhide()를 두지 않는 이유.
-    // 기존 행이 있는 테이블에 붙이므로 기본값을 DB에 박는다(ddl-auto=update는 기본값 없는 NOT NULL을 못 붙인다).
+    /**
+     * 신고가 모여 자동으로 숨겨진 상태. 숨겨지면 카탈로그와 새 대화에서 빠진다.
+     * 해제는 운영자가 DB에서만 하므로 unhide()는 두지 않는다.
+     * 기본값은 columnDefinition으로 DB에 둔다. ddl-auto=update는 행이 있는 테이블에 기본값 없는 NOT NULL 컬럼을 붙이지 못한다.
+     */
     @Column(name = "hidden", nullable = false, columnDefinition = "boolean not null default false")
     private boolean hidden;
 
-    // 제작자가 내용을 마지막으로 고친 시각(null = 고친 적 없음). 이보다 앞선 신고는 숨김 판정에서 뺀다 —
-    // 고쳤으면 다시 신고가 모여야 숨긴다. updatedAt은 hide() 같은 내부 변경에도 바뀌어서 따로 둔다.
+    /**
+     * 제작자가 내용을 마지막으로 고친 시각. 고친 적이 없으면 null이다.
+     * 이 시각보다 앞선 신고는 숨김 판정에서 빼서, 고친 뒤에는 신고가 다시 모여야 숨겨진다.
+     * updatedAt은 hide() 같은 내부 변경에도 바뀌니 따로 둔다.
+     */
     @Column(name = "content_updated_at")
     private LocalDateTime contentUpdatedAt;
 
@@ -89,7 +97,7 @@ public class ChatCharacter extends BaseTimeEntity {
         this.imageUrl = imageUrl;
         this.tags.clear();
         if (tags != null) this.tags.addAll(tags);
-        this.contentUpdatedAt = LocalDateTime.now();   // 숨김은 그대로 둔다 — 고쳐서 스스로 푸는 우회로를 막으려고.
+        this.contentUpdatedAt = LocalDateTime.now();   // 숨김은 풀지 않는다. 제작자가 내용을 고치는 것만으로 숨김이 풀리면 안 된다.
     }
 
     public void hide() {
