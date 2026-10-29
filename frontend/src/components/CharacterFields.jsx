@@ -37,7 +37,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, onSetFiel
     <>
       <label>
         <span className="field-caption">이름 <span className="req">*</span></span>
-        <input name="name" value={form.name} onChange={onChange} placeholder="예: 하루" />
+        <input name="name" value={form.name} onChange={onChange} maxLength={30} placeholder="예: 하루" />
         {errors.name && <p className="field-error">! {errors.name}</p>}
       </label>
       <label>
@@ -46,6 +46,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, onSetFiel
           name="description"
           value={form.description}
           onChange={onChange}
+          maxLength={100}
           placeholder="목록에 보일 한 줄 소개"
         />
       </label>
@@ -90,6 +91,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, onSetFiel
           value={form.persona}
           onChange={onChange}
           rows={5}
+          maxLength={1000}
           placeholder="예: 너는 항상 밝고 친근하게 반말로 대답하는 친구야."
         />
         {errors.persona && <p className="field-error">! {errors.persona}</p>}
@@ -101,6 +103,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, onSetFiel
           value={form.greeting}
           onChange={onChange}
           rows={3}
+          maxLength={500}
           placeholder="예: 안녕! 드디어 만났네. 오늘은 무슨 얘기를 해볼까?"
         />
         {errors.greeting && <p className="field-error">! {errors.greeting}</p>}

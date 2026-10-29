@@ -26,7 +26,7 @@ public class ChatCharacter extends BaseTimeEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "name", nullable = false, length = 20)
+    @Column(name = "name", nullable = false, length = 30)
     private String name;
 
     @Column(name = "description", length = 100)

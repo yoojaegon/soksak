@@ -92,6 +92,25 @@ class CharacterCrudE2eTest {
     }
 
     @Test
+    @DisplayName("이름은 30자까지 받고 31자면 400을 반환한다")
+    void create_name_length_limit() throws Exception {
+        mockMvc.perform(post("/characters")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("name", "가".repeat(30), "persona", "p",
+                                "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/characters")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("name", "가".repeat(31), "persona", "p",
+                                "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    @Test
     @DisplayName("토큰 없이 생성하면 401을 반환한다")
     void create_without_token_returns_401() throws Exception {
         mockMvc.perform(post("/characters")
