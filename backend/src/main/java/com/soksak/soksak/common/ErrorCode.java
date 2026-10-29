@@ -16,6 +16,8 @@ public enum ErrorCode {
     DUPLICATE_VALUE(HttpStatus.CONFLICT, "이미 사용 중인 값입니다."),
     DATA_CONSTRAINT_VIOLATION(HttpStatus.CONFLICT, "관련 데이터가 있어 처리할 수 없습니다."),
     AI_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI 응답을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 요청 방식입니다."),
+    UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 요청 형식입니다."),
 
     // 인증
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
