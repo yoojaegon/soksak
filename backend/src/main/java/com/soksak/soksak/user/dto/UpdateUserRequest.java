@@ -8,7 +8,7 @@ public record UpdateUserRequest(
         @Size(max = 20)
         String nickname
 ) {
-    // CreateUserRequest와 같은 이유로 앞뒤 공백을 뗀다.
+    // 닉네임은 앞뒤 공백을 떼고 저장한다. " foo"와 "foo"를 같은 닉네임으로 보기 위해서다.
     public UpdateUserRequest {
         if (nickname != null) nickname = nickname.strip();
     }

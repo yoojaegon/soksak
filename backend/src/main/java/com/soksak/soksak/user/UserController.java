@@ -18,7 +18,7 @@ public class UserController {
 
     private final UserService userService;
 
-    // 회원가입 = 유저 생성. 비로그인 경로라 SecurityConfig에서 POST만 열어 둔다.
+    /** 회원가입. 로그인 전에 부르는 경로라 SecurityConfig에서 POST만 열어 둔다. */
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         User user = userService.createUser(request);

@@ -21,10 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     /**
-     * 가입 보너스. 메시지 1건=1마디니 100턴이고, 비싼 모델(3마디)로만 써도 30턴은 된다.
-     * <p>
-     * ⛔ 결제는 만들지 않기로 했으므로 자동 지급은 이것 하나뿐이다. 충전 API·쿠폰·구독 주기는
-     * 만들지 말 것 — 추가 지급이 필요하면 관리자가 SQL로 넣는다(MANUAL_GRANT).
+     * 가입 보너스. 메시지 1건에 1마디라 100턴이고, 3마디짜리 모델만 써도 30턴은 된다.
+     *
+     * 결제는 만들지 않기로 해서 자동 지급은 이것 하나뿐이다.
+     * 충전 API, 쿠폰, 구독은 만들지 않는다. 추가 지급은 관리자가 SQL로 넣는다(MANUAL_GRANT).
      */
     private static final int SIGNUP_BONUS = 100;
 
