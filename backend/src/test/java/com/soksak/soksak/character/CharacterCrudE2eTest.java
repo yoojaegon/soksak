@@ -111,6 +111,17 @@ class CharacterCrudE2eTest {
     }
 
     @Test
+    @DisplayName("장르에 null이 섞여 있으면 생성은 400을 반환한다")
+    void create_with_null_tag_returns_400() throws Exception {
+        mockMvc.perform(post("/characters")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"릴리\",\"persona\":\"p\",\"greeting\":\"안녕\",\"tags\":[null]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    @Test
     @DisplayName("토큰 없이 생성하면 401을 반환한다")
     void create_without_token_returns_401() throws Exception {
         mockMvc.perform(post("/characters")
