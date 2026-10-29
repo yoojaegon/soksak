@@ -62,9 +62,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 log.error("CHECK 제약 위반 — 엔티티와 스키마가 어긋났다", e);
                 yield ErrorCode.INTERNAL_ERROR;
             }
+            // 그 밖의 위반(22001 길이 초과 등)도 사용자 잘못으로 단정할 수 없다.
+            // 입력 검증은 DTO에서 먼저 하므로 여기까지 왔다면 엔티티와 스키마가 어긋났을 가능성이 크다.
             default -> {
-                log.warn("분류되지 않은 무결성 위반 sqlState={}", sqlState, e);
-                yield ErrorCode.DUPLICATE_VALUE;
+                log.error("분류되지 않은 무결성 위반 sqlState={}", sqlState, e);
+                yield ErrorCode.INTERNAL_ERROR;
             }
         };
         return build(code, request);
