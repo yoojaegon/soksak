@@ -10,16 +10,16 @@ import jakarta.validation.constraints.Size;
 
 public record CreateUserRequest(
         @NotBlank(message = "이메일은 필수입니다.")
-        @Email
+        @Email(message = "이메일 형식이 올바르지 않습니다.")
         String email,
 
-        @NotBlank(message = "아이디를 입력해주세요")
+        @NotBlank(message = "아이디는 필수입니다.")
         @Size(min = 4, max = 20, message = "아이디는 4~20자여야 합니다.")
-        @Pattern(regexp = "^[a-z0-9]+$", message = "아이디는 영문과 숫자만 사용할 수 있습니다.")
+        @Pattern(regexp = "^[a-z0-9]+$", message = "아이디는 영문 소문자와 숫자만 사용할 수 있습니다.")
         String loginId,
 
         @NotBlank(message = "닉네임은 필수입니다.")
-        @Size(max = 20)
+        @Size(max = 20, message = "닉네임은 20자 이하여야 합니다.")
         String nickname,
 
         @NotBlank(message = "비밀번호는 필수입니다.")

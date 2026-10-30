@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../api.js'
+import { api, splitApiError } from '../api.js'
 import { useConfirm } from '../confirm.jsx'
 
 // priority(@Min 1)·alwaysOn 기본값을 한 곳에 둔다.
@@ -131,7 +131,12 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
       }
       closeForm()
     } catch (err) {
-      setError(err.message || '저장에 실패했습니다.')
+      const { fieldErrors, formError } = splitApiError(err, {
+        fields: ['title', 'content', 'priority'],
+        fallback: '저장에 실패했습니다.',
+      })
+      setFieldErrors(fieldErrors)
+      setError(formError)
     } finally {
       setSaving(false)
     }

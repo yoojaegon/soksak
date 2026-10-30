@@ -4,6 +4,9 @@ import CharacterImage from './CharacterImage.jsx'
 import { api } from '../api.js'
 import { resizeImage } from '../image.js'
 
+// 아래에서 칸 밑에 에러를 보여주는 필드들. 서버 에러를 칸 밑/버튼 위로 나눌 때(splitApiError) 쓴다.
+export const CHARACTER_ERROR_FIELDS = ['name', 'persona', 'greeting', 'tags']
+
 // 캐릭터 기본정보 입력 필드들 (이름·소개·이미지·페르소나·첫 인사말·장르).
 // 폼 상태는 부모가 들고, 여기서는 보여주기만 하는 controlled 컴포넌트.
 // onToggleTag(value): 장르 칩 토글(부모가 form.tags 배열을 갱신).

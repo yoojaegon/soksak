@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../api.js'
+import { api, splitApiError } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { useAlert } from '../confirm.jsx'
 
@@ -54,7 +54,9 @@ export default function ProfilePage() {
       // 상단바 계정 메뉴가 들고 있는 닉네임을 갱신시킨다.
       window.dispatchEvent(new Event('soksak:me-changed'))
     } catch (err) {
-      setNicknameError(err.message || '저장하지 못했습니다.')
+      // 이 폼은 버튼 위 칸이 없어서 어떤 에러든 닉네임 칸 밑에 띄운다.
+      const { fieldErrors, formError } = splitApiError(err, { fields: ['nickname'], fallback: '저장하지 못했습니다.' })
+      setNicknameError(fieldErrors.nickname || formError)
     } finally {
       setSaving(false)
     }
@@ -171,7 +173,7 @@ function PasswordDialog({ onClose, onChanged, returnFocusRef }) {
   }
 
   // 형식 규칙과 문구는 백엔드 ChangePasswordRequest(=회원가입과 같은 규칙)에 맞춘다.
-  // 서버는 형식 오류를 필드 구분 없이 INVALID_INPUT 하나로 돌려주므로 여기서 걸러야 칸을 짚어 줄 수 있다.
+  // 서버도 같은 규칙으로 검사하지만, 요청 전에 걸러 바로 칸을 짚어 준다.
   const validate = () => {
     const errs = {}
     if (!form.current) errs.current = '현재 비밀번호를 입력해주세요'
@@ -194,9 +196,13 @@ function PasswordDialog({ onClose, onChanged, returnFocusRef }) {
       await api.changePassword(form.current, form.next)
     } catch (err) {
       setSubmitting(false)
-      if (err.code === 'INVALID_CURRENT_PASSWORD') return setErrors({ current: err.message })
-      if (err.code === 'SAME_AS_CURRENT_PASSWORD') return setErrors({ next: err.message })
-      return setError(err.message || '비밀번호를 바꾸지 못했습니다.')
+      const { fieldErrors, formError } = splitApiError(err, {
+        fields: { currentPassword: 'current', newPassword: 'next' },
+        codes: { INVALID_CURRENT_PASSWORD: 'current', SAME_AS_CURRENT_PASSWORD: 'next' },
+        fallback: '비밀번호를 바꾸지 못했습니다.',
+      })
+      setErrors(fieldErrors)
+      return setError(formError)
     }
     onChanged()
   }

@@ -3,20 +3,30 @@ package com.soksak.soksak.common;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.method.ParameterValidationResult;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @Slf4j
@@ -106,6 +116,70 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return build(toErrorCode(ex, statusCode), servletWebRequest.getRequest());
     }
 
+    // @Valid가 붙은 요청 본문의 검증이 실패한 경우. 어느 필드가 왜 틀렸는지 errors에 담아 보낸다.
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        List<Violation> violations = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> new Violation(fe.getField(), fe.getCode(), fe.getDefaultMessage()))
+                .toList();
+        return build(ErrorCode.INVALID_INPUT, ((ServletWebRequest) request).getRequest(), toFieldErrorDetails(violations));
+    }
+
+    // 같은 메서드의 @PathVariable 같은 파라미터에도 제약이 붙어 있으면 본문 검증 실패도 이 예외로 온다.
+    // 위와 같은 errors 모양으로 맞춰 보낸다. 본문 필드가 아닌 파라미터는 파라미터 이름을 field로 쓴다.
+    // 반환값 검증 실패는 클라이언트 잘못이 아니라서 기본 처리(5xx)로 넘긴다.
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(HandlerMethodValidationException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        if (ex.isForReturnValue()) {
+            return super.handleHandlerMethodValidationException(ex, headers, status, request);
+        }
+        List<Violation> violations = new ArrayList<>();
+        for (ParameterValidationResult result : ex.getParameterValidationResults()) {
+            String paramName = result.getMethodParameter().getParameterName();
+            for (MessageSourceResolvable error : result.getResolvableErrors()) {
+                String field = error instanceof FieldError fe ? fe.getField() : paramName;
+                violations.add(new Violation(field, constraintName(error), error.getDefaultMessage()));
+            }
+        }
+        return build(ErrorCode.INVALID_INPUT, ((ServletWebRequest) request).getRequest(), toFieldErrorDetails(violations));
+    }
+
+    // code는 실패한 제약 어노테이션의 이름이다(NotBlank, Size 등).
+    private record Violation(String field, String code, String message) {
+    }
+
+    // 메시지 코드 목록의 마지막이 접두어 없는 제약 이름이다.
+    private static String constraintName(MessageSourceResolvable error) {
+        String[] codes = error.getCodes();
+        return codes == null || codes.length == 0 ? null : codes[codes.length - 1];
+    }
+
+    // 검증기는 한 필드의 에러들을 순서 없이 내놓아서, 필드 이름 → 필수 → 길이·범위 → 형식 순으로 고정한다.
+    // 값이 비어 있으면 길이·형식 에러는 의미가 없으므로 그 필드는 필수 에러만 남긴다.
+    private static List<ErrorResponse.FieldErrorDetail> toFieldErrorDetails(List<Violation> violations) {
+        List<Violation> sorted = violations.stream()
+                .sorted(Comparator.comparing(Violation::field, Comparator.nullsLast(Comparator.<String>naturalOrder()))
+                        .thenComparingInt(GlobalExceptionHandler::constraintRank)
+                        .thenComparing(v -> String.valueOf(v.code())))
+                .toList();
+        Set<String> missingFields = sorted.stream()
+                .filter(v -> constraintRank(v) == 0)
+                .map(Violation::field)
+                .collect(Collectors.toSet());
+        return sorted.stream()
+                .filter(v -> constraintRank(v) == 0 || !missingFields.contains(v.field()))
+                .map(v -> new ErrorResponse.FieldErrorDetail(v.field(), v.message()))
+                .toList();
+    }
+
+    private static int constraintRank(Violation v) {
+        return switch (String.valueOf(v.code())) {
+            case "NotNull", "NotBlank", "NotEmpty" -> 0;
+            case "Size", "Min", "Max" -> 1;
+            default -> 2;
+        };
+    }
+
     private ErrorCode toErrorCode(Exception ex, HttpStatusCode statusCode) {
         if (ex instanceof MaxUploadSizeExceededException) {
             return ErrorCode.IMAGE_TOO_LARGE;
@@ -125,19 +199,25 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         };
     }
 
+    private ResponseEntity<Object> build(ErrorCode errorCode, HttpServletRequest request) {
+        return build(errorCode, request, List.of());
+    }
+
     // 모든 핸들러가 여기로 모이므로 4xx 로그는 이 한 곳에서 다 남긴다.
     // 5xx는 스택이 있어야 의미가 있어서 에러를 던지는 쪽이나 handleException에서 따로 찍는다.
     // 여기서도 찍으면 같은 에러가 두 줄이 된다.
     // 로그인 실패처럼 loginId 같은 정보가 필요한 4xx는 던지는 쪽에서 한 줄을 더 남긴다.
     // 이 줄은 "어떤 요청이 어떤 코드로 끝났는지", 그쪽 줄은 "왜"를 남기는 거라 둘 다 필요하다.
-    private ResponseEntity<Object> build(ErrorCode errorCode, HttpServletRequest request) {
+    private ResponseEntity<Object> build(ErrorCode errorCode, HttpServletRequest request, List<ErrorResponse.FieldErrorDetail> errors) {
         HttpStatus status = errorCode.getStatus();
         if (status.is4xxClientError()) {
-            log.warn("{} {} {} code={}", status.value(), request.getMethod(),
-                    request.getRequestURI(), errorCode.name());
+            String fields = errors.isEmpty() ? ""
+                    : " fields=" + errors.stream().map(ErrorResponse.FieldErrorDetail::field).toList();
+            log.warn("{} {} {} code={}{}", status.value(), request.getMethod(),
+                    request.getRequestURI(), errorCode.name(), fields);
         }
         return ResponseEntity
                 .status(status)
-                .body(ErrorResponse.of(errorCode, request.getRequestURI()));
+                .body(ErrorResponse.of(errorCode, request.getRequestURI(), errors));
     }
 }

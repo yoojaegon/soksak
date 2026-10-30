@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { api } from '../api.js'
+import { api, splitApiError } from '../api.js'
 import { GENDERS } from '../constants.js'
 
 export default function SignupPage() {
@@ -22,8 +22,7 @@ export default function SignupPage() {
 
   // 필수 입력(@NotBlank / @NotNull) + 형식(@Email / @Size / @Pattern / @Min) 검증.
   // 형식 규칙과 문구는 백엔드 CreateUserRequest와 맞춘다(같은 규칙이 양쪽에서 같은 말로 읽히도록).
-  // 서버는 검증 실패를 필드 구분 없이 INVALID_INPUT 하나로 돌려주므로, 여기서 거르지 못하면
-  // 어느 칸이 틀렸는지 알 수 없는 배너만 뜬다.
+  // 서버도 같은 규칙으로 검사하지만, 요청 전에 걸러 바로 칸을 짚어 준다.
   const validate = () => {
     const errs = {}
     if (!form.email.trim()) errs.email = '이메일을 입력해주세요'
@@ -62,12 +61,26 @@ export default function SignupPage() {
     setFieldErrors({})
     setLoading(true)
     try {
+      // validate()가 trim한 값으로 검사했으니 보낼 때도 trim한 값을 보낸다.
       // age는 숫자로 변환해 보낸다(백엔드 Integer).
-      await api.signup({ ...form, age: Number(form.age) })
+      await api.signup({
+        ...form,
+        email: form.email.trim(),
+        loginId: form.loginId.trim(),
+        nickname: form.nickname.trim(),
+        age: Number(form.age),
+      })
       // 가입 성공 → 로그인 페이지로
       navigate('/login')
     } catch (err) {
-      setError(err.message || '회원가입에 실패했습니다.')
+      // 중복은 서버만 알 수 있으니 이 경로로 가장 자주 온다.
+      const { fieldErrors, formError } = splitApiError(err, {
+        fields: ['email', 'loginId', 'nickname', 'age', 'password'],
+        codes: { DUPLICATE_EMAIL: 'email', DUPLICATE_LOGIN_ID: 'loginId', DUPLICATE_NICKNAME: 'nickname' },
+        fallback: '회원가입에 실패했습니다.',
+      })
+      setFieldErrors(fieldErrors)
+      setError(formError)
     } finally {
       setLoading(false)
     }

@@ -59,12 +59,38 @@ export async function ensureSession() {
 
 // 서버 에러를 다루기 쉽게 감싼 예외 타입.
 // code: 백엔드 ErrorCode 이름(ROOM_BUSY 등) 또는 클라이언트측 표식('NETWORK'). 없으면 null.
+// errors: 검증 실패일 때 서버가 보낸 [{ field, reason }]. 아니면 빈 배열.
 export class ApiError extends Error {
-  constructor(status, message, code = null) {
+  constructor(status, message, code = null, errors = []) {
     super(message)
     this.status = status
     this.code = code
+    this.errors = errors
   }
+}
+
+// 폼 제출 실패를 칸 밑 에러(fieldErrors)와 버튼 위 에러(formError)로 나눈다.
+// - fields: 이 폼이 에러 칸을 그려 주는 필드. 서버 이름과 폼 이름이 다르면 { 서버이름: 폼이름 }으로 넘긴다.
+// - codes: 특정 칸의 문제인 에러 코드. { DUPLICATE_EMAIL: 'email' }처럼 넘기면 그 칸 밑에 서버 문구를 띄운다.
+// 칸으로 보낼 수 없는 에러(서버 오류, 연결 실패, 칸이 없는 필드)만 formError로 남는다. 없으면 ''.
+export function splitApiError(err, { fields = [], codes = {}, fallback = '요청에 실패했습니다.' } = {}) {
+  const fieldMap = Array.isArray(fields) ? Object.fromEntries(fields.map((f) => [f, f])) : fields
+  const fieldErrors = {}
+  if (codes[err.code]) {
+    fieldErrors[codes[err.code]] = err.message
+    return { fieldErrors, formError: '' }
+  }
+  if (!err.errors?.length) return { fieldErrors, formError: err.message || fallback }
+
+  // 서버가 필드마다 정리해서 보낸다(빈 값이면 필수 에러 하나만). 같은 칸에 여러 개면 이어 붙인다.
+  const unplaced = []
+  for (const { field, reason } of err.errors) {
+    // 컬렉션 원소 에러는 tags[]처럼 온다. 칸은 컬렉션 하나라 [] 앞까지만 본다.
+    const name = fieldMap[field.replace(/\[.*$/, '')]
+    if (name) fieldErrors[name] = fieldErrors[name] ? `${fieldErrors[name]} ${reason}` : reason
+    else unplaced.push(reason)
+  }
+  return { fieldErrors, formError: unplaced.join(' ') }
 }
 
 async function request(path, { method = 'GET', body, auth = true, retry = true } = {}) {
@@ -104,6 +130,7 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
   if (!res.ok) {
     let message = `요청에 실패했습니다 (${res.status})`
     let code = null
+    let errors = []
     try {
       const data = await res.json()
       // 백엔드 ErrorResponse 형식에 message가 있으면 사용
@@ -111,10 +138,11 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
       // code도 함께 실어 보낸다 — 호출부가 INSUFFICIENT_CREDIT 같은 걸 문구가 아니라
       // 코드로 가를 수 있어야 한다(문구는 바뀌어도 코드는 계약이다).
       if (data && data.code) code = data.code
+      if (data && Array.isArray(data.errors)) errors = data.errors
     } catch {
       // 본문이 비어있거나 JSON이 아니면 기본 메시지 사용
     }
-    throw new ApiError(res.status, message, code)
+    throw new ApiError(res.status, message, code, errors)
   }
 
   if (res.status === 204) return null

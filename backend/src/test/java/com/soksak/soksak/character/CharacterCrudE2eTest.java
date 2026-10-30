@@ -107,7 +107,9 @@ class CharacterCrudE2eTest {
                         .content(json(Map.of("name", "가".repeat(31), "persona", "p",
                                 "greeting", "안녕", "tags", Set.of(Genre.FANTASY)))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.errors[0].field").value("name"))
+                .andExpect(jsonPath("$.errors[0].reason").value("이름은 30자 이하여야 합니다."));
     }
 
     @Test
@@ -118,7 +120,9 @@ class CharacterCrudE2eTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"릴리\",\"persona\":\"p\",\"greeting\":\"안녕\",\"tags\":[null]}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                // 원소 에러는 tags[]로 온다. 프론트는 [] 앞까지 잘라 tags 칸에 띄운다.
+                .andExpect(jsonPath("$.errors[0].field").value("tags[]"));
     }
 
     @Test

@@ -5,10 +5,10 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record ChangePasswordRequest(
-        @NotBlank(message = "현재 비밀번호를 입력해 주세요.")
+        @NotBlank(message = "현재 비밀번호는 필수입니다.")
         String currentPassword,
 
-        @NotBlank(message = "비밀번호는 필수입니다.")
+        @NotBlank(message = "새 비밀번호는 필수입니다.")
         @Size(min = 8, max = 64, message = "비밀번호는 8~64자여야 합니다.")
         @Pattern(
                 regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$",

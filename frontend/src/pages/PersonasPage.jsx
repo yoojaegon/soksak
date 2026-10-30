@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../api.js'
+import { api, splitApiError } from '../api.js'
 import { useConfirm } from '../confirm.jsx'
 import { useOutsideClose } from '../useOutsideClose.js'
 
@@ -102,7 +102,12 @@ export default function PersonasPage() {
       }
       closeForm()
     } catch (err) {
-      setError(err.message || '저장에 실패했습니다.')
+      const { fieldErrors, formError } = splitApiError(err, {
+        fields: ['name', 'persona'],
+        fallback: '저장에 실패했습니다.',
+      })
+      setFieldErrors(fieldErrors)
+      setError(formError)
     } finally {
       setSaving(false)
     }

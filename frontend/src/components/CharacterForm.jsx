@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import CharacterFields from './CharacterFields.jsx'
+import CharacterFields, { CHARACTER_ERROR_FIELDS } from './CharacterFields.jsx'
 import { toggleTag } from '../genres.js'
+import { splitApiError } from '../api.js'
 
 // 캐릭터 기본정보 폼 (캐릭터 수정 페이지에서 사용).
 // - 폼 상태·저장중/에러 표시는 여기서 관리한다.
@@ -53,7 +54,12 @@ export default function CharacterForm({ heading, initial, submitLabel, savingLab
       await onSubmit(form)
       // 성공하면 보통 부모가 화면을 떠나므로 saving은 그대로 둔다.
     } catch (err) {
-      setError(err.message || '저장에 실패했습니다.')
+      const { fieldErrors, formError } = splitApiError(err, {
+        fields: CHARACTER_ERROR_FIELDS,
+        fallback: '저장에 실패했습니다.',
+      })
+      setFieldErrors(fieldErrors)
+      setError(formError)
       setSaving(false)
     }
   }

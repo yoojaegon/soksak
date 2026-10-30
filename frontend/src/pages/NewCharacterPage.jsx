@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { api } from '../api.js'
-import CharacterFields from '../components/CharacterFields.jsx'
+import { api, splitApiError } from '../api.js'
+import CharacterFields, { CHARACTER_ERROR_FIELDS } from '../components/CharacterFields.jsx'
 import LorebookPanel from '../components/LorebookPanel.jsx'
 import { toggleTag } from '../genres.js'
 import { useAlert } from '../confirm.jsx'
@@ -90,7 +90,12 @@ export default function NewCharacterPage() {
       }
       navigate('/my-characters')
     } catch (err) {
-      setError(err.message || '저장에 실패했습니다.')
+      const { fieldErrors, formError } = splitApiError(err, {
+        fields: CHARACTER_ERROR_FIELDS,
+        fallback: '저장에 실패했습니다.',
+      })
+      setFieldErrors(fieldErrors)
+      setError(formError)
       setSaving(false)
       setTab('basic')
     }
