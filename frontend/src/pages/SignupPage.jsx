@@ -34,6 +34,7 @@ export default function SignupPage() {
     if (!form.email.trim()) errs.email = '이메일을 입력해주세요'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
       errs.email = '이메일 형식이 올바르지 않습니다'
+    else if (form.email.trim().length > 254) errs.email = '이메일은 254자 이하여야 합니다'
 
     const loginId = form.loginId.trim()
     if (!loginId) errs.loginId = '아이디를 입력해주세요'
