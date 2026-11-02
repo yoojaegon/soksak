@@ -46,7 +46,7 @@ class SignupValidationE2eTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors", hasSize(2)))
                 .andExpect(jsonPath("$.errors[0].reason").value("비밀번호는 8~64자여야 합니다."))
-                .andExpect(jsonPath("$.errors[1].reason").value("비밀번호는 영문과 숫자를 각각 하나 이상 포함해야 합니다."));
+                .andExpect(jsonPath("$.errors[1].reason").value("비밀번호는 영문·숫자·특수문자만 쓸 수 있고, 영문과 숫자를 각각 하나 이상 포함해야 합니다."));
     }
 
     private RequestBuilder signup(String password) throws Exception {
@@ -54,6 +54,6 @@ class SignupValidationE2eTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of(
                         "email", "v@soksak.com", "loginId", "validator", "nickname", "검증",
-                        "password", password, "age", 20, "gender", "MALE")));
+                        "password", password, "birthYear", 2000, "gender", "MALE")));
     }
 }

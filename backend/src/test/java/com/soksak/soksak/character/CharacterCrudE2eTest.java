@@ -275,7 +275,7 @@ class CharacterCrudE2eTest {
                 .email(email)
                 .nickname(nickname)
                 .password(passwordEncoder.encode(PASSWORD))
-                .age(20)
+                .birthYear(2000)
                 .gender(com.soksak.soksak.common.Gender.MALE)
                 .build());
     }

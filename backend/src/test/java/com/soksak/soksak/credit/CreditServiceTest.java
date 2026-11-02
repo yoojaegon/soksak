@@ -46,7 +46,7 @@ class CreditServiceTest {
         String unique = "credit-" + UUID.randomUUID().toString().substring(0, 8);
         user = userRepository.save(User.builder()
                 .loginId(unique).email(unique + "@soksak.com").nickname(unique)
-                .password("pw").age(30).gender(Gender.MALE)
+                .password("pw").birthYear(1996).gender(Gender.MALE)
                 .build());
     }
 

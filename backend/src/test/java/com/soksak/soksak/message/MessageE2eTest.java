@@ -571,7 +571,7 @@ class MessageE2eTest {
                 .email(email)
                 .nickname(nickname)
                 .password(passwordEncoder.encode(PASSWORD))
-                .age(20)
+                .birthYear(2000)
                 .gender(com.soksak.soksak.common.Gender.MALE)
                 .build());
         creditService.grant(saved, SEED_CREDITS, CreditReason.MANUAL_GRANT, "테스트 시드");

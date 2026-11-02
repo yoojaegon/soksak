@@ -3,11 +3,17 @@ import { useNavigate, Link } from 'react-router-dom'
 import { api, splitApiError } from '../api.js'
 import { GENDERS } from '../constants.js'
 
+// 올해부터 1900년까지 내림차순. 서버도 같은 범위만 받는다.
+const BIRTH_YEARS = Array.from(
+  { length: new Date().getFullYear() - 1900 + 1 },
+  (_, i) => new Date().getFullYear() - i,
+)
+
 export default function SignupPage() {
   const navigate = useNavigate()
-  // age/gender는 가입 시 기본 페르소나 생성에 쓰여 백엔드에서 필수다.
+  // birthYear/gender는 가입 시 기본 페르소나 생성에 쓰여 백엔드에서 필수다.
   const [form, setForm] = useState({
-    email: '', loginId: '', nickname: '', password: '', age: '', gender: 'MALE',
+    email: '', loginId: '', nickname: '', password: '', birthYear: '', gender: 'MALE',
   })
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
@@ -37,10 +43,7 @@ export default function SignupPage() {
     if (!form.nickname.trim()) errs.nickname = '닉네임을 입력해주세요'
     else if (form.nickname.trim().length > 20) errs.nickname = '닉네임은 20자 이하여야 합니다'
 
-    // type=number라도 noValidate라 소수점(step 위반)이 그대로 넘어온다. 서버 Integer에 맞춰 여기서 막는다.
-    if (form.age === '') errs.age = '나이를 입력해주세요'
-    else if (!Number.isInteger(Number(form.age))) errs.age = '나이는 정수로 입력해주세요'
-    else if (Number(form.age) < 0) errs.age = '나이는 0 이상이어야 합니다'
+    if (form.birthYear === '') errs.birthYear = '출생연도를 선택해주세요'
 
     if (!form.password) errs.password = '비밀번호를 입력해주세요'
     else if (form.password.length < 8 || form.password.length > 64)
@@ -64,20 +67,20 @@ export default function SignupPage() {
     setLoading(true)
     try {
       // validate()가 trim한 값으로 검사했으니 보낼 때도 trim한 값을 보낸다.
-      // age는 숫자로 변환해 보낸다(백엔드 Integer).
+      // select 값은 문자열이라 숫자로 바꿔 보낸다.
       await api.signup({
         ...form,
         email: form.email.trim(),
         loginId: form.loginId.trim(),
         nickname: form.nickname.trim(),
-        age: Number(form.age),
+        birthYear: Number(form.birthYear),
       })
       // 가입 성공 → 로그인 페이지로
       navigate('/login')
     } catch (err) {
       // 중복은 서버만 알 수 있으니 이 경로로 가장 자주 온다.
       const { fieldErrors, formError } = splitApiError(err, {
-        fields: ['email', 'loginId', 'nickname', 'age', 'password'],
+        fields: ['email', 'loginId', 'nickname', 'birthYear', 'password'],
         codes: { DUPLICATE_EMAIL: 'email', DUPLICATE_LOGIN_ID: 'loginId', DUPLICATE_NICKNAME: 'nickname' },
         fallback: '회원가입에 실패했습니다.',
       })
@@ -111,9 +114,12 @@ export default function SignupPage() {
         </label>
         <div className="form-row">
           <label>
-            <span className="field-caption">나이 <span className="req">*</span></span>
-            <input name="age" type="number" min="0" value={form.age} onChange={onChange} />
-            {fieldErrors.age && <p className="field-error">! {fieldErrors.age}</p>}
+            <span className="field-caption">출생연도 <span className="req">*</span></span>
+            <select name="birthYear" value={form.birthYear} onChange={onChange}>
+              <option value="">선택</option>
+              {BIRTH_YEARS.map((y) => <option key={y} value={y}>{y}년</option>)}
+            </select>
+            {fieldErrors.birthYear && <p className="field-error">! {fieldErrors.birthYear}</p>}
           </label>
           <label>
             <span className="field-caption">성별 <span className="req">*</span></span>

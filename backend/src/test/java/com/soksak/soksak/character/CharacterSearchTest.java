@@ -69,7 +69,7 @@ class CharacterSearchTest {
                 .email(loginId + "@test.com")
                 .nickname(loginId)
                 .password("pw")
-                .age(20)
+                .birthYear(2000)
                 .gender(Gender.MALE)
                 .build());
     }

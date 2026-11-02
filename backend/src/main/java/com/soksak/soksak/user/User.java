@@ -29,8 +29,9 @@ public class User extends BaseTimeEntity {
     @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(name = "age", nullable = false)
-    private int age;
+    // 나이는 해마다 바뀌므로 출생연도를 저장하고 나이는 필요할 때 계산한다.
+    @Column(name = "birth_year", nullable = false)
+    private int birthYear;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", nullable = false)
@@ -50,12 +51,12 @@ public class User extends BaseTimeEntity {
 
     @Builder
     public User(String email, String loginId, String nickname, String password,
-                int age, Gender gender) {
+                int birthYear, Gender gender) {
         this.email = email;
         this.loginId = loginId;
         this.nickname = nickname;
         this.password = password;
-        this.age = age;
+        this.birthYear = birthYear;
         this.gender = gender;
     }
 

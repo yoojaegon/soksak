@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Year;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -28,6 +30,9 @@ public class UserService {
      */
     private static final int SIGNUP_BONUS = 100;
 
+    // 화면의 출생연도 목록이 여기서 시작한다. 이보다 이른 값은 직접 만든 요청뿐이다.
+    private static final Year MIN_BIRTH_YEAR = Year.of(1900);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserPersonaService userPersonaService;
@@ -38,6 +43,9 @@ public class UserService {
     public User createUser(CreateUserRequest request) {
         // unique 제약에만 맡기면 어떤 값이 겹쳤는지 모르는 409가 되므로 저장 전에 하나씩 확인한다.
         // 동시에 같은 값으로 가입하면 둘 다 여기를 통과할 수 있는데, 그때는 unique 제약이 막는다.
+        if (request.birthYear().isBefore(MIN_BIRTH_YEAR)) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
         if (userRepository.existsByLoginId(request.loginId())) {
             throw new BusinessException(ErrorCode.DUPLICATE_LOGIN_ID);
         }
@@ -53,7 +61,7 @@ public class UserService {
                 .loginId(request.loginId())
                 .nickname(request.nickname())
                 .password(passwordEncoder.encode(request.password()))
-                .age(request.age())
+                .birthYear(request.birthYear().getValue())
                 .gender(request.gender())
                 .build();
         User saved = userRepository.save(user);
@@ -65,7 +73,8 @@ public class UserService {
         // 가입정보로 기본 유저 페르소나를 함께 생성한다(같은 트랜잭션).
         // 페르소나 이름의 씨앗은 표시용 닉네임을 쓴다(본명은 수집하지 않음).
         userPersonaService.createDefault(
-                saved.getLoginId(), saved.getNickname(), saved.getAge(), saved.getGender());
+                saved.getLoginId(), saved.getNickname(),
+                Year.now().getValue() - saved.getBirthYear(), saved.getGender());
         return saved;
     }
 

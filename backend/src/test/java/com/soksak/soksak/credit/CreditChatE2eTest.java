@@ -86,7 +86,7 @@ class CreditChatE2eTest {
 
         user = userRepository.save(User.builder()
                 .loginId(LOGIN_ID).email("payer@soksak.com").nickname("내는사람")
-                .password(passwordEncoder.encode(PASSWORD)).age(25).gender(Gender.FEMALE)
+                .password(passwordEncoder.encode(PASSWORD)).birthYear(2000).gender(Gender.FEMALE)
                 .build());
 
         ChatCharacter character = characterRepository.save(ChatCharacter.builder()
@@ -224,7 +224,7 @@ class CreditChatE2eTest {
                         .content(json(Map.of(
                                 "loginId", "newbie", "password", "pw123456",
                                 "email", "newbie@soksak.com", "nickname", "새사람",
-                                "age", 20, "gender", "MALE"))))
+                                "birthYear", 2000, "gender", "MALE"))))
                 .andExpect(status().isCreated());
 
         int balance = userRepository.findCreditBalanceByLoginId("newbie").orElseThrow();
