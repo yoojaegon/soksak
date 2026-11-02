@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.Year;
+import java.util.Locale;
 
 public record CreateUserRequest(
         @NotBlank(message = "이메일은 필수입니다.")
@@ -42,8 +43,11 @@ public record CreateUserRequest(
         Gender gender
 ) {
     // 닉네임은 앞뒤 공백을 떼고 저장한다. " foo"와 "foo"를 같은 닉네임으로 보기 위해서다.
-    // @NotBlank와 @Size 검증은 생성 뒤에 돌아서 공백을 뗀 값으로 검사한다.
+    // 이메일은 소문자로 바꿔 저장해서 "A@x.com"과 "a@x.com"을 같은 이메일로 본다.
+    // 서버 로케일에 따라 대소문자 변환이 달라지지 않게 Locale.ROOT를 쓴다.
+    // @NotBlank와 @Size 검증은 생성 뒤에 돌아서 바꾼 값으로 검사한다.
     public CreateUserRequest {
         if (nickname != null) nickname = nickname.strip();
+        if (email != null) email = email.strip().toLowerCase(Locale.ROOT);
     }
 }
