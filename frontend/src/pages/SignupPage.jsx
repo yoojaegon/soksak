@@ -45,6 +45,8 @@ export default function SignupPage() {
     if (!form.password) errs.password = '비밀번호를 입력해주세요'
     else if (form.password.length < 8 || form.password.length > 64)
       errs.password = '비밀번호는 8~64자여야 합니다'
+    else if (!/^[\x21-\x7E]+$/.test(form.password))
+      errs.password = '비밀번호는 영문·숫자·특수문자만 쓸 수 있습니다'
     else if (!/[A-Za-z]/.test(form.password) || !/\d/.test(form.password))
       errs.password = '비밀번호는 영문과 숫자를 각각 하나 이상 포함해야 합니다'
     return errs
@@ -123,7 +125,7 @@ export default function SignupPage() {
           </label>
         </div>
         <label>
-          <span className="field-caption">비밀번호 <span className="req">*</span> (영문·숫자 포함 8~64자)</span>
+          <span className="field-caption">비밀번호 <span className="req">*</span> (영문·숫자 포함 8~64자, 한글·공백 불가)</span>
           <input
             name="password"
             type="password"

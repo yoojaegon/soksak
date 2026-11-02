@@ -179,6 +179,8 @@ function PasswordDialog({ onClose, onChanged, returnFocusRef }) {
     if (!form.current) errs.current = '현재 비밀번호를 입력해주세요'
     if (!form.next) errs.next = '새 비밀번호를 입력해주세요'
     else if (form.next.length < 8 || form.next.length > 64) errs.next = '비밀번호는 8~64자여야 합니다'
+    else if (!/^[\x21-\x7E]+$/.test(form.next))
+      errs.next = '비밀번호는 영문·숫자·특수문자만 쓸 수 있습니다'
     else if (!/[A-Za-z]/.test(form.next) || !/\d/.test(form.next))
       errs.next = '비밀번호는 영문과 숫자를 각각 하나 이상 포함해야 합니다'
     // 확인 칸은 서버로 보내지 않는다 — 오타 방지용이라 화면에서만 비교한다.
@@ -249,7 +251,7 @@ function PasswordDialog({ onClose, onChanged, returnFocusRef }) {
             value={form.next} onChange={onChange} aria-invalid={!!errors.next} />
           {errors.next
             ? <p className="field-error">! {errors.next}</p>
-            : <p className="field-hint">8~64자, 영문과 숫자를 하나 이상씩</p>}
+            : <p className="field-hint">8~64자, 영문과 숫자를 하나 이상씩 (한글·공백 불가)</p>}
         </label>
         <label>
           <span className="field-caption">새 비밀번호 확인</span>
