@@ -11,9 +11,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,14 +37,14 @@ class TokenServiceTest {
     void reissue_success() {
         // given
         String oldRefresh = "old-refresh";
-        Authentication auth = mock(Authentication.class);
+        Authentication auth = new UsernamePasswordAuthenticationToken(new AuthUser(1L), "", List.of());
         Claims claims = mock(Claims.class);
 
         when(tokenProvider.parse(oldRefresh)).thenReturn(Optional.of(claims));
         when(tokenProvider.getTokenType(claims)).thenReturn(JwtTokenProvider.TYPE_REFRESH);
         when(tokenProvider.getAuthentication(claims)).thenReturn(auth);
-        when(tokenProvider.generateAccessToken(auth)).thenReturn("new-access");
-        when(tokenProvider.generateRefreshToken(auth))
+        when(tokenProvider.generateAccessToken(1L, auth.getAuthorities())).thenReturn("new-access");
+        when(tokenProvider.generateRefreshToken(1L, auth.getAuthorities()))
                 .thenReturn(new IssuedToken("new-refresh", LocalDateTime.now().plusDays(14)));
         // 원자 회전이 정확히 1행을 갱신 → 재발급 성공
         when(refreshTokenRepository.rotate(eq(oldRefresh), eq("new-refresh"), any(LocalDateTime.class)))
@@ -77,14 +79,14 @@ class TokenServiceTest {
     void reissue_reusedToken() {
         // given
         String oldRefresh = "already-rotated";
-        Authentication auth = mock(Authentication.class);
+        Authentication auth = new UsernamePasswordAuthenticationToken(new AuthUser(1L), "", List.of());
         Claims claims = mock(Claims.class);
 
         when(tokenProvider.parse(oldRefresh)).thenReturn(Optional.of(claims));
         when(tokenProvider.getTokenType(claims)).thenReturn(JwtTokenProvider.TYPE_REFRESH);
         when(tokenProvider.getAuthentication(claims)).thenReturn(auth);
-        when(tokenProvider.generateAccessToken(auth)).thenReturn("new-access");
-        when(tokenProvider.generateRefreshToken(auth))
+        when(tokenProvider.generateAccessToken(1L, auth.getAuthorities())).thenReturn("new-access");
+        when(tokenProvider.generateRefreshToken(1L, auth.getAuthorities()))
                 .thenReturn(new IssuedToken("new-refresh", LocalDateTime.now().plusDays(14)));
         // 이미 회전돼 old 토큰이 DB에 없음 → 0행
         when(refreshTokenRepository.rotate(eq(oldRefresh), eq("new-refresh"), any(LocalDateTime.class)))

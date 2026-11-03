@@ -56,7 +56,7 @@ public class ImageUploadService {
         this.globalPerDay = globalPerDay;
     }
 
-    public String upload(String loginId, MultipartFile file) {
+    public String upload(Long userId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
@@ -71,7 +71,7 @@ public class ImageUploadService {
         // 싼 것부터 거른다 — 형식이 틀린 건 한도에도 안 센다.
         ImageType type = ImageType.detect(bytes);
 
-        User user = userRepository.findByLoginId(loginId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         checkLimit(user.getId());
 

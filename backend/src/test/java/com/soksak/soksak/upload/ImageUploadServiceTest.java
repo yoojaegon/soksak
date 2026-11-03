@@ -47,7 +47,7 @@ class ImageUploadServiceTest {
         service = new ImageUploadService(imageStorageService, imageModerator, imageUploadRepository, userRepository, 10, 30, 3, 500);
         user = new User();
         ReflectionTestUtils.setField(user, "id", 1L);
-        lenient().when(userRepository.findByLoginId("tester")).thenReturn(Optional.of(user));
+        lenient().when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         lenient().when(imageStorageService.store(any(), any())).thenReturn("/api/uploads/x.png");
     }
 
@@ -69,7 +69,7 @@ class ImageUploadServiceTest {
     void hourly_limit() {
         usedThisHour(10, 10);
 
-        assertThatThrownBy(() -> service.upload("tester", png()))
+        assertThatThrownBy(() -> service.upload(1L, png()))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_UPLOAD_LIMITED);
         verify(imageModerator, never()).score(any(), anyString());
@@ -81,7 +81,7 @@ class ImageUploadServiceTest {
     void daily_limit() {
         usedThisHour(3, 30);
 
-        assertThatThrownBy(() -> service.upload("tester", png()))
+        assertThatThrownBy(() -> service.upload(1L, png()))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_UPLOAD_LIMITED);
     }
@@ -91,7 +91,7 @@ class ImageUploadServiceTest {
     void block_lock() {
         when(imageUploadRepository.countByUser_IdAndBlockedTrueAndCreatedAtAfter(eq(1L), any())).thenReturn(3L);
 
-        assertThatThrownBy(() -> service.upload("tester", png()))
+        assertThatThrownBy(() -> service.upload(1L, png()))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_UPLOAD_LOCKED);
         verify(imageModerator, never()).score(any(), anyString());
@@ -105,7 +105,7 @@ class ImageUploadServiceTest {
         usedThisHour(2, 2);
         when(imageUploadRepository.findFirstBySha256OrderByIdDesc(anyString())).thenReturn(Optional.of(cachedRow(0.1)));
 
-        assertThat(service.upload("tester", png())).isEqualTo("/api/uploads/x.png");
+        assertThat(service.upload(1L, png())).isEqualTo("/api/uploads/x.png");
     }
 
     @Test
@@ -114,7 +114,7 @@ class ImageUploadServiceTest {
         usedThisHour(0, 0);
         when(imageUploadRepository.countByCreatedAtAfter(any())).thenReturn(500L);
 
-        assertThatThrownBy(() -> service.upload("tester", png()))
+        assertThatThrownBy(() -> service.upload(1L, png()))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_UPLOAD_BUSY);
         verify(imageModerator, never()).score(any(), anyString());
@@ -128,7 +128,7 @@ class ImageUploadServiceTest {
         when(imageUploadRepository.findFirstBySha256OrderByIdDesc(anyString())).thenReturn(Optional.empty());
         when(imageModerator.score(any(), eq("image/png"))).thenReturn(new ModerationScores(0.1, 0.2));
 
-        assertThat(service.upload("tester", png())).isEqualTo("/api/uploads/x.png");
+        assertThat(service.upload(1L, png())).isEqualTo("/api/uploads/x.png");
 
         ArgumentCaptor<ImageUpload> saved = ArgumentCaptor.forClass(ImageUpload.class);
         verify(imageUploadRepository).save(saved.capture());
@@ -143,7 +143,7 @@ class ImageUploadServiceTest {
         usedThisHour(0, 0);
         when(imageUploadRepository.findFirstBySha256OrderByIdDesc(anyString())).thenReturn(Optional.of(cachedRow(0.1)));
 
-        service.upload("tester", png());
+        service.upload(1L, png());
 
         verify(imageModerator, never()).score(any(), anyString());
         verify(imageUploadRepository).save(any());
@@ -157,7 +157,7 @@ class ImageUploadServiceTest {
         // blocked=false로 기록됐던 행이라도 점수가 지금 기준을 넘으면 막힌다.
         when(imageUploadRepository.findFirstBySha256OrderByIdDesc(anyString())).thenReturn(Optional.of(cachedRow(0.9)));
 
-        assertThatThrownBy(() -> service.upload("tester", png()))
+        assertThatThrownBy(() -> service.upload(1L, png()))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_REJECTED);
 
@@ -175,7 +175,7 @@ class ImageUploadServiceTest {
         when(imageModerator.score(any(), anyString()))
                 .thenThrow(new BusinessException(ErrorCode.IMAGE_MODERATION_UNAVAILABLE));
 
-        assertThatThrownBy(() -> service.upload("tester", png()))
+        assertThatThrownBy(() -> service.upload(1L, png()))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.IMAGE_MODERATION_UNAVAILABLE);
         verify(imageUploadRepository, never()).save(any());
@@ -187,7 +187,7 @@ class ImageUploadServiceTest {
         MockMultipartFile gif = new MockMultipartFile("file", "a.gif", "image/gif",
                 "GIF89a______".getBytes());
 
-        assertThatThrownBy(() -> service.upload("tester", gif))
+        assertThatThrownBy(() -> service.upload(1L, gif))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.UNSUPPORTED_IMAGE_TYPE);
         verify(imageUploadRepository, never()).countByUser_IdAndCreatedAtAfter(any(), any());

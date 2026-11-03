@@ -60,7 +60,7 @@ class ReportServiceTest {
         // 오래전에 만들어져 고친 적 없는 캐릭터 — 창 시작은 "지금 - 30일"이 된다.
         ReflectionTestUtils.setField(character, "createdAt", LocalDateTime.now().minusDays(100));
         lenient().when(characterRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(character));
-        lenient().when(userRepository.findByLoginId("reporter")).thenReturn(Optional.of(reporter));
+        lenient().when(userRepository.findById(2L)).thenReturn(Optional.of(reporter));
     }
 
     private static User user(Long id, String loginId) {
@@ -79,7 +79,7 @@ class ReportServiceTest {
     void two_reporters_not_hidden() {
         reportersInWindow(2);
 
-        service.reportCharacter("reporter", 10L, ReportTarget.CONCEPT, ReportReason.SEXUAL, null);
+        service.reportCharacter(2L, 10L, ReportTarget.CONCEPT, ReportReason.SEXUAL, null);
 
         assertThat(character.isHidden()).isFalse();
         verify(reportRepository).save(any());
@@ -90,7 +90,7 @@ class ReportServiceTest {
     void third_reporter_hides() {
         reportersInWindow(3);
 
-        service.reportCharacter("reporter", 10L, ReportTarget.IMAGE, ReportReason.VIOLENCE, null);
+        service.reportCharacter(2L, 10L, ReportTarget.IMAGE, ReportReason.VIOLENCE, null);
 
         assertThat(character.isHidden()).isTrue();
     }
@@ -100,7 +100,7 @@ class ReportServiceTest {
     void minor_uses_same_threshold() {
         reportersInWindow(1);
 
-        service.reportCharacter("reporter", 10L, ReportTarget.IMAGE, ReportReason.MINOR, null);
+        service.reportCharacter(2L, 10L, ReportTarget.IMAGE, ReportReason.MINOR, null);
 
         assertThat(character.isHidden()).isFalse();
     }
@@ -110,8 +110,8 @@ class ReportServiceTest {
     void repeat_report_is_saved() {
         reportersInWindow(1);
 
-        service.reportCharacter("reporter", 10L, ReportTarget.CONCEPT, ReportReason.HATE, "x");
-        service.reportCharacter("reporter", 10L, ReportTarget.CONCEPT, ReportReason.HATE, "x");
+        service.reportCharacter(2L, 10L, ReportTarget.CONCEPT, ReportReason.HATE, "x");
+        service.reportCharacter(2L, 10L, ReportTarget.CONCEPT, ReportReason.HATE, "x");
 
         verify(reportRepository, org.mockito.Mockito.times(2)).save(any());
         assertThat(character.isHidden()).isFalse();
@@ -122,7 +122,7 @@ class ReportServiceTest {
     void window_starts_30_days_ago() {
         reportersInWindow(0);
 
-        service.reportCharacter("reporter", 10L, ReportTarget.CONCEPT, ReportReason.OTHER, null);
+        service.reportCharacter(2L, 10L, ReportTarget.CONCEPT, ReportReason.OTHER, null);
 
         ArgumentCaptor<LocalDateTime> since = ArgumentCaptor.forClass(LocalDateTime.class);
         verify(reportRepository).countReportersSince(eq(10L), since.capture());
@@ -136,7 +136,7 @@ class ReportServiceTest {
         LocalDateTime edited = character.getContentUpdatedAt();
         reportersInWindow(1);
 
-        service.reportCharacter("reporter", 10L, ReportTarget.CONCEPT, ReportReason.OTHER, null);
+        service.reportCharacter(2L, 10L, ReportTarget.CONCEPT, ReportReason.OTHER, null);
 
         verify(reportRepository).countReportersSince(10L, edited);
         assertThat(character.isHidden()).isFalse();
@@ -156,7 +156,7 @@ class ReportServiceTest {
     void image_snapshot() {
         reportersInWindow(0);
 
-        service.reportCharacter("reporter", 10L, ReportTarget.IMAGE, ReportReason.SEXUAL, null);
+        service.reportCharacter(2L, 10L, ReportTarget.IMAGE, ReportReason.SEXUAL, null);
 
         ArgumentCaptor<Report> saved = ArgumentCaptor.forClass(Report.class);
         verify(reportRepository).save(saved.capture());
@@ -167,7 +167,7 @@ class ReportServiceTest {
     @Test
     @DisplayName("본인 캐릭터는 신고할 수 없다")
     void own_character_rejected() {
-        assertThatThrownBy(() -> service.reportCharacter("owner", 10L, ReportTarget.IMAGE, ReportReason.SEXUAL, null))
+        assertThatThrownBy(() -> service.reportCharacter(1L, 10L, ReportTarget.IMAGE, ReportReason.SEXUAL, null))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.REPORT_OWN_CHARACTER);
         verify(reportRepository, never()).save(any());
@@ -176,7 +176,7 @@ class ReportServiceTest {
     @Test
     @DisplayName("캐릭터 경로로 CHAT 신고는 받지 않는다")
     void chat_target_on_character_rejected() {
-        assertThatThrownBy(() -> service.reportCharacter("reporter", 10L, ReportTarget.CHAT, ReportReason.SEXUAL, null))
+        assertThatThrownBy(() -> service.reportCharacter(2L, 10L, ReportTarget.CHAT, ReportReason.SEXUAL, null))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_INPUT);
     }
@@ -199,12 +199,12 @@ class ReportServiceTest {
     @DisplayName("채팅 신고는 MINOR여도 캐릭터를 숨기지 않고, 앞 사용자 메시지와 응답을 스냅샷으로 남긴다")
     void chat_report_never_hides() {
         ChatRoom room = room(5L, reporter);
-        when(chatRoomService.getOwnedChatRoomWithDetails("reporter", 5L)).thenReturn(room);
+        when(chatRoomService.getOwnedChatRoomWithDetails(2L, 5L)).thenReturn(room);
         when(messageRepository.findById(42L)).thenReturn(Optional.of(message(42L, room, MessageRole.ASSISTANT, "응답")));
         when(messageRepository.findFirstByChatRoomIdAndIdLessThanAndRoleOrderByIdDesc(5L, 42L, MessageRole.USER))
                 .thenReturn(Optional.of(message(41L, room, MessageRole.USER, "질문")));
 
-        service.reportMessage("reporter", 5L, 42L, ReportReason.MINOR, null);
+        service.reportMessage(2L, 5L, 42L, ReportReason.MINOR, null);
 
         assertThat(character.isHidden()).isFalse();
         ArgumentCaptor<Report> saved = ArgumentCaptor.forClass(Report.class);
@@ -219,10 +219,10 @@ class ReportServiceTest {
     @DisplayName("사용자 메시지는 신고할 수 없다")
     void user_message_rejected() {
         ChatRoom room = room(5L, reporter);
-        when(chatRoomService.getOwnedChatRoomWithDetails("reporter", 5L)).thenReturn(room);
+        when(chatRoomService.getOwnedChatRoomWithDetails(2L, 5L)).thenReturn(room);
         when(messageRepository.findById(41L)).thenReturn(Optional.of(message(41L, room, MessageRole.USER, "질문")));
 
-        assertThatThrownBy(() -> service.reportMessage("reporter", 5L, 41L, ReportReason.OTHER, null))
+        assertThatThrownBy(() -> service.reportMessage(2L, 5L, 41L, ReportReason.OTHER, null))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.REPORT_NOT_ASSISTANT);
     }
@@ -232,10 +232,10 @@ class ReportServiceTest {
     void other_room_message_rejected() {
         ChatRoom mine = room(5L, reporter);
         ChatRoom other = room(6L, owner);
-        when(chatRoomService.getOwnedChatRoomWithDetails("reporter", 5L)).thenReturn(mine);
+        when(chatRoomService.getOwnedChatRoomWithDetails(2L, 5L)).thenReturn(mine);
         when(messageRepository.findById(99L)).thenReturn(Optional.of(message(99L, other, MessageRole.ASSISTANT, "남의 응답")));
 
-        assertThatThrownBy(() -> service.reportMessage("reporter", 5L, 99L, ReportReason.OTHER, null))
+        assertThatThrownBy(() -> service.reportMessage(2L, 5L, 99L, ReportReason.OTHER, null))
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.MESSAGE_FORBIDDEN);
         verify(reportRepository, never()).save(any());

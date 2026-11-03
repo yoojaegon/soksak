@@ -45,9 +45,9 @@ public class MessageService {
             .limit(LOCK_STRIPES).toArray(Lock[]::new);
 
 
-    public MessageResponse sendMessage(String loginId, Long roomId, String content) {
+    public MessageResponse sendMessage(Long userId, Long roomId, String content) {
         return withRoomLock(roomId, () -> {
-            PreparedChat preparedChat = chatTxService.prepareAndSaveUser(loginId, roomId, content);
+            PreparedChat preparedChat = chatTxService.prepareAndSaveUser(userId, roomId, content);
             // trySummarize가 p.summaries()에 방금 만든 조각을 더한다 — 반드시 그 뒤에 넘길 것.
             trySummarize(preparedChat);
             // 차감은 위에서 이미 커밋됐다. 답을 못 만들면 스트림 경로와 같은 규칙으로 돌려준다.
@@ -63,26 +63,26 @@ public class MessageService {
         });
     }
 
-    public SseEmitter sendMessageStream(String loginId, Long roomId, String content) {
-        ensureCredit(loginId, roomId);
+    public SseEmitter sendMessageStream(Long userId, Long roomId, String content) {
+        ensureCredit(userId, roomId);
         return startStream(roomId, () -> {
-            PreparedChat p = chatTxService.prepareAndSaveUser(loginId, roomId, content);
+            PreparedChat p = chatTxService.prepareAndSaveUser(userId, roomId, content);
             trySummarize(p);
             return new StreamJob(p.room(), content, p.priorHistory(), p.summaries());
         });
     }
 
     @Transactional
-    public List<MessageResponse> getMessages(String loginId, Long roomId) {
-        chatRoomService.getOwnedChatRoom(loginId, roomId);
+    public List<MessageResponse> getMessages(Long userId, Long roomId) {
+        chatRoomService.getOwnedChatRoom(userId, roomId);
         return messageRepository.findByChatRoomIdOrderByIdAsc(roomId).stream()
                 .map(MessageResponse::from).toList();
     }
 
     // 메세지 수정
     @Transactional
-    public MessageResponse updateMessage(String loginId, Long roomId, Long id, String content) {
-        chatRoomService.getOwnedChatRoom(loginId, roomId);
+    public MessageResponse updateMessage(Long userId, Long roomId, Long id, String content) {
+        chatRoomService.getOwnedChatRoom(userId, roomId);
         Message message = messageRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
         if (!message.getChatRoom().getId().equals(roomId)) {
@@ -94,9 +94,9 @@ public class MessageService {
     }
 
     // ai 응답 재생성
-    public MessageResponse regenerate(String loginId, Long roomId) {
+    public MessageResponse regenerate(Long userId, Long roomId) {
         return withRoomLock(roomId, () -> {
-            RegenTarget t = chatTxService.prepareRegenerate(loginId, roomId);
+            RegenTarget t = chatTxService.prepareRegenerate(userId, roomId);
             try {
                 String reply = chatAiClient.reply(t.room(), t.lastUserContent(), t.priorHistory(), t.summaries());
                 Message ai = chatTxService.saveAssistant(roomId, reply);
@@ -108,18 +108,18 @@ public class MessageService {
         });
     }
 
-    public SseEmitter regenerateStream(String loginId, Long roomId) {
-        ensureCredit(loginId, roomId);
+    public SseEmitter regenerateStream(Long userId, Long roomId) {
+        ensureCredit(userId, roomId);
         return startStream(roomId, () -> {
-            RegenTarget t = chatTxService.prepareRegenerate(loginId, roomId);
+            RegenTarget t = chatTxService.prepareRegenerate(userId, roomId);
             return new StreamJob(t.room(), t.lastUserContent(), t.priorHistory(), t.summaries());
         });
     }
 
     // 락 안에서 돈다 — AI 응답을 만드는 중에 지워버리면, 이미 계획된 요약 조각이 사라진
     // 메시지의 id를 가리킨 채로 저장된다. 그 사이의 삭제 요청은 ROOM_BUSY로 돌려보낸다.
-    public DeleteFromResponse deleteFrom(String loginId, Long roomId, Long messageId) {
-        return withRoomLock(roomId, () -> chatTxService.deleteFrom(loginId, roomId, messageId));
+    public DeleteFromResponse deleteFrom(Long userId, Long roomId, Long messageId) {
+        return withRoomLock(roomId, () -> chatTxService.deleteFrom(userId, roomId, messageId));
     }
 
     private <T> T withRoomLock(Long roomId, Supplier<T> action) {
@@ -167,8 +167,8 @@ public class MessageService {
      * ⚠️ 방을 한 번 더 읽는 비용이 붙는다. 소유권 확인은 어차피 {@code prepare} 안에서 다시 하므로
      * 중복이지만, 인덱스 조회 하나로 "스트림이 열리기 전에 거절"을 사는 값이라 싼 편이다.
      */
-    private void ensureCredit(String loginId, Long roomId) {
-        ChatRoom room = chatRoomService.getOwnedChatRoom(loginId, roomId);
+    private void ensureCredit(Long userId, Long roomId) {
+        ChatRoom room = chatRoomService.getOwnedChatRoom(userId, roomId);
         creditService.ensureAffordable(room.getUser().getId(), ModelCatalog.costOf(room.getModel()));
     }
 

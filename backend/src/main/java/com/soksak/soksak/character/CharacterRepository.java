@@ -19,9 +19,9 @@ public interface CharacterRepository extends JpaRepository<ChatCharacter, Long> 
      * join fetch가 있는 쿼리는 count 쿼리로 바꿀 수 없어서 countQuery를 따로 적는다.
      * 숨겨진 캐릭터도 포함한다. 제작자가 "검토 중" 배지로 상태를 봐야 하기 때문이다.
      */
-    @Query(value = "select c from ChatCharacter c join fetch c.user u where u.loginId = :loginId",
-            countQuery = "select count(c) from ChatCharacter c where c.user.loginId = :loginId")
-    Page<ChatCharacter> findByUser_LoginId(@Param("loginId") String loginId, Pageable pageable);
+    @Query(value = "select c from ChatCharacter c join fetch c.user u where u.id = :userId",
+            countQuery = "select count(c) from ChatCharacter c where c.user.id = :userId")
+    Page<ChatCharacter> findByUser_Id(@Param("userId") Long userId, Pageable pageable);
 
     /**
      * 신고 판정용 행 잠금. 같은 캐릭터에 들어온 신고를 한 줄로 세워서,

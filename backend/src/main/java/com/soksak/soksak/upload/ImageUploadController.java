@@ -1,8 +1,9 @@
 package com.soksak.soksak.upload;
 
+import com.soksak.soksak.auth.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,8 +21,8 @@ public class ImageUploadController {
 
     @PostMapping("/images")
     public ResponseEntity<ImageUploadResponse> upload(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok(new ImageUploadResponse(imageUploadService.upload(authentication.getName(), file)));
+        return ResponseEntity.ok(new ImageUploadResponse(imageUploadService.upload(me.id(), file)));
     }
 }

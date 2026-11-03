@@ -32,19 +32,20 @@ public class TokenService {
                     return new BusinessException(ErrorCode.INVALID_TOKEN);
                 });
         Authentication auth = jwtTokenProvider.getAuthentication(claims);
+        AuthUser me = (AuthUser) auth.getPrincipal();
 
-        String newAccess = jwtTokenProvider.generateAccessToken(auth);
-        IssuedToken newRefresh = jwtTokenProvider.generateRefreshToken(auth);
+        String newAccess = jwtTokenProvider.generateAccessToken(me.id(), auth.getAuthorities());
+        IssuedToken newRefresh = jwtTokenProvider.generateRefreshToken(me.id(), auth.getAuthorities());
 
         if (refreshTokenRepository.rotate(refreshToken, newRefresh.value(), newRefresh.expiresAt()) != 1) {
             // 서명은 정상인데 DB에 이 토큰이 없으면 이미 재발급에 한 번 쓰인 토큰이다.
             // 정상 사용자는 옛 토큰을 다시 쓸 일이 없으니, 탈취된 토큰이 재사용됐을 수 있다.
             // 다만 로그아웃 뒤 재시도나 다른 기기 로그인처럼 정상적인 경우도 섞이니 경보가 아니라 단서로 본다.
-            log.warn("리프레시 토큰 재사용 탐지 loginId={}", claims.getSubject());
+            log.warn("리프레시 토큰 재사용 탐지 userId={}", claims.getSubject());
             throw new BusinessException(ErrorCode.INVALID_TOKEN);
         }
 
-        log.info("토큰 재발급 loginId={}", claims.getSubject());
+        log.info("토큰 재발급 userId={}", claims.getSubject());
         return new TokenResponse(newAccess, newRefresh.value());
     }
 }

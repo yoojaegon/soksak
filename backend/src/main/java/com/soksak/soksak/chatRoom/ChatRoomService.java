@@ -35,8 +35,8 @@ public class ChatRoomService {
     private final ChatSummaryRepository chatSummaryRepository;
 
     @Transactional
-    public ChatRoom createChatRoom(String loginId, CreateChatRoomRequest request) {
-        User user = userRepository.findByLoginId(loginId)
+    public ChatRoom createChatRoom(Long userId, CreateChatRoomRequest request) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         ChatCharacter character = characterRepository.findById(request.characterId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
@@ -49,7 +49,7 @@ public class ChatRoomService {
                 ChatRoom.builder()
                     .user(user)
                     .character(character)
-                    .title(nextRoomTitle(loginId, character))
+                    .title(nextRoomTitle(userId, character))
                     .build());
 
         messageRepository.save(Message.builder()
@@ -63,10 +63,10 @@ public class ChatRoomService {
     // 같은 사용자가 같은 캐릭터로 방을 여러 개 만들면 제목을 자동으로 넘버링한다.
     // 첫 방은 캐릭터 이름 그대로, 그다음부터 "이름2", "이름3" … 식.
     // 이미 쓰고 있는 제목은 건너뛰어 중간 방을 지워도 제목이 겹치지 않는다.
-    private String nextRoomTitle(String loginId, ChatCharacter character) {
+    private String nextRoomTitle(Long userId, ChatCharacter character) {
         String base = character.getName();
         Set<String> used = new HashSet<>(
-                chatRoomRepository.findTitlesByUserAndCharacter(loginId, character.getId()));
+                chatRoomRepository.findTitlesByUserAndCharacter(userId, character.getId()));
 
         if (!used.contains(base)) {
             return base;
@@ -79,28 +79,28 @@ public class ChatRoomService {
     }
 
     @Transactional(readOnly = true)
-    public ChatRoomResponse getChatRoom(String loginId, Long id) {
-        return ChatRoomResponse.from(getOwnedChatRoom(loginId, id));
+    public ChatRoomResponse getChatRoom(Long userId, Long id) {
+        return ChatRoomResponse.from(getOwnedChatRoom(userId, id));
     }
 
     @Transactional(readOnly = true)
-    public List<ChatRoomResponse> getMyChatRooms(String loginId) {
-        return chatRoomRepository.findByUser_LoginId(loginId).stream()
+    public List<ChatRoomResponse> getMyChatRooms(Long userId) {
+        return chatRoomRepository.findByUser_Id(userId).stream()
                 .map(ChatRoomResponse::from)
                 .toList();
     }
 
     @Transactional
-    public ChatRoomResponse updateChatRoom(String loginId, Long id, UpdateChatRoomRequest request) {
-        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+    public ChatRoomResponse updateChatRoom(Long userId, Long id, UpdateChatRoomRequest request) {
+        ChatRoom chatRoom = getOwnedChatRoom(userId, id);
         chatRoom.update(request.title());
 
         return ChatRoomResponse.from(chatRoom);
     }
 
     @Transactional
-    public ChatRoomResponse updateModels(String loginId, Long id, UpdateModelRequest request) {
-        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+    public ChatRoomResponse updateModels(Long userId, Long id, UpdateModelRequest request) {
+        ChatRoom chatRoom = getOwnedChatRoom(userId, id);
         if (!ModelCatalog.contains(request.model()))
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         chatRoom.updateModel(request.model());
@@ -114,41 +114,41 @@ public class ChatRoomService {
      * 실제로 보낼 수 있는 값으로 맞추는 건 발송 직전의 ModelCatalog.resolveThinking() 몫이다.
      */
     @Transactional
-    public ChatRoomResponse updateThinking(String loginId, Long id, UpdateThinkingRequest request) {
-        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+    public ChatRoomResponse updateThinking(Long userId, Long id, UpdateThinkingRequest request) {
+        ChatRoom chatRoom = getOwnedChatRoom(userId, id);
         chatRoom.updateThinkingLevel(request.thinkingLevel());
 
         return ChatRoomResponse.from(chatRoom);
     }
 
     @Transactional
-    public ChatRoomResponse updateConfig(String loginId, Long id, boolean writingToggle, boolean foldSpoilerToggle) {
-        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+    public ChatRoomResponse updateConfig(Long userId, Long id, boolean writingToggle, boolean foldSpoilerToggle) {
+        ChatRoom chatRoom = getOwnedChatRoom(userId, id);
         chatRoom.toggleUpdate(writingToggle, foldSpoilerToggle);
 
         return ChatRoomResponse.from(chatRoom);
     }
 
     @Transactional
-    public void deleteChatRoom(String loginId, Long id) {
-        ChatRoom chatRoom = getOwnedChatRoom(loginId, id);
+    public void deleteChatRoom(Long userId, Long id) {
+        ChatRoom chatRoom = getOwnedChatRoom(userId, id);
         chatRoomRepository.delete(chatRoom);
     }
 
-    public ChatRoom getOwnedChatRoom(String loginId, Long chatRoomId) {
+    public ChatRoom getOwnedChatRoom(Long userId, Long chatRoomId) {
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHATROOM_NOT_FOUND));
 
-        if (!chatRoom.getUser().getLoginId().equals(loginId)) {
+        if (!chatRoom.getUser().getId().equals(userId)) {
             throw new BusinessException(ErrorCode.CHATROOM_FORBIDDEN);
         }
         return chatRoom;
     }
 
-    public ChatRoom getOwnedChatRoomWithDetails(String loginId, Long chatRoomId) {
+    public ChatRoom getOwnedChatRoomWithDetails(Long userId, Long chatRoomId) {
         ChatRoom chatRoom = chatRoomRepository.findByWithDetails(chatRoomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHATROOM_NOT_FOUND));
-        if (!chatRoom.getUser().getLoginId().equals(loginId)) {
+        if (!chatRoom.getUser().getId().equals(userId)) {
             throw new BusinessException(ErrorCode.CHATROOM_FORBIDDEN);
         }
         return chatRoom;
@@ -157,8 +157,8 @@ public class ChatRoomService {
     // 조각 전부가 아니라 '실제로 프롬프트에 실리는 것'만 돌려준다. 전부 보여주면 예산에 밀려
     // 안 쓰이는 문장까지 편집 상자에 뜨고, 그중 어느 게 실제로 기억되는지 알 길이 없어진다.
     @Transactional(readOnly = true)
-    public SummaryResponse getSummary(String loginId, Long chatRoomId) {
-        getOwnedChatRoom(loginId, chatRoomId);
+    public SummaryResponse getSummary(Long userId, Long chatRoomId) {
+        getOwnedChatRoom(userId, chatRoomId);
         List<ChatSummary> summaries = chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(chatRoomId);
         return new SummaryResponse(SummarySelector.join(SummarySelector.select(summaries)));
     }
@@ -168,8 +168,8 @@ public class ChatRoomService {
      * 프론트 계약은 그대로다 — 밖에서는 여전히 문자열 하나를 주고받는다.
      */
     @Transactional
-    public SummaryResponse updateSummary(String loginId, Long chatRoomId, UpdateSummaryRequest request) {
-        ChatRoom chatRoom = getOwnedChatRoom(loginId, chatRoomId);
+    public SummaryResponse updateSummary(Long userId, Long chatRoomId, UpdateSummaryRequest request) {
+        ChatRoom chatRoom = getOwnedChatRoom(userId, chatRoomId);
         String summary = request.summary().trim();
 
         // 상한은 @Size(문자수)가 아니라 여기서 토큰으로 잰다. 방마다 예산이 달라질 수 있어

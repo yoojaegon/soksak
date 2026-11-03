@@ -73,18 +73,18 @@ public class UserService {
         // 가입정보로 기본 유저 페르소나를 함께 생성한다(같은 트랜잭션).
         // 페르소나 이름의 씨앗은 표시용 닉네임을 쓴다(본명은 수집하지 않음).
         userPersonaService.createDefault(
-                saved.getLoginId(), saved.getNickname(),
+                saved.getId(), saved.getNickname(),
                 Year.now().getValue() - saved.getBirthYear(), saved.getGender());
         return saved;
     }
 
-    public UserResponse getMe(String loginId) {
-        return UserResponse.from(findUser(loginId));
+    public UserResponse getMe(Long userId) {
+        return UserResponse.from(findUser(userId));
     }
 
     @Transactional
-    public UserResponse updateUser(String loginId, UpdateUserRequest request) {
-        User user = findUser(loginId);
+    public UserResponse updateUser(Long userId, UpdateUserRequest request) {
+        User user = findUser(userId);
 
         // unique 제약에만 맡기면 커밋 시점에 뭉뚱그린 409("이미 사용 중인 값")가 된다.
         // 자기 닉네임을 그대로 다시 보내는 경우는 통과해야 하므로 본인은 제외하고 본다.
@@ -98,8 +98,8 @@ public class UserService {
     }
 
     @Transactional
-    public void changePassword(String loginId, ChangePasswordRequest request) {
-        User user = findUser(loginId);
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = findUser(userId);
 
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())){
             throw new BusinessException(ErrorCode.INVALID_CURRENT_PASSWORD);
@@ -115,8 +115,8 @@ public class UserService {
 
     }
 
-    private User findUser(String loginId) {
-        return userRepository.findByLoginId(loginId)
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 }

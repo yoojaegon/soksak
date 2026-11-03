@@ -23,10 +23,10 @@ public class CharacterLikeService {
     // 좋아요 등록. 이미 눌러둔 상태면 조용히 무시(중복 요청에 멱등하게 동작).
     // 좋아요 행 insert와 캐릭터 카운터 증가를 한 트랜잭션으로 묶어 둘이 어긋나지 않게 한다.
     @Transactional
-    public void like(String loginId, Long characterId) {
-        if (characterLikeRepository.existsByUser_LoginIdAndCharacter_id(loginId, characterId)) return;
+    public void like(Long userId, Long characterId) {
+        if (characterLikeRepository.existsByUser_IdAndCharacter_id(userId, characterId)) return;
 
-        User user = userRepository.findByLoginId(loginId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         ChatCharacter character = characterRepository.findById(characterId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
@@ -37,8 +37,8 @@ public class CharacterLikeService {
 
     // 좋아요 취소. 실제로 지워진 행이 있을 때만 카운터를 내려 없던 좋아요에 음수로 새는 걸 막는다.
     @Transactional
-    public void unlike(String loginId, Long characterId) {
-        int deleted = characterLikeRepository.deleteByUser_LoginIdAndCharacter_id(loginId, characterId);
+    public void unlike(Long userId, Long characterId) {
+        int deleted = characterLikeRepository.deleteByUser_IdAndCharacter_id(userId, characterId);
         if (deleted > 0) {
             characterRepository.decrementLikeCount(characterId);
         }
@@ -46,8 +46,8 @@ public class CharacterLikeService {
 
     // 내가 좋아요한 캐릭터 목록(최근에 누른 순). 캐릭터·작성자를 join fetch로 한 번에 가져온다.
     @Transactional(readOnly = true)
-    public List<CharacterResponse> getLikedCharacters(String loginId) {
-        return characterLikeRepository.findByUser_LoginId(loginId).stream()
+    public List<CharacterResponse> getLikedCharacters(Long userId) {
+        return characterLikeRepository.findByUser_Id(userId).stream()
                 .filter(cl -> !cl.getCharacter().isHidden())   // 숨겨진 캐릭터는 좋아요 목록에서도 뺀다
                 .map(cl -> CharacterResponse.from(cl.getCharacter()))
                 .toList();

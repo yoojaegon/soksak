@@ -1,5 +1,6 @@
 package com.soksak.soksak.character;
 
+import com.soksak.soksak.auth.AuthUser;
 import com.soksak.soksak.character.characterLike.CharacterLikeService;
 import com.soksak.soksak.character.dto.CharacterResponse;
 import com.soksak.soksak.character.dto.CreateCharacterRequest;
@@ -12,7 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,27 +27,27 @@ public class CharacterController {
 
     @PostMapping
     public ResponseEntity<CharacterResponse> createCharacter(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @Valid @RequestBody CreateCharacterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(characterService.createCharacter(authentication.getName(), request));
+                .body(characterService.createCharacter(me.id(), request));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CharacterResponse> getCharacter(Authentication authentication, @PathVariable Long id) {
-        return ResponseEntity.ok(characterService.getCharacter(id, authentication.getName()));
+    public ResponseEntity<CharacterResponse> getCharacter(@AuthenticationPrincipal AuthUser me, @PathVariable Long id) {
+        return ResponseEntity.ok(characterService.getCharacter(id, me.id()));
     }
 
     @GetMapping("/me")
     public ResponseEntity<Page<CharacterResponse>> getMyCharacters(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(characterService.getMyCharacters(authentication.getName(), pageable));
+        return ResponseEntity.ok(characterService.getMyCharacters(me.id(), pageable));
     }
 
     @GetMapping("/liked")
-    public ResponseEntity<List<CharacterResponse>> getLikedCharacters(Authentication authentication) {
-        return ResponseEntity.ok(characterLikeService.getLikedCharacters(authentication.getName()));
+    public ResponseEntity<List<CharacterResponse>> getLikedCharacters(@AuthenticationPrincipal AuthUser me) {
+        return ResponseEntity.ok(characterLikeService.getLikedCharacters(me.id()));
     }
 
     @GetMapping
@@ -59,34 +60,34 @@ public class CharacterController {
 
     @PutMapping("/{id}")
     public ResponseEntity<CharacterResponse> updateCharacter(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @Valid @RequestBody UpdateCharacterRequest request) {
-        CharacterResponse response = characterService.updateCharacter(authentication.getName(), id, request);
+        CharacterResponse response = characterService.updateCharacter(me.id(), id, request);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCharacter(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id) {
-        characterService.deleteCharacter(authentication.getName(), id);
+        characterService.deleteCharacter(me.id(), id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/like")
     public ResponseEntity<Void> like(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id) {
-        characterLikeService.like(authentication.getName(), id);
+        characterLikeService.like(me.id(), id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}/like")
     public ResponseEntity<Void> unlike(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id) {
-        characterLikeService.unlike(authentication.getName(), id);
+        characterLikeService.unlike(me.id(), id);
         return ResponseEntity.noContent().build();
     }
 }

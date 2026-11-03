@@ -22,38 +22,38 @@ public class UserPersonaService {
 
     /** 로그인한 유저가 직접 페르소나를 추가한다. */
     @Transactional
-    public UserPersonaResponse create(String loginId, CreateUserPersonaRequest request) {
-        User user = findUser(loginId);
+    public UserPersonaResponse create(Long userId, CreateUserPersonaRequest request) {
+        User user = findUser(userId);
         return save(user, request.name(), request.persona());
     }
 
     /** 회원가입 시 가입정보(이름/나이/성별)로 기본 페르소나를 생성한다. */
     @Transactional
-    public UserPersonaResponse createDefault(String loginId, String name, int age, Gender gender) {
-        User user = findUser(loginId);
+    public UserPersonaResponse createDefault(Long userId, String name, int age, Gender gender) {
+        User user = findUser(userId);
         return save(user, name, generateDefaultPersona(name, age, gender));
     }
 
     /** 로그인한 본인이 가진 페르소나 목록을 조회한다. */
     @Transactional(readOnly = true)
-    public List<UserPersonaResponse> getMyPersonas(String loginId) {
-        return userPersonaRepository.findByUser_LoginIdOrderByIdAsc(loginId).stream()
+    public List<UserPersonaResponse> getMyPersonas(Long userId) {
+        return userPersonaRepository.findByUser_IdOrderByIdAsc(userId).stream()
                 .map(UserPersonaResponse::from)
                 .toList();
     }
 
     /** 본인 페르소나의 내용을 수정한다. */
     @Transactional
-    public UserPersonaResponse update(String loginId, Long id, UpdateUserPersonaRequest request) {
-        UserPersona persona = getOwnedPersona(loginId, id);
+    public UserPersonaResponse update(Long userId, Long id, UpdateUserPersonaRequest request) {
+        UserPersona persona = getOwnedPersona(userId, id);
         persona.update(request.name(), request.persona());
         return UserPersonaResponse.from(persona);
     }
 
     /** 지정한 페르소나를 기본값으로 바꾼다. (기존 기본값은 해제) */
     @Transactional
-    public UserPersonaResponse setDefault(String loginId, Long id) {
-        UserPersona persona = getOwnedPersona(loginId, id);
+    public UserPersonaResponse setDefault(Long userId, Long id) {
+        UserPersona persona = getOwnedPersona(userId, id);
         if (!persona.isDefault()) {
             userPersonaRepository.findByUserAndIsDefaultTrue(persona.getUser())
                     .ifPresent(prev -> prev.updateDefault(false));
@@ -68,9 +68,9 @@ public class UserPersonaService {
      * - 기본 페르소나를 삭제하면 순서상 바로 앞(없으면 그다음) 페르소나를 기본으로 승격한다.
      */
     @Transactional
-    public void delete(String loginId, Long id) {
-        List<UserPersona> personas = userPersonaRepository.findByUser_LoginIdOrderByIdAsc(loginId);
-        UserPersona target = findOwned(personas, loginId, id);
+    public void delete(Long userId, Long id) {
+        List<UserPersona> personas = userPersonaRepository.findByUser_IdOrderByIdAsc(userId);
+        UserPersona target = findOwned(personas, userId, id);
         if (personas.size() <= 1) {
             throw new BusinessException(ErrorCode.USER_PERSONA_LAST_ONE);
         }
@@ -87,24 +87,24 @@ public class UserPersonaService {
     }
 
     /** 이미 불러온 목록에서 본인 소유 + 해당 id 페르소나를 찾는다. */
-    private UserPersona findOwned(List<UserPersona> personas, String loginId, Long id) {
+    private UserPersona findOwned(List<UserPersona> personas, Long userId, Long id) {
         return personas.stream()
                 .filter(p -> p.getId().equals(id))
                 .findFirst()
-                .orElseGet(() -> getOwnedPersona(loginId, id)); // 목록에 없으면 소유/존재 검증으로 적절한 예외
+                .orElseGet(() -> getOwnedPersona(userId, id)); // 목록에 없으면 소유/존재 검증으로 적절한 예외
     }
 
-    private UserPersona getOwnedPersona(String loginId, Long id) {
+    private UserPersona getOwnedPersona(Long userId, Long id) {
         UserPersona persona = userPersonaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_PERSONA_NOT_FOUND));
-        if (!persona.getUser().getLoginId().equals(loginId)) {
+        if (!persona.getUser().getId().equals(userId)) {
             throw new BusinessException(ErrorCode.USER_PERSONA_FORBIDDEN);
         }
         return persona;
     }
 
-    private User findUser(String loginId) {
-        return userRepository.findByLoginId(loginId)
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 

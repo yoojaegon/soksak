@@ -1,5 +1,6 @@
 package com.soksak.soksak.userPersona;
 
+import com.soksak.soksak.auth.AuthUser;
 import com.soksak.soksak.userPersona.dto.CreateUserPersonaRequest;
 import com.soksak.soksak.userPersona.dto.UpdateUserPersonaRequest;
 import com.soksak.soksak.userPersona.dto.UserPersonaResponse;
@@ -7,7 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -28,41 +29,41 @@ public class UserPersonaController {
 
     @PostMapping
     public ResponseEntity<UserPersonaResponse> create(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @Valid @RequestBody CreateUserPersonaRequest request) {
-        UserPersonaResponse response = userPersonaService.create(authentication.getName(), request);
+        UserPersonaResponse response = userPersonaService.create(me.id(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /** 로그인한 본인의 페르소나 목록 */
     @GetMapping
-    public List<UserPersonaResponse> getMyPersonas(Authentication authentication) {
-        return userPersonaService.getMyPersonas(authentication.getName());
+    public List<UserPersonaResponse> getMyPersonas(@AuthenticationPrincipal AuthUser me) {
+        return userPersonaService.getMyPersonas(me.id());
     }
 
     /** 본인 페르소나 수정 */
     @PutMapping("/{id}")
     public UserPersonaResponse update(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserPersonaRequest request) {
-        return userPersonaService.update(authentication.getName(), id, request);
+        return userPersonaService.update(me.id(), id, request);
     }
 
     /** 기본 페르소나로 지정 */
     @PatchMapping("/{id}/default")
     public UserPersonaResponse setDefault(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id) {
-        return userPersonaService.setDefault(authentication.getName(), id);
+        return userPersonaService.setDefault(me.id(), id);
     }
 
     /** 본인 페르소나 삭제 (마지막 한 개는 삭제 불가) */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id) {
-        userPersonaService.delete(authentication.getName(), id);
+        userPersonaService.delete(me.id(), id);
         return ResponseEntity.noContent().build();
     }
 }

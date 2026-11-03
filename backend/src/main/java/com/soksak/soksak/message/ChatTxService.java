@@ -33,8 +33,8 @@ public class ChatTxService {
     private final CreditService creditService;
 
     @Transactional
-    public PreparedChat prepareAndSaveUser(String loginId, Long roomId, String content) {
-        ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(loginId, roomId);
+    public PreparedChat prepareAndSaveUser(Long userId, Long roomId, String content) {
+        ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(userId, roomId);
 
         // 값을 먼저 치른다. USER 메시지 저장과 한 트랜잭션이라 "보냈는데 안 깎였다"나 그 반대가
         // 생기지 않는다. 사용자가 중간에 나가도 생성·저장은 끝까지 가므로(MessageService.sendToken)
@@ -103,8 +103,8 @@ public class ChatTxService {
     }
 
     @Transactional
-    public RegenTarget prepareRegenerate(String loginId, Long roomId) {
-        ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(loginId, roomId);
+    public RegenTarget prepareRegenerate(Long userId, Long roomId) {
+        ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(userId, roomId);
         List<Message> messages = messageRepository.findByChatRoomIdOrderByIdAsc(roomId);
         if (messages.isEmpty()) {
             throw new BusinessException(ErrorCode.MESSAGE_NOT_FOUND);
@@ -140,8 +140,8 @@ public class ChatTxService {
     }
 
     @Transactional
-    public DeleteFromResponse deleteFrom(String loginId, Long roomId, Long messageId) {
-        chatRoomService.getOwnedChatRoom(loginId, roomId);   // 소유권 검증
+    public DeleteFromResponse deleteFrom(Long userId, Long roomId, Long messageId) {
+        chatRoomService.getOwnedChatRoom(userId, roomId);   // 소유권 검증
         Message target = messageRepository.findById(messageId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
 

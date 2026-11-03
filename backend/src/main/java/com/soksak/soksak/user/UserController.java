@@ -1,5 +1,6 @@
 package com.soksak.soksak.user;
 
+import com.soksak.soksak.auth.AuthUser;
 import com.soksak.soksak.user.dto.ChangePasswordRequest;
 import com.soksak.soksak.user.dto.UserResponse;
 import com.soksak.soksak.user.dto.CreateUserRequest;
@@ -8,7 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,20 +28,20 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(Authentication authentication) {
-        return ResponseEntity.ok(userService.getMe(authentication.getName()));
+    public ResponseEntity<UserResponse> me(@AuthenticationPrincipal AuthUser me) {
+        return ResponseEntity.ok(userService.getMe(me.id()));
     }
 
     @PatchMapping("/me")
-    public ResponseEntity<UserResponse> updateMe(Authentication authentication,
+    public ResponseEntity<UserResponse> updateMe(@AuthenticationPrincipal AuthUser me,
                                                  @Valid @RequestBody UpdateUserRequest request) {
-        return ResponseEntity.ok(userService.updateUser(authentication.getName(), request));
+        return ResponseEntity.ok(userService.updateUser(me.id(), request));
     }
 
     @PatchMapping("/me/password")
-    public ResponseEntity<Void> changePassword(Authentication authentication,
+    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal AuthUser me,
                                @Valid @RequestBody ChangePasswordRequest request) {
-        userService.changePassword(authentication.getName(), request);
+        userService.changePassword(me.id(), request);
         return ResponseEntity.noContent().build();
     }
 }

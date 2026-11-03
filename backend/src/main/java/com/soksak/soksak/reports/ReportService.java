@@ -53,16 +53,16 @@ public class ReportService {
     }
 
     @Transactional
-    public void reportCharacter(String loginId, Long characterId, ReportTarget target, ReportReason reason, String detail) {
+    public void reportCharacter(Long userId, Long characterId, ReportTarget target, ReportReason reason, String detail) {
         if (target == ReportTarget.CHAT) {
             throw new BusinessException(ErrorCode.INVALID_INPUT);   // 채팅 신고는 메시지 경로로만
         }
         ChatCharacter character = characterRepository.findByIdForUpdate(characterId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHARACTER_NOT_FOUND));
-        if (character.getUser().getLoginId().equals(loginId)) {
+        if (character.getUser().getId().equals(userId)) {
             throw new BusinessException(ErrorCode.REPORT_OWN_CHARACTER);
         }
-        User reporter = findUser(loginId);
+        User reporter = findUser(userId);
 
         reportRepository.save(Report.builder()
                 .reporter(reporter)
@@ -87,8 +87,8 @@ public class ReportService {
     }
 
     @Transactional
-    public void reportMessage(String loginId, Long roomId, Long messageId, ReportReason reason, String detail) {
-        ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(loginId, roomId);
+    public void reportMessage(Long userId, Long roomId, Long messageId, ReportReason reason, String detail) {
+        ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(userId, roomId);
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MESSAGE_NOT_FOUND));
         if (!message.getChatRoom().getId().equals(roomId)) {
@@ -143,8 +143,8 @@ public class ReportService {
                 + "\n[첫 인사]\n" + character.getGreeting();
     }
 
-    private User findUser(String loginId) {
-        return userRepository.findByLoginId(loginId)
+    private User findUser(Long userId) {
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 }

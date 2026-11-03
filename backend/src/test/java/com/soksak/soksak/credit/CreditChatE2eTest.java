@@ -227,7 +227,8 @@ class CreditChatE2eTest {
                                 "birthYear", 2000, "gender", "MALE"))))
                 .andExpect(status().isCreated());
 
-        int balance = userRepository.findCreditBalanceByLoginId("newbie").orElseThrow();
+        Long newbieId = userRepository.findByLoginId("newbie").orElseThrow().getId();
+        int balance = userRepository.findCreditBalanceById(newbieId).orElseThrow();
         assertThat(balance).isPositive();
         assertThat(creditLedgerRepository.findAll())
                 .filteredOn(row -> row.getReason() == CreditReason.SIGNUP_BONUS)

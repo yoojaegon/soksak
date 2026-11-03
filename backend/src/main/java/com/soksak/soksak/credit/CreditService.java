@@ -102,9 +102,9 @@ public class CreditService {
      * 그대로 지켜진다.
      */
     @Transactional
-    public int topUp(String loginId, String packId) {
+    public int topUp(Long userId, String packId) {
         CreditPackCatalog.Pack pack = CreditPackCatalog.byId(packId);
-        User user = userRepository.findByLoginId(loginId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         grant(user, pack.amount(), CreditReason.TOPUP, pack.id());
@@ -113,8 +113,8 @@ public class CreditService {
     }
 
     @Transactional(readOnly = true)
-    public int balanceOf(String loginId) {
-        return userRepository.findCreditBalanceByLoginId(loginId)
+    public int balanceOf(Long userId) {
+        return userRepository.findCreditBalanceById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 

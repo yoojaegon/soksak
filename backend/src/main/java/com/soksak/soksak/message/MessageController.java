@@ -1,5 +1,6 @@
 package com.soksak.soksak.message;
 
+import com.soksak.soksak.auth.AuthUser;
 import com.soksak.soksak.message.dto.DeleteFromResponse;
 import com.soksak.soksak.message.dto.MessageRequest;
 import com.soksak.soksak.message.dto.MessageResponse;
@@ -7,7 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -21,61 +22,61 @@ public class MessageController {
 
     @PostMapping
     public ResponseEntity<MessageResponse> send(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long roomId,
             @Valid @RequestBody MessageRequest request
             ) {
 
-        MessageResponse response = messageService.sendMessage(authentication.getName(), roomId, request.content());
+        MessageResponse response = messageService.sendMessage(me.id(), roomId, request.content());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
     public ResponseEntity<List<MessageResponse>> list(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long roomId
     ) {
-        return ResponseEntity.ok(messageService.getMessages(authentication.getName(), roomId));
+        return ResponseEntity.ok(messageService.getMessages(me.id(), roomId));
     }
 
     @PutMapping("/{messageId}")
     public ResponseEntity<MessageResponse> update(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long roomId,
             @PathVariable Long messageId,
             @Valid @RequestBody MessageRequest request
     ) {
-        MessageResponse response = messageService.updateMessage(authentication.getName(), roomId, messageId, request.content());
+        MessageResponse response = messageService.updateMessage(me.id(), roomId, messageId, request.content());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/regenerate")
     public ResponseEntity<MessageResponse> regenerate(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long roomId
     ) {
-        MessageResponse response = messageService.regenerate(authentication.getName(), roomId);
+        MessageResponse response = messageService.regenerate(me.id(), roomId);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{messageId}/after")
     public ResponseEntity<DeleteFromResponse> deleteForm(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long roomId,
             @PathVariable Long messageId
     ) {
 
-        return ResponseEntity.ok(messageService.deleteFrom(authentication.getName(), roomId, messageId));
+        return ResponseEntity.ok(messageService.deleteFrom(me.id(), roomId, messageId));
     }
 
     @PostMapping("/stream")
-    public SseEmitter sendStream(Authentication authentication, @PathVariable Long roomId, @Valid @RequestBody MessageRequest request) {
-        return messageService.sendMessageStream(authentication.getName(), roomId, request.content());
+    public SseEmitter sendStream(@AuthenticationPrincipal AuthUser me, @PathVariable Long roomId, @Valid @RequestBody MessageRequest request) {
+        return messageService.sendMessageStream(me.id(), roomId, request.content());
     }
 
     @PostMapping("/regenerate/stream")
-    public SseEmitter regenerateStream(Authentication authentication, @PathVariable Long roomId) {
-        return messageService.regenerateStream(authentication.getName(), roomId);
+    public SseEmitter regenerateStream(@AuthenticationPrincipal AuthUser me, @PathVariable Long roomId) {
+        return messageService.regenerateStream(me.id(), roomId);
     }
 }

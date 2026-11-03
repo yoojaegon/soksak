@@ -1,5 +1,6 @@
 package com.soksak.soksak.config.jwt;
 
+import com.soksak.soksak.auth.AuthUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -41,21 +42,23 @@ public class JwtTokenProvider {
     }
 
     // 지금부터 validTime(ms) 동안 유효한 토큰을 만든다.
-    private String generateToken(Authentication authentication, Long validTime, String type) {
+    private String generateToken(Long userId, Collection<? extends GrantedAuthority> authorities, Long validTime, String type) {
         Date now = new Date();
-        return buildToken(authentication, now, new Date(now.getTime() + validTime), type);
+        return buildToken(userId, authorities, now, new Date(now.getTime() + validTime), type);
     }
 
-    private String buildToken(Authentication authentication, Date now, Date expiration, String type) {
+    private String buildToken(Long userId, Collection<? extends GrantedAuthority> authorities, Date now, Date expiration, String type) {
         // 권한 목록은 "ROLE_USER,ROLE_ADMIN"처럼 쉼표로 이어 claim 하나에 담는다.
-        String authorities = authentication.getAuthorities().stream()
+        String authoritiesClaim = authorities.stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(","));
 
+        // subject는 바뀌지도 남에게 다시 주어지지도 않는 userId로 한다.
+        // loginId는 바뀌거나 탈퇴 후 다른 사람이 쓸 수 있어서, 옛 토큰이 엉뚱한 사람을 가리킬 수 있다.
         return Jwts.builder()
-                .subject(authentication.getName())
+                .subject(String.valueOf(userId))
                 .claim(TOKEN_TYPE_KEY, type)
-                .claim(AUTHORITIES_KEY, authorities )
+                .claim(AUTHORITIES_KEY, authoritiesClaim)
                 .issuer(jwtProperties.getIssuer())
                 .issuedAt(now)
                 .id(UUID.randomUUID().toString())
@@ -63,15 +66,15 @@ public class JwtTokenProvider {
                 .signWith(key)
                 .compact();
     }
-    public String generateAccessToken(Authentication authentication) {
-        return generateToken(authentication, jwtProperties.getAccessTokenExpiration(), TYPE_ACCESS);
+    public String generateAccessToken(Long userId, Collection<? extends GrantedAuthority> authorities) {
+        return generateToken(userId, authorities, jwtProperties.getAccessTokenExpiration(), TYPE_ACCESS);
     }
 
     // 토큰의 exp와 DB에 저장할 만료 시각이 같은 시각에서 나오도록 여기서 함께 계산한다.
-    public IssuedToken generateRefreshToken(Authentication authentication) {
+    public IssuedToken generateRefreshToken(Long userId, Collection<? extends GrantedAuthority> authorities) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtProperties.getRefreshTokenExpiration());
-        String token = buildToken(authentication, now, expiration, TYPE_REFRESH);
+        String token = buildToken(userId, authorities, now, expiration, TYPE_REFRESH);
         return new IssuedToken(token, LocalDateTime.ofInstant(expiration.toInstant(), ZoneId.systemDefault()));
     }
 
@@ -79,7 +82,11 @@ public class JwtTokenProvider {
     // 검증과 파싱을 한 번에 해서, 호출하는 쪽이 같은 토큰을 다시 파싱하지 않아도 된다.
     public Optional<Claims> parse(String token) {
         try {
-            return Optional.of(parseClaims(token));
+            Claims claims = parseClaims(token);
+            // subject가 userId 숫자가 아니면 거부한다. subject가 loginId였던 예전 토큰이 여기서 걸린다.
+            // 실패하면 NumberFormatException이 나는데, IllegalArgumentException의 하위 타입이라 아래 catch로 간다.
+            Long.parseLong(claims.getSubject());
+            return Optional.of(claims);
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty(); // 만료, 위조, 형식 오류가 모두 여기로 온다
         }
@@ -98,7 +105,8 @@ public class JwtTokenProvider {
                         .toList();
 
         // 인자 3개짜리 생성자여야 인증된 상태로 만들어진다. 2개짜리를 쓰면 인증 안 된 것으로 보고 401이 난다.
-        return new UsernamePasswordAuthenticationToken(claims.getSubject(), "", authorities);
+        AuthUser principal = new AuthUser(Long.valueOf(claims.getSubject()));
+        return new UsernamePasswordAuthenticationToken(principal, "", authorities);
     }
 
     public String getTokenType(Claims claims) {

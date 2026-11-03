@@ -1,11 +1,12 @@
 package com.soksak.soksak.chatRoom;
 
+import com.soksak.soksak.auth.AuthUser;
 import com.soksak.soksak.chatRoom.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,9 +19,9 @@ public class ChatRoomController {
 
     @PostMapping
     public ResponseEntity<ChatRoomResponse> createChatRoom(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @Valid @RequestBody CreateChatRoomRequest request) {
-        ChatRoom chatRoom = chatRoomService.createChatRoom(authentication.getName(), request);
+        ChatRoom chatRoom = chatRoomService.createChatRoom(me.id(), request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ChatRoomResponse.from(chatRoom));
@@ -28,80 +29,80 @@ public class ChatRoomController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ChatRoomResponse> getChatRoom(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id
     ){
-        return ResponseEntity.ok(chatRoomService.getChatRoom(authentication.getName(), id));
+        return ResponseEntity.ok(chatRoomService.getChatRoom(me.id(), id));
     }
 
     @GetMapping
-    public ResponseEntity<List<ChatRoomResponse>> getMyChatRooms(Authentication authentication) {
-        return ResponseEntity.ok(chatRoomService.getMyChatRooms(authentication.getName()));
+    public ResponseEntity<List<ChatRoomResponse>> getMyChatRooms(@AuthenticationPrincipal AuthUser me) {
+        return ResponseEntity.ok(chatRoomService.getMyChatRooms(me.id()));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteChatRoom(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id) {
-        chatRoomService.deleteChatRoom(authentication.getName(), id);
+        chatRoomService.deleteChatRoom(me.id(), id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<ChatRoomResponse> updateChatRoom(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @Valid @RequestBody UpdateChatRoomRequest request
     ) {
-        ChatRoomResponse response = chatRoomService.updateChatRoom(authentication.getName(), id, request);
+        ChatRoomResponse response = chatRoomService.updateChatRoom(me.id(), id, request);
         return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}/model")
     public ResponseEntity<ChatRoomResponse> updateModels(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @Valid @RequestBody UpdateModelRequest request
     ) {
-        ChatRoomResponse response = chatRoomService.updateModels(authentication.getName(), id, request);
+        ChatRoomResponse response = chatRoomService.updateModels(me.id(), id, request);
         return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{id}/thinking")
     public ResponseEntity<ChatRoomResponse> updateThinking(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @Valid @RequestBody UpdateThinkingRequest request
     ) {
-        return ResponseEntity.ok(chatRoomService.updateThinking(authentication.getName(), id, request));
+        return ResponseEntity.ok(chatRoomService.updateThinking(me.id(), id, request));
     }
 
     @PatchMapping("/{id}/config")
     public ResponseEntity<ChatRoomResponse> updateConfig(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @RequestParam boolean writingToggle,
             @RequestParam boolean foldSpoilerToggle
     ) {
         ChatRoomResponse response = chatRoomService.updateConfig(
-                authentication.getName(), id, writingToggle, foldSpoilerToggle);
+                me.id(), id, writingToggle, foldSpoilerToggle);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}/summary")
     public ResponseEntity<SummaryResponse> getSummary(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id
     ) {
-        return ResponseEntity.ok(chatRoomService.getSummary(authentication.getName(), id));
+        return ResponseEntity.ok(chatRoomService.getSummary(me.id(), id));
     }
 
     @PatchMapping("/{id}/summary")
     public ResponseEntity<SummaryResponse> updateSummary(
-            Authentication authentication,
+            @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @Valid @RequestBody UpdateSummaryRequest request
     ) {
-        return ResponseEntity.ok(chatRoomService.updateSummary(authentication.getName(), id, request));
+        return ResponseEntity.ok(chatRoomService.updateSummary(me.id(), id, request));
     }
 }

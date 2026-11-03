@@ -36,10 +36,10 @@ public class AuthService {
             throw e;
         }
 
-        String accessToken = jwtTokenProvider.generateAccessToken(authentication);
-        IssuedToken refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
-
         User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
+
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), authentication.getAuthorities());
+        IssuedToken refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), authentication.getAuthorities());
 
         // 리프레시 토큰은 사용자당 하나만 둔다. 이미 있으면 값만 바꾸고, 처음이면 새로 만든다.
         // 그래서 다른 기기에서 로그인하면 이전 기기의 리프레시 토큰은 더 이상 쓸 수 없다.

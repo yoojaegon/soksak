@@ -9,16 +9,16 @@ import java.util.Optional;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     // 나의 전체 채팅방 목록 조회
-    @Query("select r from ChatRoom r join fetch r.character c where r.user.loginId = :loginId")
-    List<ChatRoom> findByUser_LoginId(@Param("loginId") String loginId);
+    @Query("select r from ChatRoom r join fetch r.character c where r.user.id = :userId")
+    List<ChatRoom> findByUser_Id(@Param("userId") Long userId);
 
     // 특정 사용자가 특정 캐릭터와 가진 방들의 제목 (제목 자동 넘버링에 사용)
-    @Query("select r.title from ChatRoom r where r.user.loginId = :loginId and r.character.id = :characterId")
-    List<String> findTitlesByUserAndCharacter(@Param("loginId") String loginId,
+    @Query("select r.title from ChatRoom r where r.user.id = :userId and r.character.id = :characterId")
+    List<String> findTitlesByUserAndCharacter(@Param("userId") Long userId,
                                               @Param("characterId") Long characterId);
 
     // 숨겨진 캐릭터를 볼 수 있는지 — 이미 이 캐릭터와 방이 있는 사람은 계속 본다.
-    boolean existsByUser_LoginIdAndCharacter_Id(String loginId, Long characterId);
+    boolean existsByUser_IdAndCharacter_Id(Long userId, Long characterId);
 
     @Query("select r from ChatRoom r join fetch r.character join fetch r.user where r.id = :id")
     Optional<ChatRoom> findByWithDetails(@Param("id") Long id);

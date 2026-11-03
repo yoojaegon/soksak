@@ -40,7 +40,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u.creditBalance FROM User u WHERE u.id = :id")
     Optional<Integer> findCreditBalanceById(@Param("id") Long id);
-
-    @Query("SELECT u.creditBalance FROM User u WHERE u.loginId = :loginId")
-    Optional<Integer> findCreditBalanceByLoginId(@Param("loginId") String loginId);
 }
