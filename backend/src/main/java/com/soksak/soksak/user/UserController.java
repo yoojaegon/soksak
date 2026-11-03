@@ -22,9 +22,8 @@ public class UserController {
     /** 회원가입. 로그인 전에 부르는 경로라 SecurityConfig에서 POST만 열어 둔다. */
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
-        User user = userService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(UserResponse.from(user));
+                .body(userService.createUser(request));
     }
 
     @GetMapping("/me")

@@ -40,7 +40,7 @@ public class UserService {
     private final RefreshTokenRepository refreshTokenRepository;
 
     @Transactional
-    public User createUser(CreateUserRequest request) {
+    public UserResponse createUser(CreateUserRequest request) {
         // unique 제약에만 맡기면 어떤 값이 겹쳤는지 모르는 409가 되므로 저장 전에 하나씩 확인한다.
         // 동시에 같은 값으로 가입하면 둘 다 여기를 통과할 수 있는데, 그때는 unique 제약이 막는다.
         if (request.birthYear().isBefore(MIN_BIRTH_YEAR)) {
@@ -75,7 +75,7 @@ public class UserService {
         userPersonaService.createDefault(
                 saved.getId(), saved.getNickname(),
                 Year.now().getValue() - saved.getBirthYear(), saved.getGender());
-        return saved;
+        return UserResponse.from(saved);
     }
 
     public UserResponse getMe(Long userId) {
