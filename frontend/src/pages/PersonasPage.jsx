@@ -179,7 +179,7 @@ export default function PersonasPage() {
           <form onSubmit={onSubmit} noValidate>
             <label>
               <span className="field-caption">이름 <span className="req">*</span></span>
-              <input name="name" value={form.name} onChange={onChange} placeholder="예: 지민" />
+              <input name="name" value={form.name} onChange={onChange} maxLength={20} placeholder="예: 지민" />
               {fieldErrors.name && <p className="field-error">! {fieldErrors.name}</p>}
             </label>
             <label>
@@ -189,6 +189,7 @@ export default function PersonasPage() {
                 value={form.persona}
                 onChange={onChange}
                 rows={5}
+                maxLength={1000}
                 placeholder="예: 나는 25세 남성이고 이름은 지민이다. 호기심 많고 장난기 있는 대학생이며, 처음 보는 사람에게는 말수가 적다."
               />
               {fieldErrors.persona && <p className="field-error">! {fieldErrors.persona}</p>}
