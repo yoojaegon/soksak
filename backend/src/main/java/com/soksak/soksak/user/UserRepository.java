@@ -1,6 +1,8 @@
 package com.soksak.soksak.user;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -40,4 +42,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u.creditBalance FROM User u WHERE u.id = :id")
     Optional<Integer> findCreditBalanceById(@Param("id") Long id);
+
+    /**
+     * 유저 행에 쓰기 락(SELECT ... FOR UPDATE)을 걸고 읽는다.
+     * 페르소나의 기본값 변경과 삭제는 여러 행을 읽고 고치는 작업이라,
+     * 같은 유저의 요청이 동시에 오면 기본이 두 개가 되거나 마지막 하나까지 지워질 수 있다.
+     * 그래서 이 락으로 같은 유저의 요청을 한 번에 하나씩 처리한다. 다른 유저끼리는 서로 막지 않는다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdForUpdate(@Param("id") Long id);
 }

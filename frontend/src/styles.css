@@ -2140,6 +2140,20 @@ button:disabled {
   height: 16px;
   accent-color: var(--champ);
 }
+.persona-default-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 13px !important;
+  color: var(--text-2) !important;
+}
+.persona-default-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--champ);
+}
 .lore-list {
   display: flex;
   flex-direction: column;

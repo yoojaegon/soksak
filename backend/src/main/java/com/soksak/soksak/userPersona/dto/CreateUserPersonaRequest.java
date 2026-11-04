@@ -9,6 +9,8 @@ public record CreateUserPersonaRequest(
         String name,
         @NotBlank(message = "페르소나는 필수입니다.")
         @Size(max = 1000, message = "페르소나는 1000자 이하여야 합니다.")
-        String persona
+        String persona,
+        // 만들면서 바로 기본 페르소나로 지정할지. 보내지 않으면 지정하지 않는다.
+        Boolean isDefault
 ) {
 }

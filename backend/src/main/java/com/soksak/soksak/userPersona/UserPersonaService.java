@@ -20,18 +20,18 @@ public class UserPersonaService {
     private final UserPersonaRepository userPersonaRepository;
     private final UserRepository userRepository;
 
-    /** 로그인한 유저가 직접 페르소나를 추가한다. */
+    /** 로그인한 유저가 직접 페르소나를 추가한다. 요청하면 바로 기본으로 지정한다. */
     @Transactional
     public UserPersonaResponse create(Long userId, CreateUserPersonaRequest request) {
-        User user = findUser(userId);
-        return save(user, request.name(), request.persona());
+        User user = lockUser(userId);
+        return save(user, request.name(), request.persona(), Boolean.TRUE.equals(request.isDefault()));
     }
 
     /** 회원가입 시 가입정보(이름/나이/성별)로 기본 페르소나를 생성한다. */
     @Transactional
     public UserPersonaResponse createDefault(Long userId, String name, int age, Gender gender) {
-        User user = findUser(userId);
-        return save(user, name, generateDefaultPersona(name, age, gender));
+        User user = lockUser(userId);
+        return save(user, name, generateDefaultPersona(name, age, gender), false);
     }
 
     /** 로그인한 본인이 가진 페르소나 목록을 조회한다. */
@@ -53,10 +53,10 @@ public class UserPersonaService {
     /** 지정한 페르소나를 기본값으로 바꾼다. (기존 기본값은 해제) */
     @Transactional
     public UserPersonaResponse setDefault(Long userId, Long id) {
+        lockUser(userId);
         UserPersona persona = getOwnedPersona(userId, id);
         if (!persona.isDefault()) {
-            userPersonaRepository.findByUserAndIsDefaultTrue(persona.getUser())
-                    .ifPresent(prev -> prev.updateDefault(false));
+            clearDefault(persona.getUser());
             persona.updateDefault(true);
         }
         return UserPersonaResponse.from(persona);
@@ -69,6 +69,8 @@ public class UserPersonaService {
      */
     @Transactional
     public void delete(Long userId, Long id) {
+        // 락을 먼저 잡아야 아래 개수 확인과 삭제 사이에 다른 삭제가 끼어들지 않는다.
+        lockUser(userId);
         List<UserPersona> personas = userPersonaRepository.findByUser_IdOrderByIdAsc(userId);
         UserPersona target = findOwned(personas, userId, id);
         if (personas.size() <= 1) {
@@ -103,18 +105,29 @@ public class UserPersonaService {
         return persona;
     }
 
-    private User findUser(Long userId) {
-        return userRepository.findById(userId)
+    // 기본값을 바꾸거나 개수를 확인하는 작업은 모두 이 락을 먼저 잡는다.
+    // 같은 유저의 요청이 겹쳐도 기본은 항상 하나, 페르소나는 최소 하나로 유지된다.
+    private User lockUser(Long userId) {
+        return userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
-    private UserPersonaResponse save(User user, String name, String persona) {
+    private void clearDefault(User user) {
+        userPersonaRepository.findByUserAndIsDefaultTrue(user)
+                .ifPresent(prev -> prev.updateDefault(false));
+    }
+
+    private UserPersonaResponse save(User user, String name, String persona, boolean requestedDefault) {
+        // 첫 페르소나는 요청과 상관없이 기본이다. 대화에 쓸 기본 페르소나가 항상 하나는 있어야 한다.
+        boolean first = !userPersonaRepository.existsByUser(user);
+        if (!first && requestedDefault) {
+            clearDefault(user);
+        }
         UserPersona userPersona = UserPersona.builder()
                 .user(user)
                 .name(name)
                 .persona(persona)
-                // 경로와 무관하게 유저의 첫 페르소나를 기본값으로 둔다.
-                .isDefault(!userPersonaRepository.existsByUser(user))
+                .isDefault(first || requestedDefault)
                 .build();
         return UserPersonaResponse.from(userPersonaRepository.save(userPersona));
     }

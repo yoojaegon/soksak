@@ -4,7 +4,7 @@ import { useConfirm } from '../confirm.jsx'
 import { useOutsideClose } from '../useOutsideClose.js'
 
 // 나이·성별은 따로 받지 않는다. 어차피 페르소나 본문에 함께 쓰게 되고, 대화에 전달되는 것도 본문뿐이다.
-const EMPTY_FORM = { name: '', persona: '' }
+const EMPTY_FORM = { name: '', persona: '', isDefault: false }
 
 export default function PersonasPage() {
   const confirm = useConfirm()
@@ -50,7 +50,11 @@ export default function PersonasPage() {
   useOutsideClose(menuRef, menuId !== null, () => setMenuId(null))
 
   const onChange = (e) => {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
+    if (type === 'checkbox') {
+      setForm({ ...form, [name]: checked })
+      return
+    }
     setForm({ ...form, [name]: value })
     if (value.trim()) setFieldErrors((prev) => ({ ...prev, [name]: undefined }))
   }
@@ -64,7 +68,7 @@ export default function PersonasPage() {
 
   const openEdit = (p) => {
     setEditing(p.id)
-    setForm({ name: p.name, persona: p.persona })
+    setForm({ name: p.name, persona: p.persona, isDefault: false })
     setError('')
     setFieldErrors({})
   }
@@ -94,8 +98,12 @@ export default function PersonasPage() {
         persona: form.persona.trim(),
       }
       if (editing === 'new') {
-        const created = await api.createUserPersona(body)
-        setPersonas((prev) => [...prev, created])
+        const created = await api.createUserPersona({ ...body, isDefault: form.isDefault })
+        // 새 것이 기본이 되면 서버가 기존 기본을 해제하므로 화면에서도 같이 내린다.
+        setPersonas((prev) => [
+          ...(created.isDefault ? prev.map((p) => ({ ...p, isDefault: false })) : prev),
+          created,
+        ])
       } else {
         const updated = await api.updateUserPersona(editing, body)
         setPersonas((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
@@ -194,6 +202,13 @@ export default function PersonasPage() {
               />
               {fieldErrors.persona && <p className="field-error">! {fieldErrors.persona}</p>}
             </label>
+            {/* 기본 지정은 목록의 메뉴에도 있어서, 수정 폼에는 두지 않고 만들 때만 고른다. */}
+            {editing === 'new' && (
+              <label className="persona-default-check">
+                <input type="checkbox" name="isDefault" checked={form.isDefault} onChange={onChange} />
+                기본 페르소나로 지정
+              </label>
+            )}
             <div className="form-actions">
               <button type="button" className="link-btn" onClick={closeForm}>취소</button>
               <button type="submit" disabled={saving}>
