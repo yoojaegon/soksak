@@ -111,7 +111,7 @@ public class UserService {
         }
 
         user.changePassword(passwordEncoder.encode(request.newPassword()));
-        refreshTokenRepository.deleteByUserId(user.getId());
+        refreshTokenRepository.deleteByUser_Id(user.getId());
 
     }
 

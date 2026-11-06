@@ -5,9 +5,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ChatSummaryRepository extends JpaRepository<ChatSummary, Long> {
-    List<ChatSummary> findByChatRoomIdOrderBySeqAsc(Long roomId);
+    List<ChatSummary> findByChatRoom_IdOrderBySeqAsc(Long roomId);
 
-    Long deleteByChatRoomIdAndToMessageIdGreaterThanEqual(Long roomId, Long cut);
+    Long deleteByChatRoom_IdAndToMessageIdGreaterThanEqual(Long roomId, Long cut);
 
-    void deleteByChatRoomId(Long roomId);
+    void deleteByChatRoom_Id(Long roomId);
 }

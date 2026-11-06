@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
-    Optional<RefreshToken> findByUserId(Long userId);
+    Optional<RefreshToken> findByUser_Id(Long userId);
     Optional<RefreshToken> findByRefreshToken(String refreshToken);
 
-    void deleteByUserId(Long userId);
+    void deleteByUser_Id(Long userId);
 
     @Modifying
     @Query("delete from RefreshToken r where r.expiresAt < :now")

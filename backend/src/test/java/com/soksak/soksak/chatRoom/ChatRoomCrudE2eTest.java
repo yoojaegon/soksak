@@ -517,7 +517,7 @@ class ChatRoomCrudE2eTest {
                 .andExpect(status().isNoContent());
 
         assertThat(chatRoomRepository.findById(id)).isEmpty();
-        assertThat(messageRepository.findByChatRoomIdOrderByIdAsc(id)).isEmpty();
+        assertThat(messageRepository.findByChatRoom_IdOrderByIdAsc(id)).isEmpty();
     }
 
     @Test
@@ -538,7 +538,7 @@ class ChatRoomCrudE2eTest {
 
         // 조각은 메시지를 FK로 참조하지 않으므로(삭제 규칙을 일관되게 두려고 일부러 뺐다),
         // 방이 사라질 때 같이 지워지는 건 chat_room 쪽 ON DELETE CASCADE 하나뿐이다.
-        assertThat(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(id)).isEmpty();
+        assertThat(chatSummaryRepository.findByChatRoom_IdOrderBySeqAsc(id)).isEmpty();
     }
 
     @Test
@@ -605,11 +605,11 @@ class ChatRoomCrudE2eTest {
 
     /** 방에 실제로 남아 있는 조각을 이어 붙인 것. 미러가 없어졌으므로 여기가 유일한 확인처다. */
     private String storedSummary(long roomId) {
-        return SummarySelector.join(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId));
+        return SummarySelector.join(chatSummaryRepository.findByChatRoom_IdOrderBySeqAsc(roomId));
     }
 
     private Long storedCursor(long roomId) {
-        return SummarySelector.cursorOf(chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId));
+        return SummarySelector.cursorOf(chatSummaryRepository.findByChatRoom_IdOrderBySeqAsc(roomId));
     }
 
     private void seedSummaryFragment(long roomId, String content, long fromId, long toId) {

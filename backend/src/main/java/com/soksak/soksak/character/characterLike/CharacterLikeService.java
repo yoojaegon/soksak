@@ -24,7 +24,7 @@ public class CharacterLikeService {
     // 좋아요 행 insert와 캐릭터 카운터 증가를 한 트랜잭션으로 묶어 둘이 어긋나지 않게 한다.
     @Transactional
     public void like(Long userId, Long characterId) {
-        if (characterLikeRepository.existsByUser_IdAndCharacter_id(userId, characterId)) return;
+        if (characterLikeRepository.existsByUser_IdAndCharacter_Id(userId, characterId)) return;
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -38,7 +38,7 @@ public class CharacterLikeService {
     // 좋아요 취소. 실제로 지워진 행이 있을 때만 카운터를 내려 없던 좋아요에 음수로 새는 걸 막는다.
     @Transactional
     public void unlike(Long userId, Long characterId) {
-        int deleted = characterLikeRepository.deleteByUser_IdAndCharacter_id(userId, characterId);
+        int deleted = characterLikeRepository.deleteByUser_IdAndCharacter_Id(userId, characterId);
         if (deleted > 0) {
             characterRepository.decrementLikeCount(characterId);
         }

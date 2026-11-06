@@ -100,7 +100,7 @@ public class ReportService {
 
         // 재생성·되돌리기로 메시지가 바뀌거나 지워져도 무엇을 신고했는지 남도록 앞뒤를 복사해 둔다.
         String userTurn = messageRepository
-                .findFirstByChatRoomIdAndIdLessThanAndRoleOrderByIdDesc(roomId, messageId, MessageRole.USER)
+                .findFirstByChatRoom_IdAndIdLessThanAndRoleOrderByIdDesc(roomId, messageId, MessageRole.USER)
                 .map(Message::getContent)
                 .orElse("");
         reportRepository.save(Report.builder()

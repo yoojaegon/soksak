@@ -41,8 +41,8 @@ public class ChatTxService {
         // 차감한 만큼의 답은 방에 남는다 — 환불이 필요한 건 답이 아예 안 나온 경우뿐이다.
         charge(room, CreditReason.MESSAGE);
 
-        List<Message> priorHistory = messageRepository.findByChatRoomIdOrderByIdAsc(roomId);
-        List<ChatSummary> summaries = chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId);
+        List<Message> priorHistory = messageRepository.findByChatRoom_IdOrderByIdAsc(roomId);
+        List<ChatSummary> summaries = chatSummaryRepository.findByChatRoom_IdOrderBySeqAsc(roomId);
 
         messageRepository.save(Message.builder()
                 .chatRoom(room)
@@ -105,7 +105,7 @@ public class ChatTxService {
     @Transactional
     public RegenTarget prepareRegenerate(Long userId, Long roomId) {
         ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(userId, roomId);
-        List<Message> messages = messageRepository.findByChatRoomIdOrderByIdAsc(roomId);
+        List<Message> messages = messageRepository.findByChatRoom_IdOrderByIdAsc(roomId);
         if (messages.isEmpty()) {
             throw new BusinessException(ErrorCode.MESSAGE_NOT_FOUND);
         }
@@ -115,7 +115,7 @@ public class ChatTxService {
         charge(room, CreditReason.REGENERATE);
         // 재생성도 프롬프트를 다시 만드므로 조각이 필요하다. 전송 경로(prepareAndSaveUser)와 달리
         // 여기만 조회가 하나 는다 — 재생성은 요약을 굴리지 않아 원래 읽을 일이 없었다.
-        List<ChatSummary> summaries = chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(roomId);
+        List<ChatSummary> summaries = chatSummaryRepository.findByChatRoom_IdOrderBySeqAsc(roomId);
 
         Message last = messages.get(messages.size() - 1);
         Message lastUser;
@@ -149,7 +149,7 @@ public class ChatTxService {
             throw new BusinessException(ErrorCode.MESSAGE_FORBIDDEN);
         }
 
-        List<Message> messages = messageRepository.findByChatRoomIdOrderByIdAsc(roomId);
+        List<Message> messages = messageRepository.findByChatRoom_IdOrderByIdAsc(roomId);
         int idx = -1;
         for (int i = 0; i < messages.size(); i++) {
             if (messages.get(i).getId().equals(messageId)) { idx = i; break; }
@@ -158,7 +158,7 @@ public class ChatTxService {
         Long cut = target.getId();
         messageRepository.deleteAll(messages.subList(idx, messages.size()));
         // 잘린 지점에 걸치거나(from < cut <= to) 그 뒤에 있는 조각을 함께 지운다.
-        long removed = chatSummaryRepository.deleteByChatRoomIdAndToMessageIdGreaterThanEqual(roomId, cut);
+        long removed = chatSummaryRepository.deleteByChatRoom_IdAndToMessageIdGreaterThanEqual(roomId, cut);
 
         return new DeleteFromResponse(removed > 0);
     }

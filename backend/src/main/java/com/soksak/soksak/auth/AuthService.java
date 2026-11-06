@@ -43,7 +43,7 @@ public class AuthService {
 
         // 리프레시 토큰은 사용자당 하나만 둔다. 이미 있으면 값만 바꾸고, 처음이면 새로 만든다.
         // 그래서 다른 기기에서 로그인하면 이전 기기의 리프레시 토큰은 더 이상 쓸 수 없다.
-        refreshTokenRepository.findByUserId(user.getId())
+        refreshTokenRepository.findByUser_Id(user.getId())
                         .ifPresentOrElse(
                                 rt -> rt.rotate(refreshToken.value(), refreshToken.expiresAt()),
                                 () -> refreshTokenRepository.save(RefreshToken.builder()

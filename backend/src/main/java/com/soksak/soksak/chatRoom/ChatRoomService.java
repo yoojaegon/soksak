@@ -159,7 +159,7 @@ public class ChatRoomService {
     @Transactional(readOnly = true)
     public SummaryResponse getSummary(Long userId, Long chatRoomId) {
         getOwnedChatRoom(userId, chatRoomId);
-        List<ChatSummary> summaries = chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(chatRoomId);
+        List<ChatSummary> summaries = chatSummaryRepository.findByChatRoom_IdOrderBySeqAsc(chatRoomId);
         return new SummaryResponse(SummarySelector.join(SummarySelector.select(summaries)));
     }
 
@@ -179,8 +179,8 @@ public class ChatRoomService {
             throw new BusinessException(ErrorCode.INVALID_INPUT);
         }
 
-        List<ChatSummary> existing = chatSummaryRepository.findByChatRoomIdOrderBySeqAsc(chatRoomId);
-        chatSummaryRepository.deleteByChatRoomId(chatRoomId);
+        List<ChatSummary> existing = chatSummaryRepository.findByChatRoom_IdOrderBySeqAsc(chatRoomId);
+        chatSummaryRepository.deleteByChatRoom_Id(chatRoomId);
         // ⚠️ 반드시 여기서 flush. Hibernate는 액션 순서가 정해져 있어 같은 트랜잭션 안의
         // INSERT를 DELETE보다 먼저 내보낸다. 그대로 두면 새 조각의 seq=1이 아직 안 지워진
         // 옛 조각과 부딪혀 (chat_room_id, seq) 유니크 위반으로 409가 난다.

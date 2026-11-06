@@ -9,11 +9,11 @@ import java.util.List;
 
 public interface CharacterLikeRepository extends JpaRepository<CharacterLike, Long> {
     // 이미 좋아요한 상태인지 확인(멱등 처리용).
-    boolean existsByUser_IdAndCharacter_id(Long userId, Long characterId);
+    boolean existsByUser_IdAndCharacter_Id(Long userId, Long characterId);
 
     // 좋아요 취소. 지워진 행 수를 돌려줘 실제로 취소됐을 때만 카운터를 내리도록 한다.
     @Modifying
-    int deleteByUser_IdAndCharacter_id(Long userId, Long CharacterId);
+    int deleteByUser_IdAndCharacter_Id(Long userId, Long characterId);
 
     // 캐릭터의 작성자(user)까지 함께 fetch (CharacterResponse가 user를 읽어 N+1 방지),
     // 최근에 좋아요한 순으로 정렬.

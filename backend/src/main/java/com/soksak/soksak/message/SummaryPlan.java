@@ -27,7 +27,7 @@ public record SummaryPlan (
     private static final int FIRST_SEQ = 1;
 
     // 요약할 때가 아니면 null. 전송 경로가 이미 읽어온 이력과 조각을 그대로 받아 쓰므로 추가 조회가 없다.
-    // summaries는 seq 오름차순 전제(findByChatRoomIdOrderBySeqAsc).
+    // summaries는 seq 오름차순 전제(findByChatRoom_IdOrderBySeqAsc).
     public static SummaryPlan of(List<Message> history, List<ChatSummary> summaries) {
         int summarizableEnd = history.size() - WINDOW;
         if (summarizableEnd <= 0) return null;

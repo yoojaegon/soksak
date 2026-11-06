@@ -201,7 +201,7 @@ class ReportServiceTest {
         ChatRoom room = room(5L, reporter);
         when(chatRoomService.getOwnedChatRoomWithDetails(2L, 5L)).thenReturn(room);
         when(messageRepository.findById(42L)).thenReturn(Optional.of(message(42L, room, MessageRole.ASSISTANT, "응답")));
-        when(messageRepository.findFirstByChatRoomIdAndIdLessThanAndRoleOrderByIdDesc(5L, 42L, MessageRole.USER))
+        when(messageRepository.findFirstByChatRoom_IdAndIdLessThanAndRoleOrderByIdDesc(5L, 42L, MessageRole.USER))
                 .thenReturn(Optional.of(message(41L, room, MessageRole.USER, "질문")));
 
         service.reportMessage(2L, 5L, 42L, ReportReason.MINOR, null);
