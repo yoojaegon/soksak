@@ -114,7 +114,7 @@ public class ChatAiServerClient implements ChatAiClient{
 
         // 유저의 기본 페르소나 -> user_name / user_persona (없으면 null, ai-server가 기본값 처리)
         UserPersona persona = userPersonaRepository
-                .findByUserAndIsDefaultTrue(room.getUser())
+                .findByUser_IdAndIsDefaultTrue(room.getUser().getId())
                 .orElse(null);
         String userName = persona != null ? persona.getName() : null;
         String userPersona = persona != null ? persona.getPersona() : null;

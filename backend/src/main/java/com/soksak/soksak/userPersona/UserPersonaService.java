@@ -56,7 +56,7 @@ public class UserPersonaService {
         lockUser(userId);
         UserPersona persona = getOwnedPersona(userId, id);
         if (!persona.isDefault()) {
-            clearDefault(persona.getUser());
+            clearDefault(userId);
             persona.updateDefault(true);
         }
         return UserPersonaResponse.from(persona);
@@ -80,6 +80,9 @@ public class UserPersonaService {
         boolean wasDefault = target.isDefault();
         int idx = personas.indexOf(target);
         userPersonaRepository.delete(target);
+        // Hibernate는 DELETE를 맨 마지막에 내보낸다. 먼저 지워 두지 않으면 승격한 기본과
+        // 지울 기본이 잠깐 같이 남아 부분 유니크 인덱스에 걸린다.
+        userPersonaRepository.flush();
 
         if (wasDefault) {
             // 앞쪽 이웃을 우선, 맨 앞이었다면 다음 이웃을 기본으로 올린다.
@@ -112,16 +115,22 @@ public class UserPersonaService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
-    private void clearDefault(User user) {
-        userPersonaRepository.findByUserAndIsDefaultTrue(user)
-                .ifPresent(prev -> prev.updateDefault(false));
+    // 기본은 DB 부분 유니크 인덱스로도 하나만 허용된다. Hibernate는 INSERT를 바로 내보내고
+    // UPDATE는 불러온 순서대로 모아서 내보내므로, 여기서 바로 flush하지 않으면
+    // 새 기본이 먼저 반영되어 잠깐 기본이 둘이 되고 인덱스에 걸린다.
+    private void clearDefault(Long userId) {
+        userPersonaRepository.findByUser_IdAndIsDefaultTrue(userId)
+                .ifPresent(prev -> {
+                    prev.updateDefault(false);
+                    userPersonaRepository.flush();
+                });
     }
 
     private UserPersonaResponse save(User user, String name, String persona, boolean requestedDefault) {
         // 첫 페르소나는 요청과 상관없이 기본이다. 대화에 쓸 기본 페르소나가 항상 하나는 있어야 한다.
-        boolean first = !userPersonaRepository.existsByUser(user);
+        boolean first = !userPersonaRepository.existsByUser_Id(user.getId());
         if (!first && requestedDefault) {
-            clearDefault(user);
+            clearDefault(user.getId());
         }
         UserPersona userPersona = UserPersona.builder()
                 .user(user)

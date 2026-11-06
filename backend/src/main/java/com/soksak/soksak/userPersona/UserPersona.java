@@ -8,7 +8,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "user_persona")
+// 기본 페르소나가 유저당 하나라는 규칙은 부분 유니크 인덱스(uk_user_persona_default)로 DB에서도 막는다.
+// JPA로는 where 조건이 붙은 인덱스를 만들 수 없어 직접 SQL로 만들었다. 테스트 DB(H2)는 부분 인덱스를 지원하지 않아 없다.
+@Table(name = "user_persona",
+        indexes = @Index(name = "idx_user_persona_user", columnList = "user_id"))
 @NoArgsConstructor
 @Getter
 public class UserPersona extends BaseTimeEntity {
