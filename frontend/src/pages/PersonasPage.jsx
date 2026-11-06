@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, splitApiError } from '../api.js'
 import { useConfirm } from '../confirm.jsx'
 import { useOutsideClose } from '../useOutsideClose.js'
+import CharCount from '../components/CharCount.jsx'
 
 // 나이·성별은 따로 받지 않는다. 어차피 페르소나 본문에 함께 쓰게 되고, 대화에 전달되는 것도 본문뿐이다.
 const EMPTY_FORM = { name: '', persona: '', isDefault: false }
@@ -200,6 +201,7 @@ export default function PersonasPage() {
                 maxLength={1000}
                 placeholder="예: 나는 25세 남성이고 이름은 지민이다. 호기심 많고 장난기 있는 대학생이며, 처음 보는 사람에게는 말수가 적다."
               />
+              <CharCount value={form.persona} max={1000} />
               {fieldErrors.persona && <p className="field-error">! {fieldErrors.persona}</p>}
             </label>
             {/* 기본 지정은 목록의 메뉴에도 있어서, 수정 폼에는 두지 않고 만들 때만 고른다. */}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, splitApiError } from '../api.js'
 import { useConfirm } from '../confirm.jsx'
+import CharCount from './CharCount.jsx'
 
 // priority(@Min 1)·alwaysOn 기본값을 한 곳에 둔다.
 const EMPTY_FORM = { title: '', keys: '', content: '', alwaysOn: false, priority: '1' }
@@ -221,12 +222,12 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
           <form onSubmit={onSubmit} noValidate>
             <label>
               <span className="field-caption">제목 <span className="req">*</span></span>
-              <input name="title" value={form.title} onChange={onFormChange} placeholder="예: 주인공의 과거" />
+              <input name="title" value={form.title} onChange={onFormChange} maxLength={50} placeholder="예: 주인공의 과거" />
               {fieldErrors.title && <p className="field-error">! {fieldErrors.title}</p>}
             </label>
             <label>
               <span className="field-caption">키워드 (쉼표로 구분, 대화에 등장하면 주입)</span>
-              <input name="keys" value={form.keys} onChange={onFormChange} placeholder="예: 고향, 어린 시절, 형" />
+              <input name="keys" value={form.keys} onChange={onFormChange} maxLength={200} placeholder="예: 고향, 어린 시절, 형" />
             </label>
             <label>
               <span className="field-caption">내용 <span className="req">*</span></span>
@@ -235,8 +236,10 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
                 value={form.content}
                 onChange={onFormChange}
                 rows={5}
+                maxLength={1000}
                 placeholder="캐릭터가 기억해야 할 설정을 적어 주세요."
               />
+              <CharCount value={form.content} max={1000} />
               {fieldErrors.content && <p className="field-error">! {fieldErrors.content}</p>}
             </label>
             <div className="form-row">

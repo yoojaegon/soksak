@@ -88,6 +88,9 @@ public class MessageService {
         if (!message.getChatRoom().getId().equals(roomId)) {
             throw new BusinessException(ErrorCode.MESSAGE_FORBIDDEN);
         }
+        if (message.exceedsEditLimit(content)) {
+            throw new BusinessException(ErrorCode.MESSAGE_TOO_LONG);
+        }
         message.update(content);
 
         return MessageResponse.from(message);

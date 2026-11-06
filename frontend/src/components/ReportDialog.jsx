@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import CharCount from './CharCount.jsx'
 
 // 신고 창. 캐릭터 신고(이미지·설정)와 채팅 응답 신고를 한 창으로 받는다.
 // 입력칸이 있어 confirm.jsx 대신 네이티브 <dialog>로 띄운다(비밀번호 변경 창과 같은 방식).
@@ -130,7 +131,7 @@ export default function ReportDialog({ kind, onSubmit, onClose, onDone, returnFo
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
           />
-          <p className="field-hint">{detail.length} / {DETAIL_MAX}</p>
+          <CharCount value={detail} max={DETAIL_MAX} />
         </label>
 
         {error && <p className="error">{error}</p>}

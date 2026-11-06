@@ -746,6 +746,23 @@ button:disabled {
   color: var(--text-3);
 }
 
+/* 글자 수 카운터. 입력칸 바로 아래 오른쪽에 붙는다. */
+.char-count {
+  display: block;
+  margin-top: 4px;
+  text-align: right;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-3);
+}
+.char-count.near {
+  color: var(--champ);
+  font-weight: 700;
+}
+
 /* 아바타 자리에 들어가는 캐릭터 이미지 (원형 자르기는 부모의 overflow가 담당) */
 .char-avatar img,
 .chat-avatar img {
@@ -1469,9 +1486,8 @@ button:disabled {
   gap: 8px;
 }
 .memory-count {
-  font-family: var(--font-sans);
+  margin-top: 0;
   font-size: 11px;
-  color: var(--text-3);
 }
 .memory-save {
   background: var(--surface);
@@ -1783,6 +1799,10 @@ button:disabled {
 }
 .composer button:hover:not(:disabled) {
   transform: translateY(-1px);
+}
+.composer-count {
+  flex-shrink: 0;
+  margin-top: 0;
 }
 
 /* 대화 중 에러 띠 — 패널 안이라 좌우 패딩을 맞춰 준다 */

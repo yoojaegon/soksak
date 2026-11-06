@@ -249,6 +249,49 @@ class MessageE2eTest {
     }
 
     @Test
+    @DisplayName("2000자를 넘는 메시지는 전송할 수 없다")
+    void send_too_long_returns_400() throws Exception {
+        mockMvc.perform(post("/chatrooms/{roomId}/messages", roomId)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("content", "가".repeat(Message.USER_CONTENT_MAX + 1)))))
+                .andExpect(status().isBadRequest());
+        assertThat(messageRepository.findByChatRoomIdOrderByIdAsc(roomId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("유저 메시지는 수정으로도 2000자를 넘길 수 없다")
+    void update_user_message_too_long_returns_400() throws Exception {
+        send(ownerToken, "원본");
+        long id = messageRepository.findByChatRoomIdOrderByIdAsc(roomId).get(0).getId();
+
+        mockMvc.perform(put("/chatrooms/{roomId}/messages/{messageId}", roomId, id)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("content", "가".repeat(Message.USER_CONTENT_MAX + 1)))))
+                .andExpect(status().isBadRequest());
+        assertThat(messageRepository.findById(id).orElseThrow().getContent()).isEqualTo("원본");
+    }
+
+    @Test
+    @DisplayName("AI 메시지는 2000자 한도 없이 수정할 수 있다")
+    void update_assistant_message_has_no_length_limit() throws Exception {
+        Message ai = messageRepository.save(Message.builder()
+                .chatRoom(chatRoomRepository.findById(roomId).orElseThrow())
+                .role(MessageRole.ASSISTANT)
+                .content("짧은 답변")
+                .build());
+        String edited = "다".repeat(Message.USER_CONTENT_MAX + 500);
+
+        mockMvc.perform(put("/chatrooms/{roomId}/messages/{messageId}", roomId, ai.getId())
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("content", edited))))
+                .andExpect(status().isOk());
+        assertThat(messageRepository.findById(ai.getId()).orElseThrow().getContent()).isEqualTo(edited);
+    }
+
+    @Test
     @DisplayName("다른 방 경로로는 메시지를 수정할 수 없다 (방-메시지 불일치)")
     void update_via_wrong_room_is_blocked() throws Exception {
         send(ownerToken, "원본");

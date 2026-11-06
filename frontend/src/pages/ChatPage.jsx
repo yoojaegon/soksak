@@ -5,6 +5,7 @@ import ModelPicker from '../components/ModelPicker.jsx'
 import ThinkingPicker from '../components/ThinkingPicker.jsx'
 import CharacterImage from '../components/CharacterImage.jsx'
 import CreditBadge from '../components/CreditBadge.jsx'
+import CharCount from '../components/CharCount.jsx'
 import { modelLabel, thinkingOf } from '../models.js'
 import ReportDialog from '../components/ReportDialog.jsx'
 import { useAlert, useConfirm } from '../confirm.jsx'
@@ -12,6 +13,8 @@ import { useAlert, useConfirm } from '../confirm.jsx'
 // 장기기억 길이 상한. 백엔드 UpdateSummaryRequest의 @Size(max)와 같은 값이어야 한다 —
 // 다르면 사용자가 다 쓰고 저장할 때야 400을 받는다.
 const MEMORY_MAX = 3000
+// 한 번에 보낼 수 있는 글자 수. 백엔드 Message.USER_CONTENT_MAX와 같은 값이다.
+const MESSAGE_MAX = 2000
 
 // 메시지 시각을 HH:MM 타임코드로. createdAt이 없으면(임시 메시지) 빈 문자열.
 function timecode(createdAt) {
@@ -599,12 +602,15 @@ function ChatRoom({ roomId }) {
                     <span className="name">{who}</span>
                   </div>
                   <div className="edit-box">
+                    {/* 길이 한도는 유저 메시지에만 있다(백엔드 Message.exceedsEditLimit와 같은 규칙). */}
                     <textarea
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
                       rows={3}
+                      maxLength={m.role === 'USER' ? MESSAGE_MAX : undefined}
                       autoFocus
                     />
+                    {m.role === 'USER' && <CharCount value={editText} max={MESSAGE_MAX} />}
                     <div className="msg-actions">
                       <button className="msg-action" onClick={saveEdit} disabled={acting || !editText.trim()}>
                         저장
@@ -704,8 +710,11 @@ function ChatRoom({ roomId }) {
           ref={composerRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          maxLength={MESSAGE_MAX}
           placeholder="당신의 대사나 행동을 적으세요…"
         />
+        {/* 늘 보이면 대화 화면이 시끄러워서, 한도에 가까워졌을 때만 띄운다. */}
+        <CharCount value={input} max={MESSAGE_MAX} showFrom={MESSAGE_MAX * 0.9} className="composer-count" />
         {/* 아이콘만 남으므로 이름은 aria-label·title로 남긴다(스크린리더·마우스 호버) */}
         <button type="submit" disabled={sending || noCredit || !input.trim()} aria-label="전하기" title="전하기">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -820,9 +829,7 @@ function ChatRoom({ roomId }) {
               aria-describedby="memory-hint"
             />
             <div className="memory-foot">
-              <span className="memory-count">
-                {summary.length} / {MEMORY_MAX}
-              </span>
+              <CharCount value={summary} max={MEMORY_MAX} className="memory-count" />
               <button
                 type="button"
                 className="memory-save"

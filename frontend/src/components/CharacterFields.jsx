@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { GENRES } from '../genres.js'
 import CharacterImage from './CharacterImage.jsx'
+import CharCount from './CharCount.jsx'
 import { api } from '../api.js'
 import { resizeImage } from '../image.js'
 
@@ -97,6 +98,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, onSetFiel
           maxLength={1000}
           placeholder="예: 너는 항상 밝고 친근하게 반말로 대답하는 친구야."
         />
+        <CharCount value={form.persona} max={1000} />
         {errors.persona && <p className="field-error">! {errors.persona}</p>}
       </label>
       <label>
@@ -109,6 +111,7 @@ export default function CharacterFields({ form, onChange, onToggleTag, onSetFiel
           maxLength={500}
           placeholder="예: 안녕! 드디어 만났네. 오늘은 무슨 얘기를 해볼까?"
         />
+        <CharCount value={form.greeting} max={500} />
         {errors.greeting && <p className="field-error">! {errors.greeting}</p>}
       </label>
       <div className="field-block">

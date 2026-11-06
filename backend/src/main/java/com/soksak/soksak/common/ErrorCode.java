@@ -51,6 +51,7 @@ public enum ErrorCode {
     // 메시지
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."),
     MESSAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 방의 메시지가 아닙니다."),
+    MESSAGE_TOO_LONG(HttpStatus.BAD_REQUEST, "메시지가 너무 깁니다."),
     ROOM_BUSY(HttpStatus.CONFLICT, "이미 응답을 생성 중입니다. 잠시 후 다시 시도해 주세요."),
 
     // 신고

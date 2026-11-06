@@ -3,6 +3,7 @@ package com.soksak.soksak.message;
 import com.soksak.soksak.auth.AuthUser;
 import com.soksak.soksak.message.dto.DeleteFromResponse;
 import com.soksak.soksak.message.dto.MessageRequest;
+import com.soksak.soksak.message.dto.UpdateMessageRequest;
 import com.soksak.soksak.message.dto.MessageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +46,7 @@ public class MessageController {
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long roomId,
             @PathVariable Long messageId,
-            @Valid @RequestBody MessageRequest request
+            @Valid @RequestBody UpdateMessageRequest request
     ) {
         MessageResponse response = messageService.updateMessage(me.id(), roomId, messageId, request.content());
         return ResponseEntity.ok(response);
