@@ -24,7 +24,7 @@ public class CreditController {
 
     /** 내 잔액. 프론트는 입력칸 옆에 띄우고, 전송이 끝날 때마다 다시 부른다. */
     @GetMapping("/me")
-    public ResponseEntity<CreditResponse> myCredits(@AuthenticationPrincipal AuthUser me) {
+    public ResponseEntity<CreditResponse> getMyCredits(@AuthenticationPrincipal AuthUser me) {
         return ResponseEntity.ok(new CreditResponse(creditService.balanceOf(me.id())));
     }
 

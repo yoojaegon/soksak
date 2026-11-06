@@ -22,7 +22,7 @@ public class UserPersonaService {
 
     /** 로그인한 유저가 직접 페르소나를 추가한다. 요청하면 바로 기본으로 지정한다. */
     @Transactional
-    public UserPersonaResponse create(Long userId, CreateUserPersonaRequest request) {
+    public UserPersonaResponse createPersona(Long userId, CreateUserPersonaRequest request) {
         User user = lockUser(userId);
         return save(user, request.name(), request.persona(), Boolean.TRUE.equals(request.isDefault()));
     }
@@ -44,7 +44,7 @@ public class UserPersonaService {
 
     /** 본인 페르소나의 내용을 수정한다. */
     @Transactional
-    public UserPersonaResponse update(Long userId, Long id, UpdateUserPersonaRequest request) {
+    public UserPersonaResponse updatePersona(Long userId, Long id, UpdateUserPersonaRequest request) {
         UserPersona persona = getOwnedPersona(userId, id);
         persona.update(request.name(), request.persona());
         return UserPersonaResponse.from(persona);
@@ -68,7 +68,7 @@ public class UserPersonaService {
      * - 기본 페르소나를 삭제하면 순서상 바로 앞(없으면 그다음) 페르소나를 기본으로 승격한다.
      */
     @Transactional
-    public void delete(Long userId, Long id) {
+    public void deletePersona(Long userId, Long id) {
         // 락을 먼저 잡아야 아래 개수 확인과 삭제 사이에 다른 삭제가 끼어들지 않는다.
         lockUser(userId);
         List<UserPersona> personas = userPersonaRepository.findByUser_IdOrderByIdAsc(userId);

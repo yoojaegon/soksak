@@ -21,5 +21,5 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     boolean existsByUser_IdAndCharacter_Id(Long userId, Long characterId);
 
     @Query("select r from ChatRoom r join fetch r.character join fetch r.user where r.id = :id")
-    Optional<ChatRoom> findByWithDetails(@Param("id") Long id);
+    Optional<ChatRoom> findByIdWithDetails(@Param("id") Long id);
 }

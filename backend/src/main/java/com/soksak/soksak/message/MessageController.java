@@ -34,7 +34,7 @@ public class MessageController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MessageResponse>> list(
+    public ResponseEntity<List<MessageResponse>> getMessages(
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long roomId
     ) {
@@ -62,7 +62,7 @@ public class MessageController {
     }
 
     @DeleteMapping("/{messageId}/after")
-    public ResponseEntity<DeleteFromResponse> deleteForm(
+    public ResponseEntity<DeleteFromResponse> deleteFrom(
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long roomId,
             @PathVariable Long messageId

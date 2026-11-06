@@ -28,10 +28,10 @@ public class UserPersonaController {
     private final UserPersonaService userPersonaService;
 
     @PostMapping
-    public ResponseEntity<UserPersonaResponse> create(
+    public ResponseEntity<UserPersonaResponse> createPersona(
             @AuthenticationPrincipal AuthUser me,
             @Valid @RequestBody CreateUserPersonaRequest request) {
-        UserPersonaResponse response = userPersonaService.create(me.id(), request);
+        UserPersonaResponse response = userPersonaService.createPersona(me.id(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -43,11 +43,11 @@ public class UserPersonaController {
 
     /** 본인 페르소나 수정 */
     @PutMapping("/{id}")
-    public ResponseEntity<UserPersonaResponse> update(
+    public ResponseEntity<UserPersonaResponse> updatePersona(
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserPersonaRequest request) {
-        return ResponseEntity.ok(userPersonaService.update(me.id(), id, request));
+        return ResponseEntity.ok(userPersonaService.updatePersona(me.id(), id, request));
     }
 
     /** 기본 페르소나로 지정 */
@@ -60,10 +60,10 @@ public class UserPersonaController {
 
     /** 본인 페르소나 삭제 (마지막 한 개는 삭제 불가) */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
+    public ResponseEntity<Void> deletePersona(
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id) {
-        userPersonaService.delete(me.id(), id);
+        userPersonaService.deletePersona(me.id(), id);
         return ResponseEntity.noContent().build();
     }
 }

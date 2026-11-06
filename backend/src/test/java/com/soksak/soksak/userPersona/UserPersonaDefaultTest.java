@@ -61,7 +61,7 @@ class UserPersonaDefaultTest {
     }
 
     private UserPersonaResponse create(String name, Boolean isDefault) {
-        return userPersonaService.create(userId, new CreateUserPersonaRequest(name, "본문", isDefault));
+        return userPersonaService.createPersona(userId, new CreateUserPersonaRequest(name, "본문", isDefault));
     }
 
     private List<UserPersona> defaults() {
@@ -120,8 +120,8 @@ class UserPersonaDefaultTest {
         UserPersonaResponse second = create("둘째", false);
 
         List<Object> results = runTogether(List.of(
-                () -> { userPersonaService.delete(userId, first.id()); return "ok"; },
-                () -> { userPersonaService.delete(userId, second.id()); return "ok"; }
+                () -> { userPersonaService.deletePersona(userId, first.id()); return "ok"; },
+                () -> { userPersonaService.deletePersona(userId, second.id()); return "ok"; }
         ));
 
         assertThat(userPersonaRepository.findByUser_IdOrderByIdAsc(userId)).hasSize(1);

@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface LoreRepository extends JpaRepository<Lore, Long> {
     List<Lore> findByCharacter_IdAndEnabledTrueOrderByPriorityAsc(Long characterId);
-    List<Lore> findByCharacter_IdOrderById(Long characterId);
+    List<Lore> findByCharacter_IdOrderByIdAsc(Long characterId);
 }

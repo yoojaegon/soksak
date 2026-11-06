@@ -40,7 +40,7 @@ public class LoreService {
     @Transactional(readOnly = true)
     public List<LoreResponse> getLoreList(Long userId, Long characterId) {
         characterService.getOwnedCharacter(userId, characterId);
-        return loreRepository.findByCharacter_IdOrderById(characterId).stream()
+        return loreRepository.findByCharacter_IdOrderByIdAsc(characterId).stream()
                 .map(LoreResponse::from)
                 .toList();
     }

@@ -99,7 +99,7 @@ public class ChatRoomService {
     }
 
     @Transactional
-    public ChatRoomResponse updateModels(Long userId, Long id, UpdateModelRequest request) {
+    public ChatRoomResponse updateModel(Long userId, Long id, UpdateModelRequest request) {
         ChatRoom chatRoom = getOwnedChatRoom(userId, id);
         if (!ModelCatalog.contains(request.model()))
             throw new BusinessException(ErrorCode.INVALID_INPUT);
@@ -146,7 +146,7 @@ public class ChatRoomService {
     }
 
     public ChatRoom getOwnedChatRoomWithDetails(Long userId, Long chatRoomId) {
-        ChatRoom chatRoom = chatRoomRepository.findByWithDetails(chatRoomId)
+        ChatRoom chatRoom = chatRoomRepository.findByIdWithDetails(chatRoomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CHATROOM_NOT_FOUND));
         if (!chatRoom.getUser().getId().equals(userId)) {
             throw new BusinessException(ErrorCode.CHATROOM_FORBIDDEN);

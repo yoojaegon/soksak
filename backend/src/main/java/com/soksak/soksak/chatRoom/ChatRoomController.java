@@ -59,12 +59,12 @@ public class ChatRoomController {
     }
 
     @PatchMapping("/{id}/model")
-    public ResponseEntity<ChatRoomResponse> updateModels(
+    public ResponseEntity<ChatRoomResponse> updateModel(
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @Valid @RequestBody UpdateModelRequest request
     ) {
-        ChatRoomResponse response = chatRoomService.updateModels(me.id(), id, request);
+        ChatRoomResponse response = chatRoomService.updateModel(me.id(), id, request);
         return ResponseEntity.ok(response);
     }
 
