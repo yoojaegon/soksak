@@ -27,6 +27,7 @@ import java.util.List;
 public class UserPersonaController {
     private final UserPersonaService userPersonaService;
 
+    /** 페르소나 추가 (요청하면 바로 기본으로 지정) */
     @PostMapping
     public ResponseEntity<UserPersonaResponse> createPersona(
             @AuthenticationPrincipal AuthUser me,

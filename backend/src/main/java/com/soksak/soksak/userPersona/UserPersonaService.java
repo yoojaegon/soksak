@@ -50,7 +50,7 @@ public class UserPersonaService {
         return UserPersonaResponse.from(persona);
     }
 
-    /** 지정한 페르소나를 기본값으로 바꾼다. (기존 기본값은 해제) */
+    /** 지정한 페르소나를 기본으로 바꾸고, 기존 기본은 해제한다. */
     @Transactional
     public UserPersonaResponse setDefault(Long userId, Long id) {
         lockUser(userId);
@@ -64,8 +64,8 @@ public class UserPersonaService {
 
     /**
      * 본인 페르소나를 삭제한다.
-     * - 마지막 한 개는 삭제할 수 없다. (대화에 쓸 페르소나가 항상 하나는 남아야 함)
-     * - 기본 페르소나를 삭제하면 순서상 바로 앞(없으면 그다음) 페르소나를 기본으로 승격한다.
+     * 대화에 쓸 페르소나가 항상 하나는 남아야 하므로 마지막 한 개는 삭제할 수 없다.
+     * 기본 페르소나를 삭제하면 바로 앞 페르소나를, 맨 앞이었다면 다음 페르소나를 기본으로 올린다.
      */
     @Transactional
     public void deletePersona(Long userId, Long id) {
@@ -81,17 +81,17 @@ public class UserPersonaService {
         // 같은 트랜잭션에서는 같은 id가 같은 객체로 돌아오므로 목록에서 바로 위치를 찾을 수 있다.
         int idx = personas.indexOf(target);
         userPersonaRepository.delete(target);
-        // Hibernate는 DELETE를 맨 마지막에 내보낸다. 먼저 지워 두지 않으면 승격한 기본과
-        // 지울 기본이 잠깐 같이 남아 부분 유니크 인덱스에 걸린다.
+        // Hibernate는 DELETE를 가장 나중에 내보내므로 여기서 먼저 flush한다.
+        // 기본은 부분 유니크 인덱스로 하나만 허용되어, 지운 기본이 내려간 뒤에 새 기본을 올려야 한다.
         userPersonaRepository.flush();
 
         if (wasDefault) {
-            // 앞쪽 이웃을 우선, 맨 앞이었다면 다음 이웃을 기본으로 올린다.
             UserPersona promote = idx > 0 ? personas.get(idx - 1) : personas.get(idx + 1);
             promote.updateDefault(true);
         }
     }
 
+    /** 본인 소유인지 확인하고 페르소나를 반환한다. */
     private UserPersona getOwnedPersona(Long userId, Long id) {
         UserPersona persona = userPersonaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_PERSONA_NOT_FOUND));
@@ -101,16 +101,21 @@ public class UserPersonaService {
         return persona;
     }
 
-    // 기본값을 바꾸거나 개수를 확인하는 작업은 모두 이 락을 먼저 잡는다.
-    // 같은 유저의 요청이 겹쳐도 기본은 항상 하나, 페르소나는 최소 하나로 유지된다.
+    /**
+     * 유저 행을 잠가 같은 유저의 페르소나 작업을 한 번에 하나씩 처리한다.
+     * 기본을 바꾸거나 개수를 확인하는 작업은 모두 이 락을 먼저 잡아서,
+     * 요청이 겹쳐도 기본은 항상 하나, 페르소나는 최소 하나로 유지된다.
+     */
     private User lockUser(Long userId) {
         return userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
-    // 기본은 DB 부분 유니크 인덱스로도 하나만 허용된다. Hibernate는 INSERT를 바로 내보내고
-    // UPDATE는 불러온 순서대로 모아서 내보내므로, 여기서 바로 flush하지 않으면
-    // 새 기본이 먼저 반영되어 잠깐 기본이 둘이 되고 인덱스에 걸린다.
+    /**
+     * 이 유저의 현재 기본 페르소나를 해제한다.
+     * 기본은 부분 유니크 인덱스로 하나만 허용되므로, 해제를 바로 flush해서
+     * 새 기본이 DB에 반영되기 전에 기존 기본이 먼저 내려가게 한다.
+     */
     private void clearDefault(Long userId) {
         userPersonaRepository.findByUser_IdAndIsDefaultTrue(userId)
                 .ifPresent(prev -> {
@@ -119,8 +124,9 @@ public class UserPersonaService {
                 });
     }
 
+    /** 페르소나를 저장한다. 첫 페르소나이거나 기본 지정을 요청했으면 기본으로 만든다. */
     private UserPersonaResponse save(User user, String name, String persona, boolean requestedDefault) {
-        // 첫 페르소나는 요청과 상관없이 기본이다. 대화에 쓸 기본 페르소나가 항상 하나는 있어야 한다.
+        // 대화에 쓸 기본 페르소나가 항상 하나는 있어야 하므로, 첫 페르소나는 요청과 상관없이 기본이다.
         boolean first = !userPersonaRepository.existsByUser_Id(user.getId());
         if (!first && requestedDefault) {
             clearDefault(user.getId());
