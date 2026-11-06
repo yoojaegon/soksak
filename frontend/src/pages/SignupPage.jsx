@@ -100,17 +100,17 @@ export default function SignupPage() {
       <form onSubmit={onSubmit} noValidate>
         <label>
           <span className="field-caption">이메일 <span className="req">*</span></span>
-          <input name="email" type="email" value={form.email} onChange={onChange} />
+          <input name="email" type="email" value={form.email} onChange={onChange} maxLength={254} />
           {fieldErrors.email && <p className="field-error">! {fieldErrors.email}</p>}
         </label>
         <label>
           <span className="field-caption">아이디 <span className="req">*</span> (영문 소문자·숫자 4~20자)</span>
-          <input name="loginId" value={form.loginId} onChange={onChange} autoComplete="username" />
+          <input name="loginId" value={form.loginId} onChange={onChange} maxLength={20} autoComplete="username" />
           {fieldErrors.loginId && <p className="field-error">! {fieldErrors.loginId}</p>}
         </label>
         <label>
           <span className="field-caption">닉네임 <span className="req">*</span></span>
-          <input name="nickname" value={form.nickname} onChange={onChange} />
+          <input name="nickname" value={form.nickname} onChange={onChange} maxLength={20} />
           {fieldErrors.nickname && <p className="field-error">! {fieldErrors.nickname}</p>}
         </label>
         <div className="form-row">
@@ -138,6 +138,7 @@ export default function SignupPage() {
             type="password"
             value={form.password}
             onChange={onChange}
+            maxLength={64}
             autoComplete="new-password"
           />
           {fieldErrors.password && <p className="field-error">! {fieldErrors.password}</p>}

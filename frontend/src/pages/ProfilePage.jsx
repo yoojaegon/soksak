@@ -247,7 +247,7 @@ function PasswordDialog({ onClose, onChanged, returnFocusRef }) {
         </label>
         <label>
           <span className="field-caption">새 비밀번호</span>
-          <input type="password" name="next" autoComplete="new-password"
+          <input type="password" name="next" autoComplete="new-password" maxLength={64}
             value={form.next} onChange={onChange} aria-invalid={!!errors.next} />
           {errors.next
             ? <p className="field-error">! {errors.next}</p>
@@ -255,7 +255,7 @@ function PasswordDialog({ onClose, onChanged, returnFocusRef }) {
         </label>
         <label>
           <span className="field-caption">새 비밀번호 확인</span>
-          <input type="password" name="confirm" autoComplete="new-password"
+          <input type="password" name="confirm" autoComplete="new-password" maxLength={64}
             value={form.confirm} onChange={onChange} aria-invalid={!!errors.confirm} />
           {errors.confirm && <p className="field-error">! {errors.confirm}</p>}
         </label>

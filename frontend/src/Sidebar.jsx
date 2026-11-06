@@ -218,6 +218,7 @@ export default function Sidebar() {
                         className="room-rename"
                         autoFocus
                         value={renameValue}
+                        maxLength={40}
                         disabled={busyId === r.id}
                         onChange={(e) => setRenameValue(e.target.value)}
                         onKeyDown={(e) => {

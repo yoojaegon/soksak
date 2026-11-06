@@ -10,8 +10,8 @@ import { modelLabel, thinkingOf } from '../models.js'
 import ReportDialog from '../components/ReportDialog.jsx'
 import { useAlert, useConfirm } from '../confirm.jsx'
 
-// 장기기억 길이 상한. 백엔드 UpdateSummaryRequest의 @Size(max)와 같은 값이어야 한다 —
-// 다르면 사용자가 다 쓰고 저장할 때야 400을 받는다.
+// 장기기억 길이 상한. 백엔드는 글자 수가 아니라 토큰(SummarySelector.TOKEN_BUDGET)으로 재므로
+// 이 글자 수를 다 채워도 그 예산 안에 들어가야 한다. 넘으면 다 쓰고 저장할 때야 400을 받는다.
 const MEMORY_MAX = 3000
 // 한 번에 보낼 수 있는 글자 수. 백엔드 Message.USER_CONTENT_MAX와 같은 값이다.
 const MESSAGE_MAX = 2000
