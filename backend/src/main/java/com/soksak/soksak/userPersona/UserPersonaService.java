@@ -29,9 +29,9 @@ public class UserPersonaService {
 
     /** 회원가입 시 가입정보(이름/나이/성별)로 기본 페르소나를 생성한다. */
     @Transactional
-    public UserPersonaResponse createDefault(Long userId, String name, int age, Gender gender) {
+    public void createDefault(Long userId, String name, int age, Gender gender) {
         User user = lockUser(userId);
-        return save(user, name, generateDefaultPersona(name, age, gender), false);
+        save(user, name, generateDefaultPersona(name, age, gender), false);
     }
 
     /** 로그인한 본인이 가진 페르소나 목록을 조회한다. */

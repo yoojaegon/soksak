@@ -37,25 +37,25 @@ public class UserPersonaController {
 
     /** 로그인한 본인의 페르소나 목록 */
     @GetMapping
-    public List<UserPersonaResponse> getMyPersonas(@AuthenticationPrincipal AuthUser me) {
-        return userPersonaService.getMyPersonas(me.id());
+    public ResponseEntity<List<UserPersonaResponse>> getMyPersonas(@AuthenticationPrincipal AuthUser me) {
+        return ResponseEntity.ok(userPersonaService.getMyPersonas(me.id()));
     }
 
     /** 본인 페르소나 수정 */
     @PutMapping("/{id}")
-    public UserPersonaResponse update(
+    public ResponseEntity<UserPersonaResponse> update(
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserPersonaRequest request) {
-        return userPersonaService.update(me.id(), id, request);
+        return ResponseEntity.ok(userPersonaService.update(me.id(), id, request));
     }
 
     /** 기본 페르소나로 지정 */
     @PatchMapping("/{id}/default")
-    public UserPersonaResponse setDefault(
+    public ResponseEntity<UserPersonaResponse> setDefault(
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id) {
-        return userPersonaService.setDefault(me.id(), id);
+        return ResponseEntity.ok(userPersonaService.setDefault(me.id(), id));
     }
 
     /** 본인 페르소나 삭제 (마지막 한 개는 삭제 불가) */
