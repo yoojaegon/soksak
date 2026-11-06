@@ -71,13 +71,14 @@ public class UserPersonaService {
     public void deletePersona(Long userId, Long id) {
         // 락을 먼저 잡아야 아래 개수 확인과 삭제 사이에 다른 삭제가 끼어들지 않는다.
         lockUser(userId);
+        UserPersona target = getOwnedPersona(userId, id);
         List<UserPersona> personas = userPersonaRepository.findByUser_IdOrderByIdAsc(userId);
-        UserPersona target = findOwned(personas, userId, id);
         if (personas.size() <= 1) {
             throw new BusinessException(ErrorCode.USER_PERSONA_LAST_ONE);
         }
 
         boolean wasDefault = target.isDefault();
+        // 같은 트랜잭션에서는 같은 id가 같은 객체로 돌아오므로 목록에서 바로 위치를 찾을 수 있다.
         int idx = personas.indexOf(target);
         userPersonaRepository.delete(target);
         // Hibernate는 DELETE를 맨 마지막에 내보낸다. 먼저 지워 두지 않으면 승격한 기본과
@@ -89,14 +90,6 @@ public class UserPersonaService {
             UserPersona promote = idx > 0 ? personas.get(idx - 1) : personas.get(idx + 1);
             promote.updateDefault(true);
         }
-    }
-
-    /** 이미 불러온 목록에서 본인 소유 + 해당 id 페르소나를 찾는다. */
-    private UserPersona findOwned(List<UserPersona> personas, Long userId, Long id) {
-        return personas.stream()
-                .filter(p -> p.getId().equals(id))
-                .findFirst()
-                .orElseGet(() -> getOwnedPersona(userId, id)); // 목록에 없으면 소유/존재 검증으로 적절한 예외
     }
 
     private UserPersona getOwnedPersona(Long userId, Long id) {
