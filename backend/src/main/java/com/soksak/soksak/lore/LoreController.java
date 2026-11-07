@@ -23,7 +23,7 @@ public class LoreController {
     public ResponseEntity<LoreResponse> createLore(
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long characterId,
-            @Valid @RequestBody CreateLoreRequest request){
+            @Valid @RequestBody CreateLoreRequest request) {
         LoreResponse response = loreService.createLore(me.id(), characterId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -41,8 +41,7 @@ public class LoreController {
             @PathVariable Long characterId,
             @PathVariable Long id,
             @Valid @RequestBody UpdateLoreRequest request) {
-        LoreResponse response = loreService.updateLore(me.id(), characterId, id, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(loreService.updateLore(me.id(), characterId, id, request));
     }
 
     @PatchMapping("/{id}/enabled")
@@ -51,8 +50,7 @@ public class LoreController {
             @PathVariable Long characterId,
             @PathVariable Long id,
             @RequestParam boolean enabled) {
-        LoreResponse response = loreService.updateEnabled(me.id(), characterId, id, enabled);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(loreService.updateEnabled(me.id(), characterId, id, enabled));
     }
 
     @DeleteMapping("/{id}")
