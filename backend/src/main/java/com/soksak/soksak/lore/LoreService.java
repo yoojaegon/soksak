@@ -31,7 +31,6 @@ public class LoreService {
                 .keys(request.keys())
                 .content(request.content())
                 .alwaysOn(request.alwaysOn())
-                .priority(request.priority())
                 .build();   // enabled는 생성 시 true (엔티티 빌더 기본값)
         return LoreResponse.from(loreRepository.save(lore));
     }
@@ -55,7 +54,7 @@ public class LoreService {
     @Transactional
     public LoreResponse updateLore(Long userId, Long characterId, Long id, UpdateLoreRequest request) {
         Lore lore = getOwnedLore(userId, characterId, id);
-        lore.update(request.title(), request.keys(), request.content(), request.alwaysOn(), request.priority());
+        lore.update(request.title(), request.keys(), request.content(), request.alwaysOn());
         return LoreResponse.from(lore);
     }
 
@@ -89,7 +88,7 @@ public class LoreService {
     public List<String> selectLore(Long character_id, String content, List<String> recent) {
         String scan = (content + " " + String.join(" ", recent)).toLowerCase(Locale.ROOT);
 
-        return loreRepository.findByCharacter_IdAndEnabledTrueOrderByPriorityAsc(character_id).stream()
+        return loreRepository.findByCharacter_IdAndEnabledTrueOrderByIdAsc(character_id).stream()
                 .filter(lore -> lore.isAlwaysOn() || matches(lore.getKeys(), scan))
                 .map(Lore::getContent)
                 .toList();

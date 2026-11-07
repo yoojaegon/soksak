@@ -3,8 +3,8 @@ import { api, splitApiError } from '../api.js'
 import { useConfirm } from '../confirm.jsx'
 import CharCount from './CharCount.jsx'
 
-// priority(@Min 1)·alwaysOn 기본값을 한 곳에 둔다.
-const EMPTY_FORM = { title: '', keys: '', content: '', alwaysOn: false, priority: '1' }
+// 폼 초기값을 한 곳에 둔다.
+const EMPTY_FORM = { title: '', keys: '', content: '', alwaysOn: false }
 
 // 한 캐릭터의 로어북 CRUD 패널.
 // - 편집 모드(characterId): 변경이 즉시 API로 저장된다. (캐릭터 수정 페이지의 '로어북' 탭)
@@ -80,7 +80,6 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
       keys: lore.keys ?? '',
       content: lore.content,
       alwaysOn: lore.alwaysOn,
-      priority: String(lore.priority),
     })
     setError('')
     setFieldErrors({})
@@ -99,9 +98,6 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
     const errs = {}
     if (!form.title.trim()) errs.title = '제목을 입력해주세요'
     if (!form.content.trim()) errs.content = '내용을 입력해주세요'
-    // noValidate라 네이티브 min/step 검증이 없다. 서버 int(@Min 1)에 맞춰 정수인지도 여기서 본다.
-    if (!Number.isInteger(Number(form.priority))) errs.priority = '우선순위는 정수로 입력해주세요'
-    else if (Number(form.priority) < 1) errs.priority = '우선순위는 1 이상이어야 합니다'
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs)
       return
@@ -114,7 +110,6 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
         keys: form.keys.trim(),
         content: form.content.trim(),
         alwaysOn: form.alwaysOn,
-        priority: Number(form.priority),
       }
       if (editing === 'new') {
         if (draft) {
@@ -133,7 +128,7 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
       closeForm()
     } catch (err) {
       const { fieldErrors, formError } = splitApiError(err, {
-        fields: ['title', 'content', 'priority'],
+        fields: ['title', 'content'],
         fallback: '저장에 실패했습니다.',
       })
       setFieldErrors(fieldErrors)
@@ -197,9 +192,6 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
 
   if (loading) return <p className="muted">불러오는 중…</p>
 
-  // priority 큰 순(우선) → 작은 순으로 보여준다.
-  const sorted = [...lores].sort((a, b) => b.priority - a.priority)
-
   return (
     <div>
       {/* tabIndex=-1: Tab으로는 닿지 않고, 삭제 후 포커스가 착지할 자리로만 쓴다 */}
@@ -217,8 +209,7 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
       {editing !== null && (
         <div className="form-card lore-form">
           <h2>{editing === 'new' ? '로어 추가' : '로어 수정'}</h2>
-          {/* noValidate: 브라우저 기본 검증 말풍선 대신 앱 스타일 field-error로 보여준다.
-              (네이티브 min="1"이 submit을 먼저 막아 아래 priority 검증이 실행되지 않았다) */}
+          {/* noValidate: 브라우저 기본 검증 말풍선 대신 앱 스타일 field-error로 보여준다. */}
           <form onSubmit={onSubmit} noValidate>
             <label>
               <span className="field-caption">제목 <span className="req">*</span></span>
@@ -243,11 +234,6 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
               {fieldErrors.content && <p className="field-error">! {fieldErrors.content}</p>}
             </label>
             <div className="form-row">
-              <label className="lore-priority">
-                <span className="field-caption">우선순위 <span className="req">*</span> (클수록 먼저)</span>
-                <input name="priority" type="number" min="1" value={form.priority} onChange={onFormChange} />
-                {fieldErrors.priority && <p className="field-error">! {fieldErrors.priority}</p>}
-              </label>
               <label className="lore-alwayson">
                 <input type="checkbox" name="alwaysOn" checked={form.alwaysOn} onChange={onFormChange} />
                 항상 적용 (키워드 없이 늘 주입)
@@ -263,17 +249,16 @@ export default function LorebookPanel({ characterId, draft = false, lores: lores
         </div>
       )}
 
-      {sorted.length === 0 ? (
+      {lores.length === 0 ? (
         <p className="muted">아직 로어가 없어요. 새로 추가해 보세요.</p>
       ) : (
         <div className="lore-list">
-          {sorted.map((lore) => (
+          {lores.map((lore) => (
             <div className={`lore-card${lore.enabled ? '' : ' disabled'}`} key={lore.id}>
               <div className="lore-card-head">
                 <h3>{lore.title}</h3>
                 <div className="lore-tags">
                   {lore.alwaysOn && <span className="badge">항상</span>}
-                  <span className="badge ghost">P{lore.priority}</span>
                 </div>
               </div>
               {lore.keys && <p className="lore-keys">🔑 {lore.keys}</p>}

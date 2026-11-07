@@ -37,26 +37,21 @@ public class Lore extends BaseTimeEntity {
     @Column(name = "enabled")
     private boolean enabled;
 
-    @Column(name = "priority")
-    private int priority;
-
     @Builder
-    public Lore(ChatCharacter character, String title, String keys, String content, boolean alwaysOn, int priority) {
+    public Lore(ChatCharacter character, String title, String keys, String content, boolean alwaysOn) {
         this.character = character;
         this.title = title;
         this.keys = keys;
         this.content = content;
         this.alwaysOn = alwaysOn;
         this.enabled = true;
-        this.priority = priority;
     }
 
-    public void update(String title, String keys, String content, boolean alwaysOn, int priority) {
+    public void update(String title, String keys, String content, boolean alwaysOn) {
         this.title = title;
         this.keys = keys;
         this.content = content;
         this.alwaysOn = alwaysOn;
-        this.priority = priority;
     }
 
     public void updateEnabled(boolean enabled) {

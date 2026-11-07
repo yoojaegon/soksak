@@ -78,7 +78,6 @@ export default function NewCharacterPage() {
             keys: l.keys,
             content: l.content,
             alwaysOn: l.alwaysOn,
-            priority: l.priority,
           })
         }
       } catch {

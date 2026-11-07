@@ -2140,9 +2140,6 @@ button:disabled {
   font-size: 20px;
   margin: 0 0 16px;
 }
-.lore-priority {
-  max-width: 200px;
-}
 /* 체크박스 라벨은 가로 정렬 + 일반 텍스트 톤 */
 .lore-alwayson {
   flex-direction: row !important;
