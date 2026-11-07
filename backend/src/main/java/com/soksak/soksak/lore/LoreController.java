@@ -35,14 +35,6 @@ public class LoreController {
         return ResponseEntity.ok(loreService.getLoreList(me.id(), characterId));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<LoreResponse> getLore(
-            @AuthenticationPrincipal AuthUser me,
-            @PathVariable Long characterId,
-            @PathVariable Long id) {
-        return ResponseEntity.ok(loreService.getLore(me.id(), characterId, id));
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<LoreResponse> updateLore(
             @AuthenticationPrincipal AuthUser me,

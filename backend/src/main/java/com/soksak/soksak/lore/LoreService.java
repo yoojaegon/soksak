@@ -44,12 +44,6 @@ public class LoreService {
                 .toList();
     }
 
-    // 로어북 단일 호출
-    @Transactional(readOnly = true)
-    public LoreResponse getLore(Long userId, Long characterId, Long id) {
-        return LoreResponse.from(getOwnedLore(userId, characterId, id));
-    }
-
     // 로어북 수정
     @Transactional
     public LoreResponse updateLore(Long userId, Long characterId, Long id, UpdateLoreRequest request) {
@@ -85,10 +79,10 @@ public class LoreService {
 
     // 대화에서 로어북 활성화 키워드를 찾거나 항상 활성화 되어있는 로어북을 반환한다.
     @Transactional(readOnly = true)
-    public List<String> selectLore(Long character_id, String content, List<String> recent) {
+    public List<String> selectLore(Long characterId, String content, List<String> recent) {
         String scan = (content + " " + String.join(" ", recent)).toLowerCase(Locale.ROOT);
 
-        return loreRepository.findByCharacter_IdAndEnabledTrueOrderByIdAsc(character_id).stream()
+        return loreRepository.findByCharacter_IdAndEnabledTrueOrderByIdAsc(characterId).stream()
                 .filter(lore -> lore.isAlwaysOn() || matches(lore.getKeys(), scan))
                 .map(Lore::getContent)
                 .toList();

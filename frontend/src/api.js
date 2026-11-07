@@ -333,7 +333,6 @@ export const api = {
 
   // 로어북 (캐릭터별 설정 지식 — 소유자만 접근)
   getLores: (characterId) => request(`/characters/${characterId}/lores`),
-  getLore: (characterId, id) => request(`/characters/${characterId}/lores/${id}`),
   createLore: (characterId, body) =>
     request(`/characters/${characterId}/lores`, { method: 'POST', body }),
   updateLore: (characterId, id, body) =>
