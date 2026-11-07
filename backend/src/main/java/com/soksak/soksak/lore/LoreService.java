@@ -31,11 +31,11 @@ public class LoreService {
                 .keys(request.keys())
                 .content(request.content())
                 .alwaysOn(request.alwaysOn())
-                .build();   // enabled는 생성 시 true (엔티티 빌더 기본값)
+                .build();
         return LoreResponse.from(loreRepository.save(lore));
     }
 
-    // 로어북 목록을 불러온다.
+    /** 캐릭터의 로어 전부를 만든 순서로 조회한다. */
     @Transactional(readOnly = true)
     public List<LoreResponse> getLoreList(Long userId, Long characterId) {
         characterService.getOwnedCharacter(userId, characterId);
@@ -44,7 +44,7 @@ public class LoreService {
                 .toList();
     }
 
-    // 로어북 수정
+    /** 로어 내용을 수정한다. */
     @Transactional
     public LoreResponse updateLore(Long userId, Long characterId, Long id, UpdateLoreRequest request) {
         Lore lore = getOwnedLore(userId, characterId, id);
@@ -52,7 +52,7 @@ public class LoreService {
         return LoreResponse.from(lore);
     }
 
-    // 로어북 활성화 토글 수정
+    /** 로어를 켜거나 끈다. */
     @Transactional
     public LoreResponse updateEnabled(Long userId, Long characterId, Long id, boolean enabled) {
         Lore lore = getOwnedLore(userId, characterId, id);
@@ -60,13 +60,17 @@ public class LoreService {
         return LoreResponse.from(lore);
     }
 
+    /** 로어를 삭제한다. */
     @Transactional
     public void deleteLore(Long userId, Long characterId, Long id) {
         Lore lore = getOwnedLore(userId, characterId, id);
         loreRepository.delete(lore);
     }
 
-    /** 본인 캐릭터 소유를 검증하고, 그 캐릭터에 속한 로어를 찾아 반환한다. */
+    /**
+     * 캐릭터가 본인 것인지, 로어가 그 캐릭터에 속하는지 둘 다 확인하고 로어를 반환한다.
+     * 로어 소속을 따로 보지 않으면 내 캐릭터 주소에 남의 로어 id를 넣어 고칠 수 있다.
+     */
     private Lore getOwnedLore(Long userId, Long characterId, Long id) {
         characterService.getOwnedCharacter(userId, characterId);
         Lore lore = loreRepository.findById(id)
@@ -77,7 +81,10 @@ public class LoreService {
         return lore;
     }
 
-    // 대화에서 로어북 활성화 키워드를 찾거나 항상 활성화 되어있는 로어북을 반환한다.
+    /**
+     * 이번 턴 프롬프트에 넣을 로어 내용을 고른다.
+     * 켜져 있는 로어 중 항상 적용이거나, 키워드가 이번 입력이나 최근 대화에 나온 것만 만든 순서대로 돌려준다.
+     */
     @Transactional(readOnly = true)
     public List<String> selectLore(Long characterId, String content, List<String> recent) {
         String scan = (content + " " + String.join(" ", recent)).toLowerCase(Locale.ROOT);
@@ -88,8 +95,7 @@ public class LoreService {
                 .toList();
     }
 
-
-    // 문자열에서 콤마로 구분된 활성화 키가 있는지 검색
+    /** 쉼표로 나눈 키워드 중 하나라도 대화에 들어 있는지 본다. 대소문자는 구분하지 않는다. */
     private boolean matches(String keys, String scan) {
         if (keys == null || keys.isBlank()) return false;
         return Arrays.stream(keys.split(","))

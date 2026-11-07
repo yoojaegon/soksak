@@ -9,6 +9,10 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+/**
+ * 캐릭터에 딸린 설정 한 조각이다. 키워드가 대화에 나오거나 항상 적용이 켜져 있으면
+ * 채팅 프롬프트에 들어간다. 캐릭터를 지우면 함께 지워진다.
+ */
 @Entity
 @NoArgsConstructor
 @Getter
@@ -22,6 +26,7 @@ public class Lore extends BaseTimeEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private ChatCharacter character;
 
+    /** 쉼표로 구분한 키워드. 비어 있으면 항상 적용일 때만 들어간다. */
     @Column(name = "trigger_keys", length = 200)
     private String keys;
 
@@ -31,9 +36,11 @@ public class Lore extends BaseTimeEntity {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    /** 키워드와 상관없이 매 턴 프롬프트에 넣을지 여부 */
     @Column(name = "always_on", nullable = false)
     private boolean alwaysOn;
 
+    /** 꺼 두면 지우지 않고 프롬프트에서만 뺀다. 만들 때는 켜져 있다. */
     @Column(name = "enabled", nullable = false)
     private boolean enabled;
 
