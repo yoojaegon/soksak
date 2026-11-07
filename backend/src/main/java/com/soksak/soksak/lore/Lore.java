@@ -22,19 +22,19 @@ public class Lore extends BaseTimeEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private ChatCharacter character;
 
-    @Column(name = "trigger_keys")
+    @Column(name = "trigger_keys", length = 200)
     private String keys;
 
-    @Column(name = "title")
+    @Column(name = "title", nullable = false, length = 50)
     private String title;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "always_on")
+    @Column(name = "always_on", nullable = false)
     private boolean alwaysOn;
 
-    @Column(name = "enabled")
+    @Column(name = "enabled", nullable = false)
     private boolean enabled;
 
     @Builder
