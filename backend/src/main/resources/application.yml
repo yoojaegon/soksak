@@ -18,11 +18,7 @@ spring:
 
   # 스키마는 Flyway(db/migration)만 바꾼다. Hibernate는 시작할 때 엔티티와 테이블이 맞는지만 본다.
   # validate는 테이블·컬럼·타입만 비교하고 길이·인덱스·제약은 보지 않는다.
-  flyway:
-    # Flyway 이전부터 있던 DB는 V1을 실행하지 않고 적용된 것으로만 기록한 뒤 V2부터 돌린다.
-    # 로컬과 RDS 둘 다 기록이 생기면 끈다. 켜 두면 기록 없는 엉뚱한 DB에 붙어도 그냥 V1로 기록해 버린다.
-    baseline-on-migrate: true
-    baseline-version: 1
+  # baseline-on-migrate는 켜지 않는다. 기록 없는 기존 DB에 붙으면 V1로 기록해 버리지 않고 시작을 멈춘다.
 
   jpa:
     hibernate:

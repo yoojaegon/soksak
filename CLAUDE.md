@@ -19,7 +19,12 @@ cd backend
 - Spring Web (REST), Spring Data JPA, PostgreSQL driver (runtime).
 - Lombok — annotation processing is configured; use it for boilerplate (getters, builders, etc.).
 
-Note: a PostgreSQL datasource is on the classpath but **not configured** in `application.properties`. `bootRun` and the `contextLoads` test will fail until DB connection properties (`spring.datasource.*`) are added or a JPA/datasource config is otherwise supplied.
+## Schema (Flyway)
+
+- The schema is owned by Flyway (`backend/src/main/resources/db/migration`). Hibernate runs with `ddl-auto: validate`, which checks tables, columns and types only — not lengths, indexes or constraints. A mismatch there passes startup silently.
+- Every schema change is a new `V{n}__description.sql`. Never edit a migration that has already been applied anywhere; Flyway rejects startup on checksum mismatch.
+- **Enum columns carry CHECK constraints** listing the allowed values (`character_tags`, `chat_room.thinking_level`, `message.role`, `reports.reason/target`, `users.gender`). Adding an enum value requires a migration that drops and re-adds that CHECK, or inserts fail with 23514. Removing a value means cleaning up rows that use it first. `credit_ledger.reason` is the exception: plain `varchar(20)` with no CHECK.
+- Tests run on Postgres via Testcontainers (`TestcontainersConfig`, imported by each `@SpringBootTest`) with the same migrations, so host `./gradlew test` needs Docker.
 
 Base package for new code: `com.soksak.soksak`.
 
