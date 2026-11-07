@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import com.soksak.soksak.TestcontainersConfig;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // 검증 실패 응답의 errors 형식. 프론트가 칸마다 문구를 띄우는 데 기대는 계약이다.
 // 모두 400에서 끝나서 DB에 남는 게 없으므로 정리하지 않는다.
 @SpringBootTest
+@Import(TestcontainersConfig.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class SignupValidationE2eTest {

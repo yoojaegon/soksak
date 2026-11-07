@@ -8,6 +8,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import com.soksak.soksak.TestcontainersConfig;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
@@ -22,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 // - #2: 검색어의 LIKE 메타문자(%,_)가 리터럴로 취급되는지(이스케이프).
 // 시드한 유저·캐릭터가 DB에 남아 재실행 시 loginId 유니크 충돌이 나지 않도록 @Transactional로 롤백한다.
 @SpringBootTest
+@Import(TestcontainersConfig.class)
 @ActiveProfiles("test")
 @Transactional
 class CharacterSearchTest {

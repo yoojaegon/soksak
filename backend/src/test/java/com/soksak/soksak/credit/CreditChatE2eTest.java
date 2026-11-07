@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import com.soksak.soksak.TestcontainersConfig;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -45,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * {@code CreditServiceTest}가 원자성을 보는 반면 여기선 "보내면 줄어든다"와 "없으면 402"를 본다.
  */
 @SpringBootTest
+@Import(TestcontainersConfig.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class CreditChatE2eTest {

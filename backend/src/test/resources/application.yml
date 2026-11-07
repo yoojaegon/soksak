@@ -1,17 +1,10 @@
+# DB는 TestcontainersConfig가 띄우는 Postgres 컨테이너다. 접속 정보는 @ServiceConnection이 채운다.
+# 스키마도 운영과 같은 Flyway 마이그레이션으로 만든다.
 spring:
-  datasource:
-    url: jdbc:h2:mem:soksak;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
 
 jwt:
   issuer: soksak

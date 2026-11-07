@@ -10,6 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import com.soksak.soksak.TestcontainersConfig;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.UUID;
@@ -29,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * 돌아가고, 한참 뒤에 "왜 마이너스지"로 발견된다.
  */
 @SpringBootTest
+@Import(TestcontainersConfig.class)
 @ActiveProfiles("test")
 class CreditServiceTest {
 

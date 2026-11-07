@@ -44,7 +44,6 @@ public class ChatRoom extends BaseTimeEntity {
 
     // 추론 깊이도 model과 같은 의미론이다 — null = 아직 안 고름(발송 직전에
     // ModelCatalog.resolveThinking()이 모델에 맞게 맞춘다).
-    // ⚠️ nullable이어야 한다. ddl-auto=update는 행이 있는 테이블에 NOT NULL 컬럼을 못 붙인다.
     @Enumerated(EnumType.STRING)
     @Column(name = "thinking_level")
     private ThinkingLevel thinkingLevel;

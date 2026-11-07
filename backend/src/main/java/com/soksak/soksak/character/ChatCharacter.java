@@ -54,7 +54,7 @@ public class ChatCharacter extends BaseTimeEntity {
     /**
      * 신고가 모여 자동으로 숨겨진 상태. 숨겨지면 카탈로그와 새 대화에서 빠진다.
      * 해제는 운영자가 DB에서만 하므로 unhide()는 두지 않는다.
-     * 기본값은 columnDefinition으로 DB에 둔다. ddl-auto=update는 행이 있는 테이블에 기본값 없는 NOT NULL 컬럼을 붙이지 못한다.
+     * DB 컬럼에도 기본값 false가 있어서 SQL로 직접 넣은 행도 보이는 상태로 들어간다.
      */
     @Column(name = "hidden", nullable = false, columnDefinition = "boolean not null default false")
     private boolean hidden;

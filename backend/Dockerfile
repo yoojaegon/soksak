@@ -8,7 +8,7 @@ COPY gradle gradle
 RUN chmod +x gradlew && ./gradlew --no-daemon dependencies > /dev/null 2>&1 || true
 
 COPY src src
-# 테스트는 DB가 있어야 돌아서 이미지 빌드에서는 건너뛴다(로컬에서 ./gradlew test로 돌릴 것).
+# 테스트는 Testcontainers로 Postgres를 띄워서 Docker가 있어야 돈다. 이미지 빌드에서는 건너뛴다(로컬에서 ./gradlew test로 돌릴 것).
 RUN ./gradlew --no-daemon bootJar -x test
 
 # 2) 실행 — JRE만 있는 작은 이미지로 옮긴다.

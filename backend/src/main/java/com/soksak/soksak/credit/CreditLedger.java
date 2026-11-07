@@ -54,13 +54,8 @@ public class CreditLedger extends BaseTimeEntity {
     private int balanceAfter;
 
     /**
-     * ⚠️ <b>{@code columnDefinition}을 직접 준다.</b> 안 주면 Hibernate가 <b>테이블을 만들 때</b>
-     * 그 시점의 enum 값 목록으로 {@code credit_ledger_reason_check}를 박는데, 나중에 사유를
-     * 추가해도 {@code ddl-auto: update}는 <b>기존 제약을 갱신하지 않는다.</b> 그러면 새 사유가
-     * 들어가는 순간 23514로 터진다 — 2026-09-23에 {@code TOPUP}을 더하다 실제로 밟았다.
-     * <p>
-     * ⚠️ 테스트는 이 사고를 못 잡는다. H2 + {@code create-drop}이라 매번 현재 값으로 제약이
-     * 새로 만들어진다 — <b>기존 테이블에서만</b> 나는 고장이다.
+     * 다른 enum 컬럼과 달리 이 컬럼에는 값 목록 CHECK 제약이 없다.
+     * 사유는 자주 늘어나는 값이라, 추가할 때마다 마이그레이션으로 제약을 고치지 않아도 되게 했다.
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "reason", nullable = false, columnDefinition = "varchar(20)")

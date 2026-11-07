@@ -10,8 +10,7 @@ import lombok.NoArgsConstructor;
 /**
  * 유저가 대화할 때 쓰는 자기 설정이다. 한 유저가 여러 개를 가질 수 있다.
  * 기본 페르소나가 유저당 하나라는 규칙은 부분 유니크 인덱스(uk_user_persona_default)로 DB에서도 막는다.
- * JPA로는 where 조건이 붙은 인덱스를 만들 수 없어서 이 인덱스는 SQL로 직접 만든다.
- * 테스트 DB(H2)는 부분 인덱스를 지원하지 않아 테스트에는 이 인덱스가 없다.
+ * JPA로는 where 조건이 붙은 인덱스를 만들 수 없어서 이 인덱스는 마이그레이션(db/migration)에 있다.
  */
 @Entity
 @Table(name = "user_persona",
