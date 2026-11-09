@@ -90,41 +90,22 @@ public class ChatRoomService {
                 .toList();
     }
 
-    @Transactional
-    public ChatRoomResponse updateChatRoom(Long userId, Long id, UpdateChatRoomRequest request) {
-        ChatRoom chatRoom = getOwnedChatRoom(userId, id);
-        chatRoom.update(request.title());
-
-        return ChatRoomResponse.from(chatRoom);
-    }
-
-    @Transactional
-    public ChatRoomResponse updateModel(Long userId, Long id, UpdateModelRequest request) {
-        ChatRoom chatRoom = getOwnedChatRoom(userId, id);
-        if (!ModelCatalog.contains(request.model()))
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
-        chatRoom.updateModel(request.model());
-
-        return ChatRoomResponse.from(chatRoom);
-    }
-
     /**
-     * 추론 깊이. 모델이 그 레벨을 받을 수 있는지는 <b>여기서 막지 않는다</b> — 모델과 레벨은
-     * 따로 바뀌므로(추론 없는 모델로 교체 등) 저장 단계에서 거절하면 모델을 못 바꾸게 된다.
+     * 방 설정 부분 수정. 보낸 필드만 바꾼다.
+     * 추론 깊이는 모델이 그 레벨을 받을 수 있는지 여기서 막지 않는다. 모델과 레벨은 따로 바뀌므로
+     * (추론 없는 모델로 교체 등) 저장 단계에서 거절하면 모델을 못 바꾸게 된다.
      * 실제로 보낼 수 있는 값으로 맞추는 건 발송 직전의 ModelCatalog.resolveThinking() 몫이다.
      */
     @Transactional
-    public ChatRoomResponse updateThinking(Long userId, Long id, UpdateThinkingRequest request) {
-        ChatRoom chatRoom = getOwnedChatRoom(userId, id);
-        chatRoom.updateThinkingLevel(request.thinkingLevel());
+    public ChatRoomResponse updateChatRoom(Long userId, Long id, UpdateChatRoomRequest request) {
+        if (request.isEmpty())
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        if (request.model() != null && !ModelCatalog.contains(request.model()))
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
 
-        return ChatRoomResponse.from(chatRoom);
-    }
-
-    @Transactional
-    public ChatRoomResponse updateConfig(Long userId, Long id, boolean writingToggle, boolean foldSpoilerToggle) {
         ChatRoom chatRoom = getOwnedChatRoom(userId, id);
-        chatRoom.toggleUpdate(writingToggle, foldSpoilerToggle);
+        chatRoom.update(request.title(), request.model(), request.thinkingLevel(),
+                request.writingToggle(), request.foldSpoilerToggle());
 
         return ChatRoomResponse.from(chatRoom);
     }

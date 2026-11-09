@@ -354,7 +354,7 @@ export const api = {
 
   // 채팅방
   // 생성 시 모델은 안 보낸다 — room.model이 null이면 "기본 모델 따라감"이고,
-  // 기본값이 뭔지는 백엔드 카탈로그가 정한다(대화 중 updateModel로 변경).
+  // 기본값이 뭔지는 백엔드 카탈로그가 정한다(대화 중 updateChatRoom으로 변경).
   createChatRoom: async (characterId) => {
     const room = await request('/chatrooms', { method: 'POST', body: { characterId } })
     // 사이드바 목록이 새 방을 바로 반영하도록 알린다.
@@ -363,14 +363,10 @@ export const api = {
   },
   getChatRooms: () => request('/chatrooms'),
   getChatRoom: (id) => request(`/chatrooms/${id}`),
-  // 채팅방 이름 변경
-  renameChatRoom: (id, title) => request(`/chatrooms/${id}`, { method: 'PATCH', body: { title } }),
-  // 대화 중 사용할 모델 변경. model은 문자열이라 토글과 달리 body로 보낸다(rename과 동일 패턴).
-  updateModel: (id, model) =>
-    request(`/chatrooms/${id}/model`, { method: 'PATCH', body: { model } }),
-  // 추론 깊이 변경. 모델이 그 레벨을 받는지는 서버가 보낼 때 맞춰주므로 여기서 막지 않는다.
-  updateThinking: (id, thinkingLevel) =>
-    request(`/chatrooms/${id}/thinking`, { method: 'PATCH', body: { thinkingLevel } }),
+  // 방 설정 부분 수정. 바꿀 필드만 담아 보낸다
+  // (title, model, thinkingLevel, writingToggle, foldSpoilerToggle 중 일부).
+  // 추론 깊이가 모델과 맞는지는 서버가 보낼 때 맞춰주므로 여기서 막지 않는다.
+  updateChatRoom: (id, fields) => request(`/chatrooms/${id}`, { method: 'PATCH', body: fields }),
   // 채팅방 삭제
   deleteChatRoom: (id) => request(`/chatrooms/${id}`, { method: 'DELETE' }),
   // 장기기억(자동 요약문) 조회. 대화 중에 갱신되므로 방 정보와 함께 받지 않고
@@ -379,12 +375,6 @@ export const api = {
   // 장기기억 직접 수정. 빈 문자열은 "지우기"라 유효한 값이다(백엔드에서 null로 저장).
   updateSummary: (id, summary) =>
     request(`/chatrooms/${id}/summary`, { method: 'PATCH', body: { summary } }),
-  // 대화 설정(프롬프트 모드/스포일러 접기) 변경. boolean 토글은 body가 아니라 query param으로 보낸다.
-  updateConfig: (id, { writingToggle, foldSpoilerToggle }) =>
-    request(
-      `/chatrooms/${id}/config?writingToggle=${writingToggle}&foldSpoilerToggle=${foldSpoilerToggle}`,
-      { method: 'PATCH' },
-    ),
 
   // 메시지 (보내면 AI 응답이 돌아온다)
   getMessages: (roomId) => request(`/chatrooms/${roomId}/messages`),

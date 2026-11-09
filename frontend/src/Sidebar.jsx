@@ -145,7 +145,7 @@ export default function Sidebar() {
     }
     setBusyId(room.id)
     try {
-      const updated = await api.renameChatRoom(room.id, title)
+      const updated = await api.updateChatRoom(room.id, { title })
       setRooms((prev) => prev.map((r) => (r.id === room.id ? { ...r, title: updated?.title ?? title } : r)))
       cancelRename()
     } catch {

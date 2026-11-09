@@ -54,39 +54,7 @@ public class ChatRoomController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateChatRoomRequest request
     ) {
-        ChatRoomResponse response = chatRoomService.updateChatRoom(me.id(), id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{id}/model")
-    public ResponseEntity<ChatRoomResponse> updateModel(
-            @AuthenticationPrincipal AuthUser me,
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateModelRequest request
-    ) {
-        ChatRoomResponse response = chatRoomService.updateModel(me.id(), id, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{id}/thinking")
-    public ResponseEntity<ChatRoomResponse> updateThinking(
-            @AuthenticationPrincipal AuthUser me,
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateThinkingRequest request
-    ) {
-        return ResponseEntity.ok(chatRoomService.updateThinking(me.id(), id, request));
-    }
-
-    @PatchMapping("/{id}/config")
-    public ResponseEntity<ChatRoomResponse> updateConfig(
-            @AuthenticationPrincipal AuthUser me,
-            @PathVariable Long id,
-            @RequestParam boolean writingToggle,
-            @RequestParam boolean foldSpoilerToggle
-    ) {
-        ChatRoomResponse response = chatRoomService.updateConfig(
-                me.id(), id, writingToggle, foldSpoilerToggle);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(chatRoomService.updateChatRoom(me.id(), id, request));
     }
 
     @GetMapping("/{id}/summary")

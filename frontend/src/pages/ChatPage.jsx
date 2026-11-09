@@ -263,7 +263,7 @@ function ChatRoom({ roomId }) {
     const next = { ...configRef.current, [key]: !prev }
     writeConfig(next)
     try {
-      await api.updateConfig(roomId, next)
+      await api.updateChatRoom(roomId, { [key]: !prev })
     } catch (err) {
       // 실패한 토글만 요청 전 값으로 되돌린다(그새 바뀐 다른 토글의 최신값은 보존)
       writeConfig({ ...configRef.current, [key]: prev })
@@ -277,7 +277,7 @@ function ChatRoom({ roomId }) {
     if (next === prev) return
     setModel(next)
     try {
-      await api.updateModel(roomId, next)
+      await api.updateChatRoom(roomId, { model: next })
     } catch (err) {
       setModel(prev)
       setError(err.message)
@@ -291,7 +291,7 @@ function ChatRoom({ roomId }) {
     if (next === prev) return
     setThinking(next)
     try {
-      await api.updateThinking(roomId, next)
+      await api.updateChatRoom(roomId, { thinkingLevel: next })
     } catch (err) {
       setThinking(prev)
       setError(err.message)

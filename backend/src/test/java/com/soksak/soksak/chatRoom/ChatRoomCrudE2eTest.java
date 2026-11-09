@@ -191,6 +191,16 @@ class ChatRoomCrudE2eTest {
     }
 
     @Test
+    @DisplayName("제목이 전각 공백뿐이어도 400이다")
+    void update_with_fullwidth_blank_title_returns_400() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        patchRoom(ownerToken, id, Map.of("title", "　　")).andExpect(status().isBadRequest());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getTitle()).isEqualTo("릴리");
+    }
+
+    @Test
     @DisplayName("남의 챗룸 수정은 차단되고 제목이 바뀌지 않는다")
     void update_others_chatroom_is_blocked() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
@@ -205,9 +215,44 @@ class ChatRoomCrudE2eTest {
         assertThat(chatRoomRepository.findById(id).orElseThrow().getTitle()).isEqualTo("릴리");
     }
 
+    @Test
+    @DisplayName("토글 하나만 보내면 그 값만 바뀌고 나머지 설정은 그대로다")
+    void partial_update_keeps_other_fields() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        String slug = ModelCatalog.entries().get(0).id();
+        patchRoom(ownerToken, id, Map.of("model", slug, "thinkingLevel", "medium"))
+                .andExpect(status().isOk());
+
+        patchRoom(ownerToken, id, Map.of("writingToggle", true))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.writingToggle").value(true));
+
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        assertThat(room.isWritingToggle()).isTrue();
+        assertThat(room.isFoldSpoilerToggle()).isFalse();
+        assertThat(room.getModel()).isEqualTo(slug);
+        assertThat(room.getThinkingLevel()).isEqualTo(ThinkingLevel.MEDIUM);
+        assertThat(room.getTitle()).isEqualTo("릴리");
+    }
+
+    @Test
+    @DisplayName("빈 본문으로 수정하면 400이고 이미 고른 설정이 지워지지 않는다")
+    void update_with_empty_body_returns_400_and_keeps_settings() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        String slug = ModelCatalog.entries().get(0).id();
+        patchRoom(ownerToken, id, Map.of("model", slug, "thinkingLevel", "medium"))
+                .andExpect(status().isOk());
+
+        patchRoom(ownerToken, id, Collections.emptyMap()).andExpect(status().isBadRequest());
+
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        assertThat(room.getModel()).isEqualTo(slug);
+        assertThat(room.getThinkingLevel()).isEqualTo(ThinkingLevel.MEDIUM);
+    }
+
     // ---------- UPDATE MODEL ----------
     // room.model이 null인 건 "아직 안 골랐다"는 서버 초기 상태일 뿐이고(resolve()가 기본값으로 폴백),
-    // API로는 받지 않는다. 그래서 아래 400 케이스들은 전부 model이 바뀌지 않아야 한다.
+    // API로 null을 보내면 "변경 없음"이라 되돌릴 수 없다. 아래 400 케이스들은 전부 model이 바뀌지 않아야 한다.
 
     @Test
     @DisplayName("카탈로그에 있는 모델로 변경하면 200이고 DB에 반영된다")
@@ -215,7 +260,7 @@ class ChatRoomCrudE2eTest {
         long id = createChatRoom(ownerToken, ownerCharacterId);
         String slug = ModelCatalog.entries().get(0).id();
 
-        mockMvc.perform(patch("/chatrooms/{id}/model", id)
+        mockMvc.perform(patch("/chatrooms/{id}", id)
                         .header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("model", slug))))
@@ -226,24 +271,11 @@ class ChatRoomCrudE2eTest {
     }
 
     @Test
-    @DisplayName("model 필드가 없으면 400이고 이미 고른 모델이 지워지지 않는다")
-    void update_model_without_field_returns_400_and_keeps_model() throws Exception {
-        long id = createChatRoom(ownerToken, ownerCharacterId);
-        String slug = ModelCatalog.entries().get(0).id();
-        patchModel(ownerToken, id, Map.of("model", slug)).andExpect(status().isOk());
-
-        // 빈 본문이 null로 바인딩돼 선택을 조용히 날려버리면 안 된다
-        patchModel(ownerToken, id, Collections.emptyMap()).andExpect(status().isBadRequest());
-
-        assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isEqualTo(slug);
-    }
-
-    @Test
     @DisplayName("model이 빈 값이면 400을 반환한다")
     void update_model_with_blank_returns_400() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
 
-        patchModel(ownerToken, id, Map.of("model", "  ")).andExpect(status().isBadRequest());
+        patchRoom(ownerToken, id, Map.of("model", "  ")).andExpect(status().isBadRequest());
 
         assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isNull();
     }
@@ -253,7 +285,7 @@ class ChatRoomCrudE2eTest {
     void update_model_with_unknown_slug_returns_400() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
 
-        patchModel(ownerToken, id, Map.of("model", "openai/nope-9000"))
+        patchRoom(ownerToken, id, Map.of("model", "openai/nope-9000"))
                 .andExpect(status().isBadRequest());
 
         assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isNull();
@@ -264,7 +296,7 @@ class ChatRoomCrudE2eTest {
     void update_others_chatroom_model_is_blocked() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
 
-        patchModel(otherToken, id, Map.of("model", ModelCatalog.entries().get(0).id()))
+        patchRoom(otherToken, id, Map.of("model", ModelCatalog.entries().get(0).id()))
                 .andExpect(status().isForbidden());
 
         assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isNull();
@@ -277,7 +309,7 @@ class ChatRoomCrudE2eTest {
     void update_thinking_saves_the_level() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
 
-        patchThinking(ownerToken, id, Map.of("thinkingLevel", "high"))
+        patchRoom(ownerToken, id, Map.of("thinkingLevel", "high"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.thinkingLevel").value("high"));
 
@@ -286,28 +318,15 @@ class ChatRoomCrudE2eTest {
     }
 
     @Test
-    @DisplayName("thinkingLevel 필드가 없으면 400이고 이미 고른 레벨이 지워지지 않는다")
-    void update_thinking_without_field_returns_400_and_keeps_level() throws Exception {
-        long id = createChatRoom(ownerToken, ownerCharacterId);
-        patchThinking(ownerToken, id, Map.of("thinkingLevel", "medium")).andExpect(status().isOk());
-
-        // model과 같은 이유 — 빈 본문 {}가 null로 바인딩돼 선택을 조용히 날리면 안 된다.
-        patchThinking(ownerToken, id, Collections.emptyMap()).andExpect(status().isBadRequest());
-
-        assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel())
-                .isEqualTo(ThinkingLevel.MEDIUM);
-    }
-
-    @Test
     @DisplayName("모델이 추론을 못 해도 레벨 저장은 막지 않는다 — 보정은 보낼 때 한다")
     void update_thinking_is_not_validated_against_the_model() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
         // 추론을 못 하는 모델을 고른 방에 HIGH를 저장한다. 여기서 400을 내면 모델을
         // 바꿀 때마다 방의 설정이 무효가 돼 사용자가 모델을 못 바꾸게 된다.
-        patchModel(ownerToken, id, Map.of("model", "anthropic/claude-haiku-4.5"))
+        patchRoom(ownerToken, id, Map.of("model", "anthropic/claude-haiku-4.5"))
                 .andExpect(status().isOk());
 
-        patchThinking(ownerToken, id, Map.of("thinkingLevel", "high")).andExpect(status().isOk());
+        patchRoom(ownerToken, id, Map.of("thinkingLevel", "high")).andExpect(status().isOk());
 
         assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel())
                 .isEqualTo(ThinkingLevel.HIGH);
@@ -321,7 +340,7 @@ class ChatRoomCrudE2eTest {
     void update_thinking_with_unknown_level_returns_400() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
 
-        patchThinking(ownerToken, id, Map.of("thinkingLevel", "extreme"))
+        patchRoom(ownerToken, id, Map.of("thinkingLevel", "extreme"))
                 .andExpect(status().isBadRequest());
 
         assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel()).isNull();
@@ -332,7 +351,7 @@ class ChatRoomCrudE2eTest {
     void update_others_chatroom_thinking_is_blocked() throws Exception {
         long id = createChatRoom(ownerToken, ownerCharacterId);
 
-        patchThinking(otherToken, id, Map.of("thinkingLevel", "high"))
+        patchRoom(otherToken, id, Map.of("thinkingLevel", "high"))
                 .andExpect(status().isForbidden());
 
         assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel()).isNull();
@@ -636,15 +655,8 @@ class ChatRoomCrudE2eTest {
                 .content(json(body)));
     }
 
-    private ResultActions patchModel(String token, long id, Map<String, ?> body) throws Exception {
-        return mockMvc.perform(patch("/chatrooms/{id}/model", id)
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json(body)));
-    }
-
-    private ResultActions patchThinking(String token, long id, Map<String, ?> body) throws Exception {
-        return mockMvc.perform(patch("/chatrooms/{id}/thinking", id)
+    private ResultActions patchRoom(String token, long id, Map<String, ?> body) throws Exception {
+        return mockMvc.perform(patch("/chatrooms/{id}", id)
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(body)));

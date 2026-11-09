@@ -57,19 +57,16 @@ public class ChatRoom extends BaseTimeEntity {
         this.foldSpoilerToggle = false;
     }
 
-    public void update(String title) {
-        this.title = title;
+    // null인 인자는 바꾸지 않는다(부분 수정).
+    public void update(String title, String model, ThinkingLevel thinkingLevel,
+                       Boolean writingToggle, Boolean foldSpoilerToggle) {
+        if (title != null) this.title = title;
+        if (model != null) this.model = model;
+        if (thinkingLevel != null) this.thinkingLevel = thinkingLevel;
+        if (writingToggle != null) this.writingToggle = writingToggle;
+        if (foldSpoilerToggle != null) this.foldSpoilerToggle = foldSpoilerToggle;
     }
 
     // 요약은 이 엔티티가 아니라 chat_summary 조각들이 갖는다. 방에 summary/summarizedUpToId를
     // 두던 시절의 미러는 전부 걷어냈고, 커서는 SummarySelector.cursorOf 가 조각에서 유도한다.
-
-    public void toggleUpdate(boolean writingToggle, boolean foldSpoilerToggle) {
-        this.writingToggle = writingToggle;
-        this.foldSpoilerToggle = foldSpoilerToggle;
-    }
-
-    public void updateModel(String model) {this.model = model;}
-
-    public void updateThinkingLevel(ThinkingLevel thinkingLevel) {this.thinkingLevel = thinkingLevel;}
 }
