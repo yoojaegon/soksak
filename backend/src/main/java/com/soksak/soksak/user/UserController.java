@@ -4,6 +4,7 @@ import com.soksak.soksak.auth.AuthUser;
 import com.soksak.soksak.user.dto.ChangePasswordRequest;
 import com.soksak.soksak.user.dto.UserResponse;
 import com.soksak.soksak.user.dto.CreateUserRequest;
+import com.soksak.soksak.user.dto.UpdateChatDefaultsRequest;
 import com.soksak.soksak.user.dto.UpdateUserRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,13 @@ public class UserController {
     public ResponseEntity<UserResponse> updateMe(@AuthenticationPrincipal AuthUser me,
                                                  @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.updateUser(me.id(), request));
+    }
+
+    // 채팅 기본값(모델·추론). 설정 화면과 채팅방 패널의 "기본값" 범위가 같이 쓴다.
+    @PatchMapping("/me/chat-defaults")
+    public ResponseEntity<UserResponse> updateChatDefaults(@AuthenticationPrincipal AuthUser me,
+                                                           @RequestBody UpdateChatDefaultsRequest request) {
+        return ResponseEntity.ok(userService.updateChatDefaults(me.id(), request));
     }
 
     @PatchMapping("/me/password")

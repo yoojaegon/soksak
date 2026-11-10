@@ -1,5 +1,6 @@
 package com.soksak.soksak.user;
 
+import com.soksak.soksak.aiClient.ModelCatalog;
 import com.soksak.soksak.auth.RefreshTokenRepository;
 import com.soksak.soksak.common.BusinessException;
 import com.soksak.soksak.common.ErrorCode;
@@ -7,6 +8,7 @@ import com.soksak.soksak.credit.CreditReason;
 import com.soksak.soksak.credit.CreditService;
 import com.soksak.soksak.user.dto.ChangePasswordRequest;
 import com.soksak.soksak.user.dto.CreateUserRequest;
+import com.soksak.soksak.user.dto.UpdateChatDefaultsRequest;
 import com.soksak.soksak.user.dto.UpdateUserRequest;
 import com.soksak.soksak.user.dto.UserResponse;
 import com.soksak.soksak.userPersona.UserPersonaService;
@@ -94,6 +96,22 @@ public class UserService {
 
         // 기본 페르소나는 가입 때 닉네임으로 만든 독립 데이터라 여기서 따라 바꾸지 않는다.
         user.updateUser(request.nickname());
+        return UserResponse.from(user);
+    }
+
+    /**
+     * 채팅 기본값 부분 수정. 방은 건드리지 않는다.
+     * 고르지 않은(null) 방은 다음 발송부터 새 기본값을 따르고, 고정한 방은 그대로다.
+     */
+    @Transactional
+    public UserResponse updateChatDefaults(Long userId, UpdateChatDefaultsRequest request) {
+        if (request.isEmpty())
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        if (request.model() != null && !ModelCatalog.contains(request.model()))
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+
+        User user = findUser(userId);
+        user.updateChatDefaults(request.model(), request.thinkingLevel());
         return UserResponse.from(user);
     }
 
