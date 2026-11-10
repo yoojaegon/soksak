@@ -447,6 +447,71 @@ class ChatRoomCrudE2eTest {
         assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isEqualTo(slug);
     }
 
+    // ---------- RESPONSE (적용 값 + followsDefault) ----------
+    // 응답의 model·thinkingLevel은 저장값이 아니라 실제로 적용되는 값이다. 상속 규칙은 서버만 안다.
+
+    @Test
+    @DisplayName("새 방은 사용자 기본값과 followsDefault=true를 돌려준다")
+    void new_room_shows_user_defaults() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        mockMvc.perform(patch("/users/me/chat-defaults")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.of("model", "anthropic/claude-opus-4.8", "thinkingLevel", "medium"))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/chatrooms/{id}", id).header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.model").value("anthropic/claude-opus-4.8"))
+                .andExpect(jsonPath("$.modelFollowsDefault").value(true))
+                .andExpect(jsonPath("$.thinkingLevel").value("medium"))
+                .andExpect(jsonPath("$.thinkingFollowsDefault").value(true));
+    }
+
+    @Test
+    @DisplayName("고정한 값은 followsDefault=false로, 해제하면 다시 기본값과 true로 나온다")
+    void fixed_and_unfixed_room_response() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        patchRoom(ownerToken, id, Map.of("model", "anthropic/claude-haiku-4.5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.model").value("anthropic/claude-haiku-4.5"))
+                .andExpect(jsonPath("$.modelFollowsDefault").value(false))
+                .andExpect(jsonPath("$.thinkingFollowsDefault").value(true));
+
+        patchRoomWithParams(ownerToken, id, "followDefaultModel=true", null)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.model").value(ModelCatalog.defaultId()))
+                .andExpect(jsonPath("$.modelFollowsDefault").value(true));
+    }
+
+    @Test
+    @DisplayName("추론은 모델에 맞춘 보정 전 값을 돌려준다")
+    void thinking_in_response_is_not_resolved() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        // haiku는 추론을 못 해서 실제로는 OFF로 보내지만 응답은 고른 HIGH다
+        patchRoom(ownerToken, id, Map.of("model", "anthropic/claude-haiku-4.5", "thinkingLevel", "high"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.thinkingLevel").value("high"))
+                .andExpect(jsonPath("$.thinkingFollowsDefault").value(false));
+    }
+
+    @Test
+    @DisplayName("목록도 방마다 적용 값과 followsDefault를 돌려준다")
+    void list_shows_effective_values() throws Exception {
+        long inheriting = createChatRoom(ownerToken, ownerCharacterId);
+        long fixed = createChatRoom(ownerToken, ownerCharacterId);
+        patchRoom(ownerToken, fixed, Map.of("model", "anthropic/claude-haiku-4.5")).andExpect(status().isOk());
+
+        mockMvc.perform(get("/chatrooms").header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + inheriting + ")].model").value(ModelCatalog.defaultId()))
+                .andExpect(jsonPath("$[?(@.id == " + inheriting + ")].modelFollowsDefault").value(true))
+                .andExpect(jsonPath("$[?(@.id == " + fixed + ")].model").value("anthropic/claude-haiku-4.5"))
+                .andExpect(jsonPath("$[?(@.id == " + fixed + ")].modelFollowsDefault").value(false));
+    }
+
     // ---------- SUMMARY (장기기억) ----------
     // 모델과 달리 빈 값이 정당한 입력이다("지우기"). 대신 필드 자체가 없는 건 400 —
     // 빈 본문이 null로 바인딩돼 사용자의 기억을 조용히 날리면 안 된다.

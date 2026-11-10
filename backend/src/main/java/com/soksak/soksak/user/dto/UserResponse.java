@@ -20,7 +20,7 @@ public record UserResponse (
 ) {
     public static UserResponse from(User user){
         return new UserResponse(user.getId(), user.getEmail(), user.getLoginId(),
-                user.getNickname(), ModelCatalog.resolve(user.getDefaultModel()),
+                user.getNickname(), ModelCatalog.displayed(user.getDefaultModel()),
                 user.getDefaultThinkingLevel(), user.getCreatedAt());
     }
 }

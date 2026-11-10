@@ -294,9 +294,13 @@ export const api = {
   logout: (refreshToken) =>
     request('/auth/logout', { method: 'POST', body: { refreshToken }, auth: false }),
 
-  // 내 계정. 응답 계약: { id, email, loginId, nickname, createdAt }
+  // 내 계정. 응답 계약: { id, email, loginId, nickname, defaultModel, defaultThinkingLevel, createdAt }
   getMe: () => request('/users/me'),
   updateMe: (nickname) => request('/users/me', { method: 'PATCH', body: { nickname } }),
+  // 채팅 기본값(모델·추론) 부분 수정. 바꿀 필드만 담아 보낸다({ model } 또는 { thinkingLevel }).
+  // 방은 서버가 건드리지 않는다. 기본값을 따르는 방은 다음 메시지부터 새 값을 쓰고, 고정한 방은 그대로다.
+  updateChatDefaults: (fields) =>
+    request('/users/me/chat-defaults', { method: 'PATCH', body: fields }),
   // ⚠️ 성공하면 서버가 이 계정의 refresh 토큰을 지운다 — 호출부가 곧바로 로그아웃시켜야 한다(D14).
   changePassword: (currentPassword, newPassword) =>
     request('/users/me/password', { method: 'PATCH', body: { currentPassword, newPassword } }),
@@ -353,8 +357,9 @@ export const api = {
   deleteUserPersona: (id) => request(`/user-personas/${id}`, { method: 'DELETE' }),
 
   // 채팅방
-  // 생성 시 모델은 안 보낸다 — room.model이 null이면 "기본 모델 따라감"이고,
-  // 기본값이 뭔지는 백엔드 카탈로그가 정한다(대화 중 updateChatRoom으로 변경).
+  // 생성 시 모델은 안 보낸다. 새 방은 사용자 기본값을 따른다.
+  // 방 응답의 model·thinkingLevel은 서버가 상속까지 채운 실제 적용 값이고,
+  // modelFollowsDefault·thinkingFollowsDefault가 기본값을 따르는 중인지 알려준다.
   createChatRoom: async (characterId) => {
     const room = await request('/chatrooms', { method: 'POST', body: { characterId } })
     // 사이드바 목록이 새 방을 바로 반영하도록 알린다.
@@ -367,6 +372,12 @@ export const api = {
   // (title, model, thinkingLevel, writingToggle, foldSpoilerToggle 중 일부).
   // 추론 깊이가 모델과 맞는지는 서버가 보낼 때 맞춰주므로 여기서 막지 않는다.
   updateChatRoom: (id, fields) => request(`/chatrooms/${id}`, { method: 'PATCH', body: fields }),
+  // 이 방의 고정을 풀고 사용자 기본값을 따르게 한다. field는 'model' 또는 'thinkingLevel'.
+  // 본문의 null은 "변경 없음"이라 해제는 query param으로만 보낸다.
+  followDefault: (id, field) => {
+    const param = field === 'model' ? 'followDefaultModel' : 'followDefaultThinking'
+    return request(`/chatrooms/${id}?${param}=true`, { method: 'PATCH' })
+  },
   // 채팅방 삭제
   deleteChatRoom: (id) => request(`/chatrooms/${id}`, { method: 'DELETE' }),
   // 장기기억(자동 요약문) 조회. 대화 중에 갱신되므로 방 정보와 함께 받지 않고

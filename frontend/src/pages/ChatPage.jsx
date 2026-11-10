@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../api.js'
 import ModelPicker from '../components/ModelPicker.jsx'
+import ScopeSwitch from '../components/ScopeSwitch.jsx'
 import ThinkingPicker from '../components/ThinkingPicker.jsx'
 import CharacterImage from '../components/CharacterImage.jsx'
 import CreditBadge from '../components/CreditBadge.jsx'
@@ -56,6 +57,13 @@ function MessageLine({ content }) {
   return <div className="line">{parts}</div>
 }
 
+// 범위 스위치 아래 안내. 기본값 범위에서 값을 바꾸면 다른 대화에도 퍼진다는 걸 미리 알려 준다.
+function scopeHint(followsDefault) {
+  return followsDefault
+    ? '기본값을 바꾸면 기본값을 따르는 다른 대화에도 적용됩니다.'
+    : '이 대화에만 적용됩니다. 기본값으로 돌리면 기본 설정의 값으로 바뀝니다.'
+}
+
 // 방(roomId)이 바뀌면 통째로 새로 마운트해, 이전 방의 지연 응답이 새 방 화면을
 // 덮어쓰지 않도록 한다. 아래 ChatRoom이 실제 대화 화면.
 export default function ChatPage() {
@@ -81,14 +89,31 @@ function ChatRoom({ roomId }) {
     configRef.current = next
     setConfig(next)
   }
-  // 이 방에서 답할 LLM 모델(슬러그). null이면 "백엔드 기본 모델 따라감"(방에 저장된 선택 없음).
+  // 방 응답의 모델·추론 설정을 화면 상태로 옮긴다. 변경 후에도 늘 서버 응답으로 다시 맞춘다.
+  const applyChatSettings = (room) => {
+    setModel(room.model ?? null)
+    setThinking(room.thinkingLevel ?? null)
+    setModelFollows(!!room.modelFollowsDefault)
+    setThinkingFollows(!!room.thinkingFollowsDefault)
+  }
+  // 응답 하나가 모델·추론을 함께 덮어쓰므로, 늦게 도착한 옛 응답이 최신 선택을 되돌리지 않게
+  // 변경 요청마다 순번을 매기고 마지막 요청의 응답만 반영한다.
+  const settingsSeqRef = useRef(0)
+  const isLatestSettings = (seq) => seq === settingsSeqRef.current
+  const applyIfLatest = (seq, room) => {
+    if (isLatestSettings(seq)) applyChatSettings(room)
+  }
+
+  // 이 방에서 답할 LLM 모델(슬러그)과 추론 깊이. 둘 다 서버가 상속까지 채운 실제 적용 값이라
+  // 프론트는 사용자 기본값을 따로 알 필요가 없다. 방을 받기 전에만 null이다.
   const [model, setModel] = useState(null)
-  // 추론 깊이(null = 아직 안 고름 → 모델별 기본값을 픽커가 첫 옵션으로 보여준다).
   const [thinking, setThinking] = useState(null)
-  // 모델 카탈로그(선택지·라벨·기본값). 단일 출처는 백엔드 GET /models — 프론트 폴백 카탈로그는 없다.
-  // modelList가 null이면 아직 못 받은 상태(픽커 비활성화, 배지는 저장된 슬러그 그대로).
+  // true면 이 방에 고정한 값이 없어 사용자 기본값을 따르는 중이다(범위 스위치의 "기본값").
+  const [modelFollows, setModelFollows] = useState(true)
+  const [thinkingFollows, setThinkingFollows] = useState(true)
+  // 모델 카탈로그(선택지·라벨). 단일 출처는 백엔드 GET /models — 프론트 폴백 카탈로그는 없다.
+  // modelList가 null이면 아직 못 받은 상태(픽커 비활성화, 배지는 슬러그 그대로).
   const [modelList, setModelList] = useState(null)
-  const [defaultModel, setDefaultModel] = useState(null)
   // 추론 레벨의 전체 어휘(못 고르는 값도 회색으로 보여주기 위해 필요하다).
   const [thinkingLevels, setThinkingLevels] = useState([])
   const [showSettings, setShowSettings] = useState(false)
@@ -160,8 +185,8 @@ function ChatRoom({ roomId }) {
           writingToggle: !!room.writingToggle,
           foldSpoilerToggle: !!room.foldSpoilerToggle,
         })
-        setModel(room.model || null)
-        setThinking(room.thinkingLevel || null)
+        // 로딩 중에 사용자가 먼저 바꿨다면 그 응답이 더 새 값이다.
+        applyIfLatest(0, room)
         api
           .getMe()
           .then((me) => {
@@ -194,7 +219,6 @@ function ChatRoom({ roomId }) {
       .then((data) => {
         if (!alive || !data?.models?.length) return
         setModelList(data.models)
-        setDefaultModel(data.default ?? null)
         setThinkingLevels(data.thinkingLevels ?? [])
       })
       .catch(() => {})
@@ -271,29 +295,53 @@ function ChatRoom({ roomId }) {
     }
   }
 
-  // 모델 변경: 화면을 먼저 바꾸고(낙관적) 서버에 반영, 실패하면 되돌린다.
-  const changeModel = async (next) => {
-    const prev = model
+  // 모델·추론 값 변경. 화면을 먼저 바꾸고(낙관적) 서버에 반영, 실패하면 되돌린다.
+  // 범위가 "기본값"이면 사용자 기본값을 바꾸고 방을 다시 받는다. 상속 규칙은 서버만 알게 둔다.
+  // 추론은 모델을 바꿔도 그대로 둔다. 새 모델이 못 받는 값이면 서버가 보낼 때만 맞춰주고,
+  // 되돌아오면 고른 값이 되살아난다.
+  const changeSetting = async (field, next) => {
+    const [prev, setValue, follows] =
+      field === 'model' ? [model, setModel, modelFollows] : [thinking, setThinking, thinkingFollows]
     if (next === prev) return
-    setModel(next)
+    const seq = ++settingsSeqRef.current
+    setValue(next)
+    if (follows) {
+      try {
+        await api.updateChatDefaults({ [field]: next })
+      } catch (err) {
+        if (isLatestSettings(seq)) setValue(prev)
+        setError(err.message)
+        return
+      }
+      // 여기서부터는 기본값이 이미 바뀌었다. 방을 다시 못 받아도 되돌리지 않는다.
+      // 화면의 값이 서버에 저장된 값과 같기 때문이다.
+      try {
+        applyIfLatest(seq, await api.getChatRoom(roomId))
+      } catch (err) {
+        setError(err.message)
+      }
+      return
+    }
     try {
-      await api.updateChatRoom(roomId, { model: next })
+      applyIfLatest(seq, await api.updateChatRoom(roomId, { [field]: next }))
     } catch (err) {
-      setModel(prev)
+      if (isLatestSettings(seq)) setValue(prev)
       setError(err.message)
     }
   }
 
-  // 추론 깊이도 모델과 같은 방식. 모델을 바꿔도 이 값은 그대로 둔다 — 새 모델이 못 받는
-  // 값이면 서버가 보낼 때만 맞춰주고, 되돌아오면 고른 값이 되살아난다.
-  const changeThinking = async (next) => {
-    const prev = thinking
-    if (next === prev) return
-    setThinking(next)
+  // 범위 전환. "이 대화만"으로 가면 지금 적용 중인 값을 이 방에 고정하고,
+  // "기본값"으로 가면 고정을 풀어 사용자 기본값을 따르게 한다. 결과는 서버 응답으로만 그린다.
+  const changeScope = async (field, toDefault) => {
+    const [value, follows] = field === 'model' ? [model, modelFollows] : [thinking, thinkingFollows]
+    if (toDefault === follows) return
+    const seq = ++settingsSeqRef.current
     try {
-      await api.updateChatRoom(roomId, { thinkingLevel: next })
+      const room = toDefault
+        ? await api.followDefault(roomId, field)
+        : await api.updateChatRoom(roomId, { [field]: value })
+      applyIfLatest(seq, room)
     } catch (err) {
-      setThinking(prev)
       setError(err.message)
     }
   }
@@ -524,10 +572,8 @@ function ChatRoom({ roomId }) {
               <h1 className="ch-name">{character.name}</h1>
               <div className="chat-meta">
                 {character.userName && <span className="cap">@{character.userName}</span>}
-                {(model ?? defaultModel) && (
-                  <span className="model-badge">
-                    {modelLabel(modelList ?? [], model ?? defaultModel)}
-                  </span>
+                {model && (
+                  <span className="model-badge">{modelLabel(modelList ?? [], model)}</span>
                 )}
                 {sending && (
                   <span className="now-speaking">
@@ -753,23 +799,35 @@ function ChatRoom({ roomId }) {
             <ModelPicker
               id="chat-model"
               models={modelList}
-              defaultModel={defaultModel}
               value={model}
-              onChange={changeModel}
+              onChange={(next) => changeSetting('model', next)}
             />
-            <span className="tog-hint">이 대화에 답할 AI 모델</span>
+            <ScopeSwitch
+              label="대화 모델 적용 범위"
+              followsDefault={modelFollows}
+              onChange={(toDefault) => changeScope('model', toDefault)}
+              disabled={!model}
+            />
+            <span className="tog-hint">{scopeHint(modelFollows)}</span>
           </div>
           <div className="aside-field">
             <label className="field-caption" htmlFor="chat-thinking">추론 깊이</label>
             <ThinkingPicker
               id="chat-thinking"
               levels={thinkingLevels}
-              thinking={thinkingOf(modelList, model ?? defaultModel)}
+              thinking={thinkingOf(modelList, model)}
               value={thinking}
-              onChange={changeThinking}
+              onChange={(next) => changeSetting('thinkingLevel', next)}
+            />
+            <ScopeSwitch
+              label="추론 깊이 적용 범위"
+              followsDefault={thinkingFollows}
+              onChange={(toDefault) => changeScope('thinkingLevel', toDefault)}
+              disabled={!thinking}
             />
             <span className="tog-hint">
-              깊을수록 시간·장소 같은 설정을 덜 헷갈리지만, 첫 응답이 느려집니다.
+              {scopeHint(thinkingFollows)} 깊을수록 시간·장소 같은 설정을 덜 헷갈리지만, 첫 응답이
+              느려집니다.
             </span>
           </div>
           {/* 토글 설명은 ⓘ에 올렸을 때만 뜬다. 패널이 280px라 늘 펼쳐 두면 두 줄로 넘친다.

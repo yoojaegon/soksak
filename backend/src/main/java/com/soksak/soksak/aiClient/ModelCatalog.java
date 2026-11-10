@@ -109,8 +109,10 @@ public final class ModelCatalog {
         return slug;
     }
 
-    public static String orNull(String slug) {
-        return (slug != null && contains(slug)) ? slug : null;
+    // resolve()와 같은 값을 경고 로그 없이 돌려준다. 응답에 "실제로 쓰이는 모델"을 보여줄 때 쓴다.
+    // 조회마다 경고가 쌓이지 않게 하려는 것이고, 경고는 발송 경로의 resolve()가 한 번 남긴다.
+    public static String displayed(String slug) {
+        return (slug != null && contains(slug)) ? slug : DEFAULT_ID;
     }
 
     /**

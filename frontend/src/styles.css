@@ -2860,3 +2860,42 @@ button:disabled {
   color: var(--text-2);
   border: 1px solid var(--outline-strong);
 }
+
+/* 설정 적용 범위(이 대화만 / 기본값) — 픽커 바로 아래 작은 두 칸.
+   채팅 톤(차분)에 맞춰 전역 button의 그라디언트·알약 모양을 걷어내고 얇은 테두리로 간다. */
+.scope-switch {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--outline-strong);
+  border-radius: var(--r-btn);
+  overflow: hidden;
+}
+.scope-switch button {
+  flex: 1;
+  background: var(--surface);
+  color: var(--text-3);
+  border: none;
+  border-radius: 0;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.scope-switch button + button {
+  border-left: 1px solid var(--outline-strong);
+}
+.scope-switch button.on {
+  background: var(--champ-soft);
+  color: var(--champ);
+}
+.scope-switch button:hover:not(:disabled):not(.on) {
+  filter: none;
+  background: var(--surface-elev);
+  color: var(--text);
+}
+.scope-switch button:active:not(:disabled) {
+  transform: none;
+}
+.scope-switch button:focus-visible {
+  outline: 2px solid var(--champ);
+  outline-offset: -2px;
+}
