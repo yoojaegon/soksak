@@ -252,7 +252,8 @@ class ChatRoomCrudE2eTest {
 
     // ---------- UPDATE MODEL ----------
     // room.model이 null인 건 "아직 안 골랐다"는 서버 초기 상태일 뿐이고(resolve()가 기본값으로 폴백),
-    // API로 null을 보내면 "변경 없음"이라 되돌릴 수 없다. 아래 400 케이스들은 전부 model이 바뀌지 않아야 한다.
+    // 본문의 null은 "변경 없음"이라 null로 되돌리는 건 followDefaultModel 플래그로만 한다(아래 FOLLOW DEFAULT).
+    // 아래 400 케이스들은 전부 model이 바뀌지 않아야 한다.
 
     @Test
     @DisplayName("카탈로그에 있는 모델로 변경하면 200이고 DB에 반영된다")
@@ -355,6 +356,95 @@ class ChatRoomCrudE2eTest {
                 .andExpect(status().isForbidden());
 
         assertThat(chatRoomRepository.findById(id).orElseThrow().getThinkingLevel()).isNull();
+    }
+
+    // ---------- FOLLOW DEFAULT (고정 해제) ----------
+    // 고정 해제는 본문이 아니라 query param 플래그로 받는다. {}가 고정을 조용히 풀면 안 되기 때문이다.
+
+    @Test
+    @DisplayName("followDefaultModel이면 본문 없이도 모델 고정이 풀리고 추론 고정은 그대로다")
+    void follow_default_model_clears_only_the_model() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        patchRoom(ownerToken, id, Map.of("model", ModelCatalog.entries().get(0).id(), "thinkingLevel", "high"))
+                .andExpect(status().isOk());
+
+        patchRoomWithParams(ownerToken, id, "followDefaultModel=true", null)
+                .andExpect(status().isOk());
+
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        assertThat(room.getModel()).isNull();
+        assertThat(room.getThinkingLevel()).isEqualTo(ThinkingLevel.HIGH);
+    }
+
+    @Test
+    @DisplayName("followDefaultThinking이면 추론 고정만 풀린다")
+    void follow_default_thinking_clears_only_the_thinking() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        String slug = ModelCatalog.entries().get(0).id();
+        patchRoom(ownerToken, id, Map.of("model", slug, "thinkingLevel", "high"))
+                .andExpect(status().isOk());
+
+        patchRoomWithParams(ownerToken, id, "followDefaultThinking=true", null)
+                .andExpect(status().isOk());
+
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        assertThat(room.getModel()).isEqualTo(slug);
+        assertThat(room.getThinkingLevel()).isNull();
+    }
+
+    @Test
+    @DisplayName("해제 플래그와 같은 필드의 값이 함께 오면 400이고 아무것도 바뀌지 않는다")
+    void follow_default_with_same_field_returns_400() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        String slug = ModelCatalog.entries().get(0).id();
+        patchRoom(ownerToken, id, Map.of("model", slug, "thinkingLevel", "high"))
+                .andExpect(status().isOk());
+
+        patchRoomWithParams(ownerToken, id, "followDefaultModel=true", Map.of("model", slug, "title", "바뀜"))
+                .andExpect(status().isBadRequest());
+        patchRoomWithParams(ownerToken, id, "followDefaultThinking=true", Map.of("thinkingLevel", "low"))
+                .andExpect(status().isBadRequest());
+
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        assertThat(room.getModel()).isEqualTo(slug);
+        assertThat(room.getThinkingLevel()).isEqualTo(ThinkingLevel.HIGH);
+        assertThat(room.getTitle()).isEqualTo("릴리");
+    }
+
+    @Test
+    @DisplayName("해제 플래그와 다른 필드는 함께 보낼 수 있다")
+    void follow_default_with_other_fields_applies_both() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        patchRoom(ownerToken, id, Map.of("model", ModelCatalog.entries().get(0).id()))
+                .andExpect(status().isOk());
+
+        patchRoomWithParams(ownerToken, id, "followDefaultModel=true", Map.of("thinkingLevel", "low"))
+                .andExpect(status().isOk());
+
+        ChatRoom room = chatRoomRepository.findById(id).orElseThrow();
+        assertThat(room.getModel()).isNull();
+        assertThat(room.getThinkingLevel()).isEqualTo(ThinkingLevel.LOW);
+    }
+
+    @Test
+    @DisplayName("본문도 플래그도 없으면 400이다")
+    void no_body_and_no_flag_returns_400() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+
+        patchRoomWithParams(ownerToken, id, "", null).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("남의 챗룸은 고정 해제도 차단되고 고정이 풀리지 않는다")
+    void follow_default_on_others_chatroom_is_blocked() throws Exception {
+        long id = createChatRoom(ownerToken, ownerCharacterId);
+        String slug = ModelCatalog.entries().get(0).id();
+        patchRoom(ownerToken, id, Map.of("model", slug)).andExpect(status().isOk());
+
+        patchRoomWithParams(otherToken, id, "followDefaultModel=true", null)
+                .andExpect(status().isForbidden());
+
+        assertThat(chatRoomRepository.findById(id).orElseThrow().getModel()).isEqualTo(slug);
     }
 
     // ---------- SUMMARY (장기기억) ----------
@@ -653,6 +743,15 @@ class ChatRoomCrudE2eTest {
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(body)));
+    }
+
+    // body가 null이면 본문 없이 보낸다.
+    private ResultActions patchRoomWithParams(String token, long id, String query, Map<String, ?> body)
+            throws Exception {
+        var req = patch("/chatrooms/{id}?" + query, id)
+                .header("Authorization", "Bearer " + token);
+        if (body != null) req.contentType(MediaType.APPLICATION_JSON).content(json(body));
+        return mockMvc.perform(req);
     }
 
     private ResultActions patchRoom(String token, long id, Map<String, ?> body) throws Exception {

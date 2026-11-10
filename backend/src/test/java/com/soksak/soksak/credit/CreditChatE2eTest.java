@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -151,6 +152,23 @@ class CreditChatE2eTest {
         sendMessage().andExpect(status().isCreated());
 
         assertThat(balance()).isEqualTo(9);
+    }
+
+    @Test
+    @DisplayName("고정을 풀면 바로 다음 메시지부터 사용자 기본 모델의 계수로 깎인다")
+    void unfixing_a_room_switches_to_the_user_default() throws Exception {
+        creditService.grant(user, 10, CreditReason.MANUAL_GRANT, "테스트");
+        setUserDefaultModel("anthropic/claude-opus-4.8");   // 계수 3
+        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
+        room.update(null, "anthropic/claude-haiku-4.5", null, null, null);   // 계수 1
+        chatRoomRepository.save(room);
+
+        mockMvc.perform(patch("/chatrooms/{id}?followDefaultModel=true", roomId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        sendMessage().andExpect(status().isCreated());
+
+        assertThat(balance()).isEqualTo(7);
     }
 
     @Test

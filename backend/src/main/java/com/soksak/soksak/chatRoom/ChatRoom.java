@@ -68,6 +68,11 @@ public class ChatRoom extends BaseTimeEntity {
         if (foldSpoilerToggle != null) this.foldSpoilerToggle = foldSpoilerToggle;
     }
 
+    // 이 방의 고정을 풀고 사용자 기본값을 따르게 한다.
+    public void followDefaultModel() {this.model = null;}
+
+    public void followDefaultThinking() {this.thinkingLevel = null;}
+
     // 이 방이 실제로 쓰는 모델. 발송, 차감, 잔액 확인, 환불이 모두 이걸 읽어야
     // 보낸 모델과 깎은 마디가 어긋나지 않는다.
     // 카탈로그 검증(resolve·costOf)은 호출부가 한다. user를 읽으므로 user가 로딩된 방이어야 한다.

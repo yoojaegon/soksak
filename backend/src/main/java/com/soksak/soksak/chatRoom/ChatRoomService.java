@@ -92,20 +92,31 @@ public class ChatRoomService {
 
     /**
      * 방 설정 부분 수정. 보낸 필드만 바꾼다.
+     * followDefaultModel·followDefaultThinking이 true면 그 값의 고정을 풀어 사용자 기본값을 따르게 한다.
+     * 같은 필드를 풀면서 동시에 고정하라는 요청은 모순이라 400이다.
+     * <p>
      * 추론 깊이는 모델이 그 레벨을 받을 수 있는지 여기서 막지 않는다. 모델과 레벨은 따로 바뀌므로
      * (추론 없는 모델로 교체 등) 저장 단계에서 거절하면 모델을 못 바꾸게 된다.
      * 실제로 보낼 수 있는 값으로 맞추는 건 발송 직전의 ModelCatalog.resolveThinking() 몫이다.
      */
     @Transactional
-    public ChatRoomResponse updateChatRoom(Long userId, Long id, UpdateChatRoomRequest request) {
-        if (request.isEmpty())
+    public ChatRoomResponse updateChatRoom(Long userId, Long id, UpdateChatRoomRequest request,
+                                           boolean followDefaultModel, boolean followDefaultThinking) {
+        UpdateChatRoomRequest fields = (request != null) ? request : UpdateChatRoomRequest.NONE;
+        if (fields.isEmpty() && !followDefaultModel && !followDefaultThinking)
             throw new BusinessException(ErrorCode.INVALID_INPUT);
-        if (request.model() != null && !ModelCatalog.contains(request.model()))
+        if (followDefaultModel && fields.model() != null)
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        if (followDefaultThinking && fields.thinkingLevel() != null)
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        if (fields.model() != null && !ModelCatalog.contains(fields.model()))
             throw new BusinessException(ErrorCode.INVALID_INPUT);
 
         ChatRoom chatRoom = getOwnedChatRoom(userId, id);
-        chatRoom.update(request.title(), request.model(), request.thinkingLevel(),
-                request.writingToggle(), request.foldSpoilerToggle());
+        chatRoom.update(fields.title(), fields.model(), fields.thinkingLevel(),
+                fields.writingToggle(), fields.foldSpoilerToggle());
+        if (followDefaultModel) chatRoom.followDefaultModel();
+        if (followDefaultThinking) chatRoom.followDefaultThinking();
 
         return ChatRoomResponse.from(chatRoom);
     }

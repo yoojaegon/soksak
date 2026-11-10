@@ -52,9 +52,15 @@ public class ChatRoomController {
     public ResponseEntity<ChatRoomResponse> updateChatRoom(
             @AuthenticationPrincipal AuthUser me,
             @PathVariable Long id,
-            @Valid @RequestBody UpdateChatRoomRequest request
+            // 고정 해제는 본문의 null이 아니라 명시적인 플래그로 받는다.
+            // 본문의 null은 "변경 없음"이라, {}가 고른 값을 조용히 풀어 버리면 안 된다.
+            @RequestParam(defaultValue = "false") boolean followDefaultModel,
+            @RequestParam(defaultValue = "false") boolean followDefaultThinking,
+            // 해제만 할 때는 본문 없이 보낸다.
+            @Valid @RequestBody(required = false) UpdateChatRoomRequest request
     ) {
-        return ResponseEntity.ok(chatRoomService.updateChatRoom(me.id(), id, request));
+        return ResponseEntity.ok(chatRoomService.updateChatRoom(
+                me.id(), id, request, followDefaultModel, followDefaultThinking));
     }
 
     @GetMapping("/{id}/summary")
