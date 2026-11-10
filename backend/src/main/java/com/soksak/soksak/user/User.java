@@ -1,5 +1,7 @@
 package com.soksak.soksak.user;
 
+import com.soksak.soksak.aiClient.ModelCatalog;
+import com.soksak.soksak.aiClient.ThinkingLevel;
 import com.soksak.soksak.common.BaseTimeEntity;
 import com.soksak.soksak.common.Gender;
 import jakarta.persistence.*;
@@ -49,6 +51,16 @@ public class User extends BaseTimeEntity {
     @Column(name = "credit_balance", nullable = false)
     private int creditBalance;
 
+    // 채팅 기본값. 방의 model·thinkingLevel이 null인 방은 이 값을 따른다.
+    // 가입할 때 그 시점의 카탈로그 기본값을 저장해 두므로,
+    // 나중에 ModelCatalog.DEFAULT_ID가 바뀌어도 기존 사용자의 모델(과 차감액)은 그대로다.
+    @Column(name = "default_model", nullable = false)
+    private String defaultModel;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "default_thinking_level", nullable = false)
+    private ThinkingLevel defaultThinkingLevel;
+
     @Builder
     public User(String email, String loginId, String nickname, String password,
                 int birthYear, Gender gender) {
@@ -58,9 +70,17 @@ public class User extends BaseTimeEntity {
         this.password = password;
         this.birthYear = birthYear;
         this.gender = gender;
+        this.defaultModel = ModelCatalog.defaultId();
+        this.defaultThinkingLevel = ModelCatalog.resolveThinking(defaultModel, null);
     }
 
     public void updateUser(String nickname) {this.nickname = nickname;}
+
+    // null인 인자는 바꾸지 않는다(부분 수정). 카탈로그 검증은 서비스에서 한다.
+    public void updateChatDefaults(String model, ThinkingLevel thinkingLevel) {
+        if (model != null) this.defaultModel = model;
+        if (thinkingLevel != null) this.defaultThinkingLevel = thinkingLevel;
+    }
 
     public void changePassword(String password) {this.password = password;}
 }
