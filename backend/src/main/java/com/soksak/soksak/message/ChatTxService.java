@@ -58,15 +58,15 @@ public class ChatTxService {
     /**
      * 이 방의 모델 계수만큼 마디를 깎는다.
      * <p>
-     * 계수의 출처는 카탈로그 하나다 — 방이 고른 모델이 {@code null}이거나 카탈로그에서 빠졌으면
-     * {@code costOf}가 기본 모델 값으로 보는데, 실제로 발송되는 모델도 {@code resolve()}의
-     * 기본값이라 둘이 같은 곳을 가리킨다.
+     * 계수의 출처는 카탈로그 하나다. 모델은 발송과 같은 {@code effectiveModel()}로 읽고,
+     * 그 모델이 카탈로그에서 빠졌으면 {@code costOf}도 {@code resolve()}도 카탈로그 기본 모델로
+     * 보므로 둘이 같은 곳을 가리킨다.
      * <p>
      * ⚠️ 요약({@code /summarize})은 여기로 오지 않는다. 사용자가 유발한 호출이 아니라서
      * 물리면 "아무것도 안 했는데 줄었다"가 된다 — 정량제 단계에서는 무료다.
      */
     private void charge(ChatRoom room, CreditReason reason) {
-        creditService.charge(room.getUser(), ModelCatalog.costOf(room.getModel()), reason, room.getId());
+        creditService.charge(room.getUser(), ModelCatalog.costOf(room.effectiveModel()), reason, room.getId());
     }
 
     @Transactional

@@ -29,6 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.Map;
 import java.util.Set;
@@ -125,6 +126,42 @@ class CreditChatE2eTest {
                     assertThat(row.getDelta()).isEqualTo(-1);
                     assertThat(row.getChatRoomId()).isEqualTo(roomId);
                 });
+    }
+
+    @Test
+    @DisplayName("모델을 고르지 않은 방은 사용자 기본 모델의 계수로 깎인다")
+    void inheriting_room_is_charged_by_the_user_default() throws Exception {
+        creditService.grant(user, 10, CreditReason.MANUAL_GRANT, "테스트");
+        setUserDefaultModel("anthropic/claude-opus-4.8");   // 계수 3
+
+        sendMessage().andExpect(status().isCreated());
+
+        assertThat(balance()).isEqualTo(7);
+    }
+
+    @Test
+    @DisplayName("모델을 고정한 방은 사용자 기본값과 무관하게 그 모델의 계수로 깎인다")
+    void fixed_room_ignores_the_user_default() throws Exception {
+        creditService.grant(user, 10, CreditReason.MANUAL_GRANT, "테스트");
+        setUserDefaultModel("anthropic/claude-opus-4.8");   // 계수 3
+        ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
+        room.update(null, "anthropic/claude-haiku-4.5", null, null, null);   // 계수 1
+        chatRoomRepository.save(room);
+
+        sendMessage().andExpect(status().isCreated());
+
+        assertThat(balance()).isEqualTo(9);
+    }
+
+    @Test
+    @DisplayName("마디가 사용자 기본 모델 계수보다 적으면 상속하는 방에서도 402다")
+    void inheriting_room_checks_balance_against_the_user_default() throws Exception {
+        creditService.grant(user, 2, CreditReason.MANUAL_GRANT, "테스트");
+        setUserDefaultModel("anthropic/claude-opus-4.8");   // 계수 3
+
+        sendMessage().andExpect(status().isPaymentRequired());
+
+        assertThat(balance()).isEqualTo(2);
     }
 
     @Test
@@ -237,6 +274,19 @@ class CreditChatE2eTest {
                 .filteredOn(row -> row.getReason() == CreditReason.SIGNUP_BONUS)
                 .singleElement()
                 .satisfies(row -> assertThat(row.getDelta()).isEqualTo(balance));
+    }
+
+    private void setUserDefaultModel(String model) {
+        User saved = userRepository.findById(user.getId()).orElseThrow();
+        saved.updateChatDefaults(model, null);
+        userRepository.save(saved);
+    }
+
+    private ResultActions sendMessage() throws Exception {
+        return mockMvc.perform(post("/chatrooms/{roomId}/messages", roomId)
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("content", "안녕 릴리야"))));
     }
 
     private int balance() {

@@ -171,8 +171,8 @@ public class MessageService {
      * 중복이지만, 인덱스 조회 하나로 "스트림이 열리기 전에 거절"을 사는 값이라 싼 편이다.
      */
     private void ensureCredit(Long userId, Long roomId) {
-        ChatRoom room = chatRoomService.getOwnedChatRoom(userId, roomId);
-        creditService.ensureAffordable(room.getUser().getId(), ModelCatalog.costOf(room.getModel()));
+        ChatRoom room = chatRoomService.getOwnedChatRoomWithDetails(userId, roomId);
+        creditService.ensureAffordable(room.getUser().getId(), ModelCatalog.costOf(room.effectiveModel()));
     }
 
     private SseEmitter startStream(Long roomId, Supplier<StreamJob> prepare) {
@@ -257,7 +257,7 @@ public class MessageService {
         }
         try {
             creditService.refund(room.getUser().getId(),
-                    ModelCatalog.costOf(room.getModel()), room.getId());
+                    ModelCatalog.costOf(room.effectiveModel()), room.getId());
         } catch (Exception e) {
             log.warn("마디 환불 실패 (roomId={})", room.getId(), e);
         }

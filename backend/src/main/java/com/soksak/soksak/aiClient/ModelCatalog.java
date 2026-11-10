@@ -114,8 +114,8 @@ public final class ModelCatalog {
     }
 
     /**
-     * 이 방이 한 턴에 쓸 마디. {@code null}(아직 안 고름)이나 카탈로그에 없는 slug은 기본 모델의
-     * 값으로 본다 — 실제로 발송되는 것도 {@link #resolve} 결과라 둘이 어긋나면 안 된다.
+     * 이 모델로 한 턴에 쓸 마디. 방은 {@code ChatRoom.effectiveModel()}을 넘긴다.
+     * {@code null}이나 카탈로그에 없는 slug은 기본 모델의 값으로 본다 — 실제로 발송되는 것도 {@link #resolve} 결과라 둘이 어긋나면 안 된다.
      * <p>
      * ⚠️ {@code resolve()}를 부르지 않는 건 경고 로그를 두 번 남기지 않기 위해서다(발송 경로가
      * 이미 한 번 남긴다).

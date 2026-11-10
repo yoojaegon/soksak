@@ -125,10 +125,10 @@ public class ChatAiServerClient implements ChatAiClient{
         // 로어북 enabled=true 조회 + 키워드가 최근 메시지와 유저 입력에 매칭되는지 확인
         List<String> lore = loreService.selectLore(room.getCharacter().getId(), content, recent.stream().map(ChatAiRequest.Turn::content).toList());
 
-        String model = ModelCatalog.resolve(room.getModel());
+        String model = ModelCatalog.resolve(room.effectiveModel());
         // 모델이 받을 수 있는 값으로 맞춰서 보낸다. 방의 저장값은 건드리지 않는다 —
         // 추론 없는 모델로 잠깐 바꿨다 되돌리면 고른 레벨이 그대로 살아 있어야 한다.
-        ThinkingLevel thinking = ModelCatalog.resolveThinking(model, room.getThinkingLevel());
+        ThinkingLevel thinking = ModelCatalog.resolveThinking(model, room.effectiveThinkingLevel());
 
         // 조각 전부가 아니라 예산 안에서 고른 것만 싣는다. 고를 게 없으면 null(ai-server가 기억
         // 블록을 통째로 생략).
