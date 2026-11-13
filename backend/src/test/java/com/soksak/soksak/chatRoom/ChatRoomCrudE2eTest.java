@@ -513,13 +513,9 @@ class ChatRoomCrudE2eTest {
     }
 
     // ---------- SUMMARY (장기기억) ----------
-    // 모델과 달리 빈 값이 정당한 입력이다("지우기"). 대신 필드 자체가 없는 건 400 —
-    // 빈 본문이 null로 바인딩돼 사용자의 기억을 조용히 날리면 안 된다.
-    //
-    // ⚠️ 전환 중이다. 기억의 저장소는 chat_summary 조각으로 옮겨갔지만 GET/PATCH는 아직
-    // chat_room.summary를 읽고 쓴다(프론트 계약은 안 바꾸기로 했다 — 조각을 이어 붙인
-    // 문자열 하나를 주고받는다). 아래에서 커서(summarizedUpToId)를 확인하는 단언들은
-    // 그 전환이 끝나면 "조각이 몇 개 남았나"로 바뀐다.
+    // 모델과 달리 빈 값은 "지우기"라는 정당한 입력이다. 대신 필드 자체가 없으면 400이다.
+    // 빈 본문이 null로 바인딩돼 사용자의 기억이 조용히 지워지면 안 되기 때문이다.
+    // 기억은 chat_summary 조각에 저장되고, GET/PATCH는 조각을 이어 붙인 문자열 하나를 주고받는다.
 
     @Test
     @DisplayName("요약이 없는 방의 장기기억 조회는 200이고 summary가 null이다")
@@ -555,8 +551,8 @@ class ChatRoomCrudE2eTest {
                 .andExpect(jsonPath("$.summary").value("사용자가 고친 요약"));
 
         assertThat(storedSummary(id)).isEqualTo("사용자가 고친 요약");
-        // 커서까지 따라 움직이면(=지금 시점으로 밀면) 아직 요약 안 된 최근 대화가 요약된 것으로
-        // 취급돼 프롬프트에서 통째로 사라진다. 수동 조각은 갈아 끼운 조각의 구간을 물려받는다.
+        // 수동 조각은 갈아 끼운 조각의 구간을 그대로 물려받는다.
+        // 커서를 지금 시점으로 밀면 아직 요약 안 된 최근 대화가 프롬프트에서 빠진다.
         assertThat(storedCursor(id)).isEqualTo(42L);
     }
 
@@ -570,9 +566,8 @@ class ChatRoomCrudE2eTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary").doesNotExist());
 
-        // 조각을 통째로 지우므로 커서도 함께 0으로 돌아간다. 블롭 시절의 High 버그
-        // ("요약문만 비우고 커서를 남겨 커서 앞 구간이 프롬프트에서 증발")가 여기서 소멸한다 —
-        // 커서가 별도 필드가 아니라 조각에서 유도되는 값이 되면서 어긋날 방법 자체가 없어졌다.
+        // 조각을 전부 지우므로 커서도 0으로 돌아간다.
+        // 커서만 남으면 그 앞 구간은 요약에도 원문에도 없어 프롬프트에서 빠진다.
         assertThat(storedSummary(id)).isNull();
         assertThat(storedCursor(id)).isZero();
     }
@@ -774,13 +769,12 @@ class ChatRoomCrudE2eTest {
         return node.get("id").asLong();
     }
 
-    // GET/PATCH는 아직 방의 요약문과 커서를 읽고 쓰지만, 그 값의 출처는 이제 조각이다.
-    // 둘을 함께 심어야 상태가 어긋나지 않는다(운영 코드도 조각에서 블롭을 다시 만든다).
+    /** 기억은 조각에서 나오므로 테스트용 기억도 1번부터 upToId까지 덮는 조각 하나로 심는다. */
     private void seedSummary(long roomId, String summary, Long upToId) {
         seedSummaryFragment(roomId, summary, 1L, upToId);
     }
 
-    /** 방에 실제로 남아 있는 조각을 이어 붙인 것. 미러가 없어졌으므로 여기가 유일한 확인처다. */
+    /** 방에 남아 있는 조각을 이어 붙인 것. */
     private String storedSummary(long roomId) {
         return SummarySelector.join(chatSummaryRepository.findByChatRoom_IdOrderBySeqAsc(roomId));
     }

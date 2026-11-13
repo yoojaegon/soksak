@@ -85,6 +85,6 @@ public class ChatRoom extends BaseTimeEntity {
         return thinkingLevel != null ? thinkingLevel : user.getDefaultThinkingLevel();
     }
 
-    // 요약은 이 엔티티가 아니라 chat_summary 조각들이 갖는다. 방에 summary/summarizedUpToId를
-    // 두던 시절의 미러는 전부 걷어냈고, 커서는 SummarySelector.cursorOf 가 조각에서 유도한다.
+    // 요약은 이 엔티티가 아니라 chat_summary 조각들이 갖는다.
+    // 요약이 어디까지 됐는지는 SummarySelector.cursorOf가 조각에서 계산한다.
 }
