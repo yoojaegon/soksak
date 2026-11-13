@@ -5,29 +5,41 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 채팅방의 요약 조각 중 프롬프트에 실을 것을 고르고,
+ * 요약이 어디까지 됐는지와 토큰 수 어림값을 계산한다.
+ */
 public class SummarySelector {
     private SummarySelector() {}
 
     /**
-     * 프롬프트의 기억 자리에 허용하는 토큰 예산.
-     * 표시(GET)·주입(프롬프트)·수정 상한(PATCH)이 모두 이 하나를 본다 —
-     * "보이는 것 = 쓰이는 것 = 고칠 수 있는 것"이 어긋나면
-     * GET에는 나오는데 PATCH로는 못 고치는 기억이 생긴다.
+     * 프롬프트의 기억 자리에 쓰는 토큰 예산.
+     * 화면 표시(GET), 프롬프트 주입, 사용자 수정 상한(PATCH)이 모두 이 값을 본다.
+     * 셋이 같은 값을 써야 보이는 기억, 실제로 쓰이는 기억, 고칠 수 있는 기억이 같아진다.
      */
     public static final int TOKEN_BUDGET = 3500;
 
-    /** 이 이상이면 나이와 무관하게 후보가 된다. 사용자가 손으로 쓴 기억도 이 값을 받는다. */
+    /**
+     * 중요도가 이 값 이상이면 오래된 조각이어도 먼저 고른다.
+     * 사용자가 직접 쓴 기억도 이 값으로 저장한다.
+     */
     public static final int PINNED_IMPORTANCE = 4;
 
-    // 2026-09-01 실측(claude-opus-4-8, 한국어): 본문 글자당 1.12토큰 + 메시지당 오버헤드 7.
-    // 둘 다 올려 잡아 과대추정 쪽으로 기울였다 — 과소추정만 컨텍스트 초과 사고를 낸다.
+    // 한국어 실측값은 글자당 1.12토큰, 메시지당 오버헤드 7토큰이다(2026-09-01, claude-opus-4-8).
+    // 적게 잡으면 컨텍스트를 넘길 수 있어서 둘 다 조금 올려 잡았다.
     private static final double TOKENS_PER_CHAR = 1.15;
     private static final int OVERHEAD = 10;
 
+    /**
+     * 예산 안에서 실을 조각을 골라 seq 순으로 돌려준다.
+     * 중요도가 높은 조각을 최신순으로 먼저 채우고, 남은 예산을 나머지 조각으로 최신순으로 채운다.
+     * 하나도 못 고르면 예산을 넘더라도 가장 최근 조각 하나는 싣는다.
+     */
     public static List<ChatSummary> select(List<ChatSummary> summaries) {
         return select(summaries, TOKEN_BUDGET);
     }
 
+    /** 예산을 바꿔 테스트할 수 있게 패키지 범위로 열어 둔다. */
     static List<ChatSummary> select(List<ChatSummary> summaries, int budget) {
         if (summaries == null || summaries.isEmpty()) return List.of();
 
@@ -44,6 +56,10 @@ public class SummarySelector {
         return picked;
     }
 
+    /**
+     * 최신 조각부터 훑으며 예산에 들어가는 것을 담고, 지금까지 쓴 토큰 합을 돌려준다.
+     * 안 들어가는 조각은 건너뛰고 그보다 오래된 조각을 계속 본다.
+     */
     private static int fill(List<ChatSummary> summaries, List<ChatSummary> picked,
                             int used, int budget, boolean pinnedOnly) {
         for (int i = summaries.size() - 1; i >= 0; i--) {
@@ -58,12 +74,12 @@ public class SummarySelector {
     }
 
     /**
-     * 요약이 끝난 지점 = 조각 전체의 마지막 to_message_id. 조각은 뒤로만 붙고 삭제는 꼬리부터
-     * 잘리므로 마지막 조각이 곧 최대값이다.
+     * 요약이 끝난 메시지 id. 조각은 뒤로만 붙고 지울 때도 뒤에서부터 지우므로
+     * 마지막 조각의 to_message_id가 곧 최댓값이다.
      *
-     * ⚠️ 반드시 <b>전체</b> 목록으로 계산할 것 — select()가 돌려준 것으로 잡으면 안 된다.
-     * 예산에 밀려 빠진 조각의 구간이 미요약분으로 되살아나 요약과 원문이 이중으로 실린다.
-     * 요약 대상(SummaryPlan)과 프롬프트 대상이 갈리지 않도록 커서의 출처는 여기 하나뿐이다.
+     * ⚠️ 꼭 조각 전체 목록을 넘겨야 한다. select()가 고른 목록으로 계산하면
+     * 예산에 밀린 조각의 구간이 아직 요약 안 된 것으로 보여서 요약과 원문이 함께 실린다.
+     * 요약할 범위(SummaryPlan)와 프롬프트에 실을 범위가 같은 커서를 보도록 커서는 여기서만 계산한다.
      */
     public static long cursorOf(List<ChatSummary> summaries) {
         if (summaries == null || summaries.isEmpty()) return 0;
@@ -71,14 +87,15 @@ public class SummarySelector {
     }
 
     /**
-     * 조각을 만들기 전에(=아직 ai-server의 token_count 값이 없을 때) 쓰는 근사식.
-     * 사용자가 손으로 쓴 기억의 토큰 수와 그 상한 검사가 이 값을 쓴다.
+     * 글자 수로 토큰 수를 어림한다.
+     * ai-server가 잰 token_count가 없는 사용자 작성 기억의 토큰 수와 수정 상한 검사에 쓴다.
      */
     public static int estimateTokens(String text) {
         if (text == null || text.isEmpty()) return 0;
         return (int) Math.ceil(text.length() * TOKENS_PER_CHAR) + OVERHEAD;
     }
 
+    /** 고른 조각의 본문을 빈 줄로 이어 하나의 문자열로 만든다. 고른 게 없으면 null. */
     public static String join(List<ChatSummary> selected) {
         if (selected == null || selected.isEmpty()) return null;
         return selected.stream()
