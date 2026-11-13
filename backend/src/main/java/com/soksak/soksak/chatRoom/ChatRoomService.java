@@ -35,7 +35,7 @@ public class ChatRoomService {
     private final ChatSummaryRepository chatSummaryRepository;
 
     @Transactional
-    public ChatRoom createChatRoom(Long userId, CreateChatRoomRequest request) {
+    public ChatRoomResponse createChatRoom(Long userId, CreateChatRoomRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         ChatCharacter character = characterRepository.findById(request.characterId())
@@ -57,7 +57,7 @@ public class ChatRoomService {
                 .role(MessageRole.ASSISTANT)
                 .content(character.getGreeting())
                 .build());
-        return chatRoom;
+        return ChatRoomResponse.from(chatRoom);
     }
 
     // 같은 사용자가 같은 캐릭터로 방을 여러 개 만들면 제목을 자동으로 넘버링한다.

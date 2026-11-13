@@ -21,10 +21,8 @@ public class ChatRoomController {
     public ResponseEntity<ChatRoomResponse> createChatRoom(
             @AuthenticationPrincipal AuthUser me,
             @Valid @RequestBody CreateChatRoomRequest request) {
-        ChatRoom chatRoom = chatRoomService.createChatRoom(me.id(), request);
-
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ChatRoomResponse.from(chatRoom));
+                .body(chatRoomService.createChatRoom(me.id(), request));
     }
 
     @GetMapping("/{id}")
