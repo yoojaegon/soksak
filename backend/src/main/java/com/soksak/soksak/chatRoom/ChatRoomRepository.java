@@ -9,7 +9,8 @@ import java.util.Optional;
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     // 나의 전체 채팅방 목록 조회. 응답이 사용자 기본값을 읽으므로 user도 함께 가져온다.
-    @Query("select r from ChatRoom r join fetch r.character c join fetch r.user where r.user.id = :userId")
+    // 캐릭터는 id만 쓰고 그건 FK라 프록시로 충분해서 fetch하지 않는다.
+    @Query("select r from ChatRoom r join fetch r.user where r.user.id = :userId")
     List<ChatRoom> findByUser_Id(@Param("userId") Long userId);
 
     // 특정 사용자가 특정 캐릭터와 가진 방들의 제목 (제목 자동 넘버링에 사용)
