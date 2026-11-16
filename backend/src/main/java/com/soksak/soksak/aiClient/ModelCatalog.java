@@ -5,35 +5,32 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
 /**
- * 채팅 모델 카탈로그 — 선택지·표시명·기본값의 단일 출처(제품 정책은 백엔드 소유).
- * <p>
- * slug는 게이트웨이 시절 표기를 물려받은 소삭 내부 식별자다(chat_room.model 에 이 값이 저장돼
- * 있어 바꾸면 마이그레이션이 필요하다). 제공사 실제 모델 ID로의 변환은 ai-server 의
- * {@code llm/factory.py} 가 갖는다 — 예: {@code anthropic/claude-opus-4.8} → {@code claude-opus-4-8}.
+ * 채팅 모델 카탈로그. 선택지, 표시명, 기본값의 단일 출처다.
+ *
+ * slug는 소삭 내부 식별자이고 chat_room.model에 이 값이 저장된다. 그래서 바꾸려면 마이그레이션이 필요하다.
+ * 제공사의 실제 모델 ID로 바꾸는 일은 ai-server의 llm/factory.py가 한다.
+ * 예를 들어 anthropic/claude-opus-4.8은 claude-opus-4-8이 된다.
  */
 @Slf4j
 public final class ModelCatalog {
 
     /**
      * @param cost 이 모델로 한 번 주고받을 때 깎이는 마디.
-     *             <p>
-     *             실제 단가비는 이보다 훨씬 벌어지지만 정량제의 목적은 <b>설명이 쉬운 것</b>이라
-     *             1/2/3으로 뭉친다. 비용은 사용자가 모델을 고를 때 보고 판단하는 값이라
-     *             {@link Thinking}과 같은 자격으로 여기 올린다(제공사 사정인 값과는 다르다).
+     *             실제 단가 차이는 이보다 훨씬 크지만, 설명하기 쉽게 1/2/3으로 묶는다.
+     *             사용자가 모델을 고를 때 보는 값이라 Thinking과 함께 여기 둔다.
      */
     public record Entry(String id, String label, int cost, Thinking thinking) {}
 
     /**
-     * 이 모델이 추론에 대해 무엇을 할 수 있는가. 픽커가 노브를 켤지 끌지, 어떤 값을 보여줄지를
-     * 이걸로 정하므로 프론트에 사본을 두지 않는다(모델 목록과 같은 규칙).
-     * <p>
-     * ⚠️ 여기 올리는 건 <b>사용자가 고르는 능력</b>뿐이다. 샘플링 미지원(temperature를 보내면
-     * 400)이나 프롬프트 캐싱은 사용자 선택지가 아니라 제공사 사정이라 ai-server가 갖는다 —
-     * 올리면 ai-server가 매 요청 그 값을 되받는 역방향 배선이 된다.
+     * 이 모델이 추론에 대해 할 수 있는 것. 픽커가 노브를 켤지, 어떤 값을 보여줄지 이걸로 정하므로
+     * 프론트에 사본을 두지 않는다.
+     *
+     * 여기에는 사용자가 고르는 능력만 둔다. 샘플링 미지원이나 프롬프트 캐싱처럼 제공사 사정에
+     * 속하는 것은 ai-server가 갖는다. 여기 올리면 ai-server가 매 요청 그 값을 백엔드에서 받아야 한다.
      */
     public record Thinking(boolean supported, List<ThinkingLevel> selectable) {
-        // 두 제공사의 교집합. Anthropic엔 xhigh/max가, Gemini엔 minimal이 더 있지만 한쪽에만
-        // 있는 값을 노출하면 모델을 바꿀 때마다 방의 설정이 무효가 된다.
+        // 두 제공사에 모두 있는 값만 둔다. Anthropic에는 xhigh/max가, Gemini에는 minimal이 더 있지만
+        // 한쪽에만 있는 값을 열면 모델을 바꿀 때마다 방 설정이 무효가 된다.
         private static final List<ThinkingLevel> ALL = List.of(
                 ThinkingLevel.OFF, ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH);
 
@@ -47,27 +44,18 @@ public final class ModelCatalog {
         }
     }
 
-    /** 픽커가 "회색으로라도 보여줄" 값의 전체 집합. 못 고르는 값을 숨기면 왜 없는지 알 수 없다. */
+    /** 픽커가 회색으로라도 보여줄 값 전체. 못 고르는 값을 숨기면 왜 없는지 알 수 없다. */
     public static List<ThinkingLevel> thinkingLevels() {
         return Thinking.ALL;
     }
 
-    // 두 제공사 키로 실제 호출해 응답을 확인한 모델만 올린다(2026-09-09). 순서가 곧 픽커 노출 순서.
-    // 빠진 것들: openai/* 는 키가 없고, google/gemini-2.5-pro 는 신규 사용자에게 폐기돼 404다.
+    // 두 제공사 키로 실제 호출해서 응답을 확인한 모델만 올린다. 순서가 곧 픽커에 보이는 순서다.
+    // openai/*는 키가 없어서, google/gemini-2.5-pro는 신규 사용자에게 막혀 있어서 뺐다.
     //
-    // 추론 능력은 2026-09-15 실측 기준이다(모델마다 직접 호출해 usage의 추론 토큰을 확인).
-    // ⚠️ 판정 기준은 "파라미터를 받아주는가"가 아니라 "추론 토큰이 실제로 나오는가"다 —
-    // opus-4.7/4.6은 effort를 200으로 받아주면서 추론은 늘 0이라, 노브를 노출하면 사용자에게
-    // 아무 일도 안 일어나는 설정을 파는 셈이 된다. haiku-4.5는 아예 400으로 거절한다.
-    //   opus-4.8              effort가 먹는다(추론 61~65)                     → 켜고 끌 수 있다
-    //   opus-4.7 / 4.6        effort를 받지만 추론 0 (3회 반복 확인)           → 노출 안 함
-    //   haiku-4.5             400 "does not support the effort parameter"     → 노출 안 함
-    //   gemini-3.1-pro-preview 기본으로 추론(57). 끄면 400                     → OFF를 못 고른다
-    //   gemini-3.5-flash      기본으로 추론(59). thinking_budget=0으로 꺼진다  → 전부 가능
-    //   gemini-3.5-flash-lite 기본이 추론 없음. medium부터 추론이 붙는다       → LOW를 못 고른다
-    //
-    // ⚠️ flash-lite의 LOW를 뺀 이유는 400이 나서가 아니다 — 200으로 통과하면서 추론이 0이라
-    // OFF와 구별되지 않는다. "고를 수 있다"의 기준은 여기서도 실제 효과다(opus-4.7/4.6과 같은 잣대).
+    // 고를 수 있는 추론 레벨은 파라미터를 받아주는지가 아니라 추론 토큰이 실제로 나오는지로 정한다.
+    // 받아주기만 하고 효과가 없는 값을 열어 두면 사용자에게 아무 일도 안 하는 설정을 보여주게 된다.
+    // 그래서 opus-4.7/4.6과 haiku-4.5는 노브를 열지 않고, pro-preview는 끌 수 없어 OFF를 빼고,
+    // flash-lite는 LOW가 OFF와 차이가 없어 LOW를 뺀다. 모델별 측정값은 docs/measurements.md에 있다.
     private static final List<Entry> ENTRIES = List.of(
             new Entry("anthropic/claude-opus-4.8", "Claude Opus 4.8", 3,
                     Thinking.of(ThinkingLevel.OFF, ThinkingLevel.LOW, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH)),
@@ -82,8 +70,7 @@ public final class ModelCatalog {
                     Thinking.of(ThinkingLevel.OFF, ThinkingLevel.MEDIUM, ThinkingLevel.HIGH))
     );
 
-    // 저가 모델. 실사용 모델로 올리려면 이 상수만 바꾸면 된다. ai-server 의 CHAT_ 프로필
-    // 기본값(main.py)도 같은 slug 로 맞춰 둔다.
+    // 기본 모델. ai-server의 CHAT_ 프로필 기본값(main.py)도 같은 slug로 맞춰 둔다.
     private static final String DEFAULT_ID = "google/gemini-3.5-flash-lite";
 
     private ModelCatalog() {}
@@ -100,6 +87,7 @@ public final class ModelCatalog {
         return ENTRIES.stream().anyMatch(entry -> entry.id().equals(id));
     }
 
+    /** 실제로 보낼 slug. null이나 카탈로그에 없는 값은 기본 모델로 바꾸고, 없는 값이면 경고를 남긴다. */
     public static String resolve(String slug){
         if (slug == null) return DEFAULT_ID;
         if (!contains(slug)) {
@@ -109,21 +97,21 @@ public final class ModelCatalog {
         return slug;
     }
 
-    // resolve()와 같은 값을 경고 로그 없이 돌려준다. 응답에 "실제로 쓰이는 모델"을 보여줄 때 쓴다.
-    // 조회마다 경고가 쌓이지 않게 하려는 것이고, 경고는 발송 경로의 resolve()가 한 번 남긴다.
+    /**
+     * resolve()와 같은 값을 경고 없이 돌려준다. 응답에 실제로 쓰이는 모델을 보여줄 때 쓴다.
+     * 조회할 때마다 경고가 쌓이지 않게 하려는 것이고, 경고는 보내는 경로의 resolve()가 한 번 남긴다.
+     */
     public static String displayed(String slug) {
         return (slug != null && contains(slug)) ? slug : DEFAULT_ID;
     }
 
     /**
-     * 이 모델로 한 턴에 쓸 마디. 방은 {@code ChatRoom.effectiveModel()}을 넘긴다.
-     * {@code null}이나 카탈로그에 없는 slug은 기본 모델의 값으로 본다 — 실제로 발송되는 것도 {@link #resolve} 결과라 둘이 어긋나면 안 된다.
-     * <p>
-     * ⚠️ {@code resolve()}를 부르지 않는 건 경고 로그를 두 번 남기지 않기 위해서다(발송 경로가
-     * 이미 한 번 남긴다).
-     * <p>
-     * 기본 모델조차 없으면 던진다 — 카탈로그에서 {@code DEFAULT_ID}를 빼버린 실수라 조용한
-     * 기본값으로 덮으면 "전부 1마디"로 굴러가며 아무도 모른다.
+     * 이 모델로 한 턴에 쓸 마디. 방은 ChatRoom.effectiveModel()을 넘긴다.
+     * null이나 카탈로그에 없는 slug는 기본 모델 값으로 본다. 실제로 보내는 모델도 resolve() 결과라 둘이 맞아야 한다.
+     * resolve()를 부르지 않는 건 경고 로그가 두 번 남지 않게 하려는 것이다.
+     *
+     * 기본 모델이 카탈로그에 없으면 예외를 던진다. DEFAULT_ID를 빼먹은 실수라서,
+     * 조용히 넘어가면 모든 모델이 엉뚱한 마디로 계산돼도 알아채기 어렵다.
      */
     public static int costOf(String slug) {
         return ENTRIES.stream()
@@ -135,6 +123,7 @@ public final class ModelCatalog {
                         "기본 모델이 카탈로그에 없다: " + DEFAULT_ID));
     }
 
+    /** 이 모델의 추론 능력. 카탈로그에 없는 slug는 추론을 못 하는 모델로 본다. */
     public static Thinking thinkingOf(String slug) {
         return ENTRIES.stream()
                 .filter(entry -> entry.id().equals(slug))
@@ -144,17 +133,15 @@ public final class ModelCatalog {
     }
 
     /**
-     * 방이 고른 레벨을 이 모델이 실제로 받을 수 있는 값으로 맞춘다(발송 직전에 쓴다).
-     * <p>
-     * 저장은 자유롭게 받고 보낼 때 맞추는 이유: 모델과 레벨은 따로 바뀌므로 "HIGH인 방의
-     * 모델을 추론 없는 모델로 교체"가 정상 경로다. 그때 400을 던지면 모델을 못 바꾸게 된다.
-     * 보정은 카탈로그 소유자인 백엔드 일이다 — ai-server는 받은 값을 그대로 실행한다.
-     * <p>
-     * 규칙은 하나 — <b>고를 수 없는 값이면 그 모델의 첫 선택지로 내린다.</b> 목록 순서가
-     * OFF→HIGH라서 "가장 약한 값"이 되고, 셋이 한 번에 맞는다: 추론을 못 하는 모델은 OFF로,
-     * 못 끄는 pro-preview의 OFF는 LOW로, 효과가 없는 flash-lite의 LOW는 OFF로.
-     * <p>
-     * {@code null}(아직 안 고름)은 OFF로 본다 → 레벨 노출 이전의 거동과 정확히 같다.
+     * 방이 고른 레벨을 이 모델이 받을 수 있는 값으로 맞춘다. 보내기 직전에 쓴다.
+     *
+     * 저장할 때는 아무 값이나 받고 보낼 때 맞춘다. 모델과 레벨은 따로 바뀌어서,
+     * HIGH로 둔 방의 모델을 추론 없는 모델로 바꾸는 것도 정상적인 사용이기 때문이다.
+     * 보정은 카탈로그를 가진 백엔드가 하고, ai-server는 받은 값을 그대로 쓴다.
+     *
+     * 고를 수 없는 값이면 그 모델의 첫 선택지로 내린다. 목록이 OFF부터 HIGH 순이라 가장 약한 값이 된다.
+     * 추론 없는 모델은 OFF로, 끌 수 없는 pro-preview의 OFF는 LOW로, flash-lite의 LOW는 OFF로 바뀐다.
+     * null(아직 안 고름)은 OFF로 본다.
      */
     public static ThinkingLevel resolveThinking(String slug, ThinkingLevel level) {
         List<ThinkingLevel> selectable = thinkingOf(slug).selectable();

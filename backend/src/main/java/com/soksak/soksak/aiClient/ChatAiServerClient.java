@@ -32,7 +32,7 @@ import java.util.function.Supplier;
 
 @Slf4j
 @Component
-@Profile("!test")   // test 프로필에서는 StubChatAiClient가 대신 쓰임
+@Profile("!test")   // test 프로필에서는 StubChatAiClient를 쓴다
 @RequiredArgsConstructor
 public class ChatAiServerClient implements ChatAiClient{
     private final RestClient aiServerRestClient;
@@ -73,20 +73,22 @@ public class ChatAiServerClient implements ChatAiClient{
         return response;
     }
 
-    // ai-server의 /chat/stream(SSE)을 열어 토큰을 onToken으로 흘려보내고, 전체 답변을 누적해 리턴한다.
-    // (누적본은 스트림이 끝난 뒤 assistant 메시지로 저장하는 용도)
+    /**
+     * ai-server의 /chat/stream(SSE)을 열어 토큰을 onToken으로 흘려보내고, 전체 답변을 모아 돌려준다.
+     * 모은 답변은 스트림이 끝난 뒤 assistant 메시지로 저장한다.
+     */
     @Override
     public String replyStream(ChatRoom room, String content, List<Message> priorHistory,
                               List<ChatSummary> summaries, Consumer<String> onToken) {
         ChatAiRequest request = buildRequest(room, content, priorHistory, summaries);
         try {
-            // 스트리밍이라 retrieve()가 아닌 exchange()로 응답 바디를 직접 읽는다.
-            // 바디 소비(readSse)는 반드시 이 람다 안에서 끝내야 한다 — 밖으로 나가면 커넥션이 닫힌다.
+            // 스트리밍이라 retrieve() 대신 exchange()로 응답 바디를 직접 읽는다.
+            // 바디(readSse)는 이 람다 안에서 다 읽어야 한다. 람다를 벗어나면 커넥션이 닫힌다.
             return aiServerRestClient.post()
                     .uri("/chat/stream")
                     .body(request)
                     .exchange((req, res) -> {
-                        // exchange()는 4xx/5xx에 예외를 던지지 않으므로 상태코드를 직접 확인한다.
+                        // exchange()는 4xx/5xx에도 예외를 던지지 않아서 상태 코드를 직접 확인한다.
                         if (!res.getStatusCode().is2xxSuccessful()) {
                             log.warn("AI 스트림 응답 상태 이상 (status={}, model={}, roomId={})",
                                     res.getStatusCode(), request.model(), room.getId());
@@ -94,7 +96,7 @@ public class ChatAiServerClient implements ChatAiClient{
                         }
                         return readSse(res.getBody(), onToken, request.model(), room.getId());
                     });
-        } catch (RestClientException e) {   // 연결 실패/타임아웃 등
+        } catch (RestClientException e) {   // 연결 실패, 타임아웃 등
             log.warn("AI 스트림 호출 실패 (model={}, roomId={})", request.model(), room.getId(), e);
             throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
         }
@@ -102,17 +104,17 @@ public class ChatAiServerClient implements ChatAiClient{
 
     private ChatAiRequest buildRequest(ChatRoom room, String content,
                                        List<Message> priorHistory, List<ChatSummary> summaries) {
-        // 커서는 조각 '전체' 기준이다(SummarySelector.cursorOf 주석 참고). 아래 select()가
-        // 예산 때문에 일부를 빼더라도 그 구간은 이미 요약된 것으로 친다 — 안 그러면 같은 대화가
-        // 요약과 원문으로 두 번 실린다. 빠진 구간이 기록의 구멍이 된다는 건 프롬프트가 알린다.
+        // 커서는 조각 전체 기준이다(SummarySelector.cursorOf 참고). 아래 select()가 예산 때문에
+        // 일부 조각을 빼더라도 그 구간은 이미 요약된 것으로 친다. 그래야 같은 대화가 요약과 원문으로
+        // 두 번 실리지 않는다. 기록에 빠진 구간이 있다는 건 프롬프트가 모델에게 알려준다.
         long upTo = SummarySelector.cursorOf(summaries);
         List<Message> unsummarized = priorHistory.stream().filter(m -> m.getId() > upTo).toList();
 
-        // 이전 대화 -> {role, content} 리스트로 변환. 요약이 밀리면 미요약분이 계속 쌓이므로
-        // 개수가 아니라 토큰 예산으로 끊는다(HistoryTrimmer).
+        // 요약되지 않은 이전 대화를 {role, content} 목록으로 바꾼다. 요약이 밀리면 이 부분이
+        // 계속 쌓이므로 개수가 아니라 토큰 예산으로 자른다(HistoryTrimmer).
         List<ChatAiRequest.Turn> recent = toTurns(HistoryTrimmer.trim(unsummarized));
 
-        // 유저의 기본 페르소나 -> user_name / user_persona (없으면 null, ai-server가 기본값 처리)
+        // 유저의 기본 페르소나. 없으면 null로 보내고 ai-server가 기본값을 쓴다.
         UserPersona persona = userPersonaRepository
                 .findByUser_IdAndIsDefaultTrue(room.getUser().getId())
                 .orElse(null);
@@ -121,17 +123,16 @@ public class ChatAiServerClient implements ChatAiClient{
         String mode = room.isWritingToggle() ? "writing" : "rp";
         ChatAiRequest.Config config = new ChatAiRequest.Config(mode, room.isFoldSpoilerToggle());
 
-
-        // 로어북 enabled=true 조회 + 키워드가 최근 메시지와 유저 입력에 매칭되는지 확인
+        // 켜진 로어 중 키워드가 유저 입력이나 최근 대화에 걸린 것을 고른다.
         List<String> lore = loreService.selectLore(room.getCharacter().getId(), content, recent.stream().map(ChatAiRequest.Turn::content).toList());
 
         String model = ModelCatalog.resolve(room.effectiveModel());
-        // 모델이 받을 수 있는 값으로 맞춰서 보낸다. 방의 저장값은 건드리지 않는다 —
-        // 추론 없는 모델로 잠깐 바꿨다 되돌리면 고른 레벨이 그대로 살아 있어야 한다.
+        // 모델이 받을 수 있는 값으로 맞춰서 보낸다. 방에 저장된 값은 그대로 둔다.
+        // 추론 없는 모델로 잠깐 바꿨다가 돌아와도 원래 고른 레벨이 남아 있어야 한다.
         ThinkingLevel thinking = ModelCatalog.resolveThinking(model, room.effectiveThinkingLevel());
 
-        // 조각 전부가 아니라 예산 안에서 고른 것만 싣는다. 고를 게 없으면 null(ai-server가 기억
-        // 블록을 통째로 생략).
+        // 조각 전부가 아니라 예산 안에서 고른 것만 싣는다.
+        // 고른 게 없으면 null이고, ai-server는 기억 블록을 통째로 뺀다.
         String memory = SummarySelector.join(SummarySelector.select(summaries));
 
         return new ChatAiRequest(
@@ -149,19 +150,21 @@ public class ChatAiServerClient implements ChatAiClient{
         );
     }
 
-    // ai-server의 SSE 스트림을 줄 단위로 읽어 토큰을 복원한다.
-    // ai-server는 토큰 하나를 'data: ...' 여러 줄 + 빈 줄(이벤트 경계)로 보내므로,
-    // 빈 줄이 나올 때까지 data 줄을 모아야 토큰 하나가 완성된다.
+    /**
+     * ai-server의 SSE 스트림을 줄 단위로 읽어 토큰을 되살린다.
+     * ai-server는 토큰 하나를 여러 data 줄과 빈 줄(이벤트 경계)로 보내므로,
+     * 빈 줄이 나올 때까지 data 줄을 모아야 토큰 하나가 된다.
+     */
     private String readSse(InputStream body, Consumer<String> onToken, String model, Long roomId) throws IOException {
-        StringBuilder full = new StringBuilder();   // 저장용 전체 답변 누적
-        StringBuilder data = new StringBuilder();   // 현재 이벤트의 data 줄 조립
+        StringBuilder full = new StringBuilder();   // 저장할 전체 답변
+        StringBuilder data = new StringBuilder();   // 지금 이벤트의 data 줄을 모은다
         boolean sawData = false;                     // 이번 이벤트에서 data 줄을 하나라도 봤는지
         boolean isError = false;                     // 직전에 'event: error'를 봤는지
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.isEmpty()) {                       // ── 빈 줄 = 이벤트 경계, 토큰 하나 완성
+                if (line.isEmpty()) {                       // 빈 줄은 이벤트 경계다. 토큰 하나가 완성된다
                     if (isError) {
                         log.warn("AI 스트림 에러 이벤트 수신 (model={}, roomId={})", model, roomId);
                         throw new BusinessException(ErrorCode.AI_UNAVAILABLE); // ai-server 내부 에러
@@ -172,26 +175,26 @@ public class ChatAiServerClient implements ChatAiClient{
                     if ("[DONE]".equals(token)) break;      // 정상 종료 신호
                     if (!token.isEmpty()) {
                         full.append(token);
-                        onToken.accept(token);              // 프론트로 흘려보냄
+                        onToken.accept(token);              // 프론트로 흘려보낸다
                     }
                 } else if (line.startsWith("data:")) {
-                    String value = line.substring(5);       // 'data:' 접두 제거
-                    // SSE 규격상 콜론 뒤 공백 1개만 벗긴다. LLM 토큰은 ' 오늘'처럼 앞 공백으로
-                    // 시작하는 게 흔한데, trim()으로 다 날리면 단어가 붙어버린다.
+                    String value = line.substring(5);       // 'data:' 접두를 뗀다
+                    // SSE 규격대로 콜론 뒤 공백 하나만 뗀다. LLM 토큰은 ' 오늘'처럼 공백으로
+                    // 시작하는 경우가 많아서, trim()을 쓰면 단어가 붙어 버린다.
                     if (value.startsWith(" ")) value = value.substring(1);
-                    // 여러 data 줄은 개행으로 이어 붙인다(개행 포함 토큰 복원). '내용이 비었는지'가 아니라
-                    // '앞서 data 줄을 봤는지'로 판단해야 빈 data 줄(=개행)도 제대로 복원된다.
+                    // data 줄이 여러 개면 개행으로 잇는다. 내용이 비었는지가 아니라 앞서 data 줄을
+                    // 봤는지로 판단해야 빈 data 줄(개행 하나)도 제대로 되살아난다.
                     if (sawData) data.append("\n");
                     data.append(value);
                     sawData = true;
                 } else if (line.startsWith("event:")) {
                     isError = line.substring(6).trim().equals("error");
                 }
-                // ':' 주석 줄 등 그 밖의 필드는 무시
+                // ':'로 시작하는 주석 줄 같은 나머지 필드는 무시한다
             }
         }
 
-        // [DONE]도 못 보고 내용도 없이 스트림이 끝난 경우(연결 중단 등)는 실패로 처리한다.
+        // [DONE]도 내용도 없이 스트림이 끝나면(연결이 끊긴 경우 등) 실패로 본다.
         if (full.isEmpty()) {
             log.warn("AI 스트림이 빈 응답으로 종료됨 (model={}, roomId={})", model, roomId);
             throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
@@ -199,7 +202,10 @@ public class ChatAiServerClient implements ChatAiClient{
         return full.toString();
     }
 
-    // AI 서버 호출 공통 래퍼: 다운/타임아웃/4xx/5xx(RestClientException)를 503으로 변환하고 원인은 로깅.
+    /**
+     * ai-server 호출 공통 처리. 서버 다운, 타임아웃, 4xx/5xx(RestClientException)는
+     * 원인을 로그로 남기고 503으로 바꾼다.
+     */
     private <T> T callAiServer(Supplier<T> call) {
         try {
             return call.get();
@@ -209,7 +215,7 @@ public class ChatAiServerClient implements ChatAiClient{
         }
     }
 
-    // Message 목록 -> ai-server가 받는 {role, content} 턴 리스트로 변환
+    /** Message 목록을 ai-server가 받는 {role, content} 턴 목록으로 바꾼다. */
     private List<ChatAiRequest.Turn> toTurns(List<Message> messages) {
         return messages.stream()
                 .map(m -> new ChatAiRequest.Turn(m.getRole().name().toLowerCase(Locale.ROOT), m.getContent()))

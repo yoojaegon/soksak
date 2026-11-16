@@ -7,22 +7,26 @@ import java.util.List;
 /**
  * 프롬프트에 실을 최근 대화를 토큰 예산 안으로 자른다.
  *
- * 개수로 끊으면 안 된다 — 50자짜리 턴과 2000자짜리 턴의 무게가 전혀 다르다.
- * 요약이 밀리거나 실패하면 미요약분이 계속 쌓이는데, 그때 프롬프트가 무한정 커지는 것을
- * 막는 상한이다. 평소에는 예산에 닿지 않으므로 아무 일도 하지 않는다.
+ * 개수로 자르지 않는 건 50자짜리 턴과 2000자짜리 턴의 무게가 전혀 다르기 때문이다.
+ * 요약이 밀리거나 실패하면 요약 안 된 대화가 계속 쌓이는데, 그때 프롬프트가 끝없이 커지지 않게
+ * 막는 상한이다. 평소에는 예산에 닿지 않아서 아무것도 자르지 않는다.
  */
 public final class HistoryTrimmer {
 
-    // 최근 대화에 허용하는 토큰 예산.
-    // ⚠️ SummaryPlan.WINDOW(=20)와 한 세트다. WINDOW 는 "최근 20턴은 요약하지 않는다"는
-    // 약속인데, 이 예산이 20턴을 못 덮으면 잘린 메시지는 요약에도 없고 프롬프트에도 없는
-    // 영구 구멍이 된다. 한국어 20턴 ≈ 400자 × 20 × 1.15 ≈ 9,400토큰이라 여유를 둬 12,000.
-    // 목표치가 아니라 천장이다 — 줄이려면 WINDOW 를 같이 줄여야 한다.
+    /**
+     * 최근 대화에 허용하는 토큰 예산. 목표치가 아니라 상한이다.
+     *
+     * ⚠️ SummaryPlan.WINDOW(=20)와 한 세트다. WINDOW는 최근 20턴은 요약하지 않는다는 약속이라,
+     * 이 예산이 20턴을 못 덮으면 잘린 메시지는 요약에도 프롬프트에도 없게 된다.
+     * 한국어 20턴은 400자 × 20 × 1.15 ≈ 9,400토큰이라 여유를 둬서 12,000으로 잡았다.
+     * 줄이려면 WINDOW도 같이 줄여야 한다.
+     */
     private static final int TOKEN_BUDGET = 12_000;
 
-    // 2026-09-01 실측(claude-opus-4-8, 한국어): 본문 글자당 1.12토큰, 메시지당 오버헤드 7.
-    // 둘 다 올려 잡아 과대추정 쪽으로 기울였다 — 과소추정만 컨텍스트 초과 사고를 낸다.
-    // ai-server 의 token_counter.py 와 같은 식이다.
+    /**
+     * 한국어 토큰 근사식. 적게 세면 컨텍스트를 넘길 수 있어서 실측값보다 조금 올려 잡았다.
+     * ai-server의 token_counter.py, SummarySelector와 같은 값이다. 측정값은 docs/measurements.md에 있다.
+     */
     private static final double TOKENS_PER_CHAR = 1.15;
     private static final int MESSAGE_OVERHEAD = 10;
 
@@ -40,8 +44,8 @@ public final class HistoryTrimmer {
         int start = messages.size();
         for (int i = messages.size() - 1; i >= 0; i--) {
             int cost = estimate(messages.get(i).getContent());
-            // 요약 조각과 달리 여기서는 건너뛰지 않고 멈춘다 — 대화 중간을 빼면 문맥이
-            // 끊기고 user/assistant 교대도 어긋난다. 잘린다면 반드시 앞쪽(오래된 쪽)이다.
+            // 요약 조각과 달리 건너뛰지 않고 여기서 멈춘다. 대화 중간이 빠지면 문맥이 끊기고
+            // user/assistant 순서도 어긋나므로, 자른다면 항상 앞쪽(오래된 쪽)이다.
             if (used + cost > budget) break;
             used += cost;
             start = i;

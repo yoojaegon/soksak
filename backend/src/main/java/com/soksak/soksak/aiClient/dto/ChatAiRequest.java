@@ -6,6 +6,7 @@ import com.soksak.soksak.aiClient.ThinkingLevel;
 
 import java.util.List;
 
+/** ai-server /chat, /chat/stream 요청 본문. 필드는 ai-server app/api/chat.py의 ChatRequest와 맞춘다. */
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record ChatAiRequest (
         String persona,
@@ -17,8 +18,8 @@ public record ChatAiRequest (
         String userName,
         String userPersona,
         String model,
-        // 모델 파라미터라서 config가 아니라 model 옆에 둔다 — Config는 프롬프트 조립 설정이다.
-        // 이미 모델에 맞게 보정된 값이 온다(ModelCatalog.resolveThinking).
+        // 모델 파라미터라서 Config가 아니라 model 옆에 둔다. Config는 프롬프트 조립 설정이다.
+        // 이미 모델에 맞게 보정된 값이다(ModelCatalog.resolveThinking).
         ThinkingLevel thinking,
         Config config
 ) {
