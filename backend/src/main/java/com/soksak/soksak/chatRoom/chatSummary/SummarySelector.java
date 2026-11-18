@@ -25,8 +25,8 @@ public class SummarySelector {
      */
     public static final int PINNED_IMPORTANCE = 4;
 
-    // 한국어 실측값은 글자당 1.12토큰, 메시지당 오버헤드 7토큰이다(2026-09-01, claude-opus-4-8).
-    // 적게 잡으면 컨텍스트를 넘길 수 있어서 둘 다 조금 올려 잡았다.
+    // 한국어 토큰 근사식. 적게 잡으면 컨텍스트를 넘길 수 있어서 실측값보다 조금 올려 잡았다.
+    // HistoryTrimmer와 같은 값이다. 측정값은 docs/measurements.md에 있다.
     private static final double TOKENS_PER_CHAR = 1.15;
     private static final int OVERHEAD = 10;
 

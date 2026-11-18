@@ -26,10 +26,8 @@ class _Provider:
     build: Callable[[LLMProfile, str, str, "ThinkingLevel | None"], BaseChatModel]
 
 
-# 샘플링 파라미터(temperature/top_p)를 받지 않는 모델. 제공사에 따라 증상이 다르다
-# (2026-09-10 네이티브 실측):
-#   Claude 4.7↑   400 "`temperature` is deprecated for this model." — 요청 자체가 죽는다
-#   flash-lite    무시하고 매 요청 UserWarning("uses fixed sampling defaults")만 남는다
+# 샘플링 파라미터(temperature/top_p)를 받지 않는 모델. 보내면 Claude 4.7 이상은 400으로
+# 요청이 죽고, flash-lite는 값을 무시하며 매 요청 경고만 남긴다(루트 docs/measurements.md).
 # 어느 쪽이든 보낼 이유가 없다. 모델 쪽 제약이라 엔드포인트를 옮겨도 그대로다.
 # ⚠️ Claude 쪽 규칙은 "4.7 이상 및 5 계열은 샘플링 미지원"이다 — 카탈로그에 새 모델을
 # 올릴 때 이 규칙으로 판단할 것(4.6과 haiku-4.5는 아직 허용).
@@ -46,13 +44,13 @@ _NO_SAMPLING = frozenset({
 ThinkingLevel = Literal["off", "low", "medium", "high"]
 
 # ⚠️ "끄는 방법"이 모델마다 다르다. 이것부터가 함정이다 — 한 가지 방법으로 통일하려 들면
-# 통일한 그 방법이 다른 모델에서 400을 낸다(2026-09-15 실측, 짧은 프롬프트 1회):
-#   gemini-3.5-flash       기본으로 추론(59) → thinking_budget=0이면 0. 이 모델만 budget으로 끈다
-#   gemini-3.5-flash-lite  기본이 추론 없음(0). budget=0을 보내면 400 → 필드를 빼는 게 끔이다
-#   gemini-3.1-pro-preview 기본으로 추론(57). budget=0도 400 → 아예 못 끈다(백엔드가 low로 보정)
-#   claude-haiku-4.5       effort를 보내면 400 "does not support the effort parameter"
-#   claude-opus-4.8        effort가 실제로 먹는다(추론 61~65)
-#   claude-opus-4.7/4.6    effort를 받아주기만 하고 추론은 0 → 노브를 노출하지 않는다(카탈로그)
+# 통일한 그 방법이 다른 모델에서 400을 낸다(측정값은 루트 docs/measurements.md):
+#   gemini-3.5-flash       기본으로 추론한다. thinking_budget=0으로 끈다. 이 모델만 budget으로 끈다
+#   gemini-3.5-flash-lite  기본이 추론 없음. budget=0을 보내면 400이라 필드를 빼는 게 끔이다
+#   gemini-3.1-pro-preview 기본으로 추론한다. budget=0도 400이라 못 끈다(백엔드가 low로 보정)
+#   claude-haiku-4.5       effort를 보내면 400
+#   claude-opus-4.8        effort가 실제로 먹는다
+#   claude-opus-4.7/4.6    effort를 받아주기만 하고 추론은 0이라 노브를 노출하지 않는다(카탈로그)
 _OFF_VIA_BUDGET = frozenset({"google/gemini-3.5-flash"})
 _NO_EFFORT_PARAM = frozenset({"anthropic/claude-haiku-4.5"})
 

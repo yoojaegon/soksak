@@ -30,9 +30,9 @@ _DEFAULT_MODEL = "claude-opus-4-8"
 _TIMEOUT_SECONDS = 10.0
 _MAX_RETRIES = 1
 
-# 근사식 계수. 2026-09-01 실측(claude-opus-4-8, 한국어): 본문이 글자당 1.12토큰,
-# 메시지 한 건당 고정 오버헤드 7토큰. 둘 다 올려잡아 과대추정 쪽으로 기울였다.
-# 영어는 글자당 0.35 수준이라 이 식이 크게 과대추정하는데, 그 방향은 안전해서 둔다.
+# 근사식 계수. 한국어 실측값보다 조금 올려 잡아 과대추정 쪽으로 기울였다.
+# 영어에는 크게 과대추정하지만 그 방향은 안전해서 둔다.
+# 백엔드 HistoryTrimmer·SummarySelector와 같은 값이다. 측정값은 루트 docs/measurements.md.
 _TOKENS_PER_CHAR = 1.15
 _MESSAGE_OVERHEAD = 10
 

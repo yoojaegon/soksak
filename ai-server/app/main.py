@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
     # 60초를 다 쓰고 실패하면 백엔드도 그 시점에 포기하므로 뒤 시도는 전부 헛돈다 → 0.
     # ⚠️ 요약 모델은 thinking이 꺼진 것으로 고를 것. 추론 토큰이 max_tokens에서 나가므로
     # thinking 모델을 물리면 2000을 추론이 다 먹고 요약문이 빈 채로 돌아온다(증상이 안 보인다).
-    # Claude는 명시하지 않으면 추론하지 않고, Haiku는 그중 가장 싸다(2026-09-09 실측).
+    # Claude는 명시하지 않으면 추론하지 않고, Haiku는 그중 가장 싸다(docs/measurements.md).
     summary_profile = load_profile(
         "SUMMARY_",
         "summary",
