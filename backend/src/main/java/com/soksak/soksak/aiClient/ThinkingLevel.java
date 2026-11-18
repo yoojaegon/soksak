@@ -2,6 +2,8 @@ package com.soksak.soksak.aiClient;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
+import java.util.Locale;
+
 /**
  * 방마다 고르는 추론(thinking) 깊이. 사용자에게 보이는 추론 레벨은 이 값뿐이다.
  *
@@ -18,6 +20,6 @@ public enum ThinkingLevel {
 
     @JsonValue
     public String wireName() {
-        return name().toLowerCase();
+        return name().toLowerCase(Locale.ROOT);
     }
 }
