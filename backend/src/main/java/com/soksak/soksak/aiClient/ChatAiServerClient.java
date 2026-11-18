@@ -114,12 +114,14 @@ public class ChatAiServerClient implements ChatAiClient{
         // 계속 쌓이므로 개수가 아니라 토큰 예산으로 자른다(HistoryTrimmer).
         List<ChatAiRequest.Turn> recent = toTurns(HistoryTrimmer.trim(unsummarized));
 
-        // 유저의 기본 페르소나. 없으면 null로 보내고 ai-server가 기본값을 쓴다.
+        // 유저의 기본 페르소나. 가입할 때 만들고 마지막 하나는 지울 수 없어서 항상 하나 있다.
+        // 없다면 데이터가 깨진 것이라 기본값으로 넘어가지 않고 실패시킨다.
         UserPersona persona = userPersonaRepository
                 .findByUser_IdAndIsDefaultTrue(room.getUser().getId())
-                .orElse(null);
-        String userName = persona != null ? persona.getName() : null;
-        String userPersona = persona != null ? persona.getPersona() : null;
+                .orElseThrow(() -> new IllegalStateException(
+                        "기본 페르소나가 없음 (userId=" + room.getUser().getId() + ", roomId=" + room.getId() + ")"));
+        String userName = persona.getName();
+        String userPersona = persona.getPersona();
         String mode = room.isWritingToggle() ? "writing" : "rp";
         ChatAiRequest.Config config = new ChatAiRequest.Config(mode, room.isFoldSpoilerToggle());
 
