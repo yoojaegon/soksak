@@ -21,6 +21,7 @@ spring:
   # baseline-on-migrate는 켜지 않는다. 기록 없는 기존 DB에 붙으면 V1로 기록해 버리지 않고 시작을 멈춘다.
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     # show-sql은 System.out으로 직접 찍혀서 로그 레벨·패턴·traceId를 전부 비껴간다(배포에서도 못 끈다).
