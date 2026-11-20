@@ -15,7 +15,7 @@ cd backend
 
 ## Backend stack
 
-- Spring Boot 3.5.14, Java 17 (toolchain-pinned).
+- Spring Boot 3.5.14, Java 25 (toolchain-pinned; Gradle downloads it via foojay if missing). Gradle 9.8.
 - Spring Web (REST), Spring Data JPA, PostgreSQL driver (runtime).
 - Lombok — annotation processing is configured; use it for boilerplate (getters, builders, etc.).
 

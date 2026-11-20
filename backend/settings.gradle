@@ -1,1 +1,7 @@
+// 툴체인(JDK 25)이 이 컴퓨터에 없으면 Gradle이 알아서 받아 오게 한다.
+// 그래야 호스트에 어떤 JDK가 깔려 있든 같은 버전으로 컴파일하고 테스트한다.
+plugins {
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 rootProject.name = 'soksak'

@@ -1,5 +1,5 @@
 # 1) 빌드 — gradle wrapper로 실행 가능한 jar를 만든다.
-FROM eclipse-temurin:17-jdk AS build
+FROM eclipse-temurin:25-jdk AS build
 WORKDIR /workspace
 
 # 의존성만 먼저 받아 레이어로 굳힌다. 소스만 고쳤을 때 재빌드가 짧아진다.
@@ -12,7 +12,7 @@ COPY src src
 RUN ./gradlew --no-daemon bootJar -x test
 
 # 2) 실행 — JRE만 있는 작은 이미지로 옮긴다.
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 COPY --from=build /workspace/build/libs/*.jar app.jar
 
