@@ -15,6 +15,8 @@ import com.soksak.soksak.message.dto.RegenTarget;
 import com.soksak.soksak.message.dto.StreamJob;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -22,7 +24,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -38,7 +39,7 @@ public class MessageService {
     private final ChatTxService chatTxService;
     private final ChatAiClient chatAiClient;
     private final CreditService creditService;
-    private final ExecutorService chatStreamExecutor;
+    private final TaskExecutor chatStreamExecutor;
     private static final Long STREAM_TIMEOUT_MS = 5 * 60 * 1000L;
     private static final int LOCK_STRIPES = 256;
     private final Lock[] roomLocks = Stream.generate(ReentrantLock::new)
@@ -177,40 +178,46 @@ public class MessageService {
 
     private SseEmitter startStream(Long roomId, Supplier<StreamJob> prepare) {
         SseEmitter emitter = new SseEmitter(STREAM_TIMEOUT_MS);
-        chatStreamExecutor.execute(() -> {
-            Lock lock = roomLocks[Math.floorMod(roomId, LOCK_STRIPES)];
-            if (!lock.tryLock()) {
-                sendError(emitter, ErrorCode.ROOM_BUSY);
-                return;
-            }
-            // 브라우저가 아직 듣고 있는가. 끊겨도 생성과 저장은 끝까지 간다(sendToken 참고) —
-            // 이 플래그는 "더 보내봐야 소용없다"는 표시일 뿐 흐름을 멈추지 않는다.
-            AtomicBoolean listening = new AtomicBoolean(true);
-            // 환불 판정에 쓴다. null이면 prepare가 실패한 것 = 차감도 같이 롤백됐다는 뜻이라
-            // 돌려줄 게 없다. 값이 들어온 뒤의 실패만 "받아놓고 답을 못 준" 경우다.
-            StreamJob job = null;
-            try{
-                job = prepare.get();
-                String full = chatAiClient.replyStream(
-                        job.room(), job.content(), job.priorHistory(), job.summaries(),
-                        token -> sendToken(emitter, listening, token));
-                Message ai = chatTxService.saveAssistant(roomId, full);
-                if (listening.get()) {
-                    try {
-                        emitter.send(SseEmitter.event().name("done").data(MessageResponse.from(ai)));
-                    } catch (IOException | IllegalStateException e) {
-                        // 마지막 순간에 끊긴 것. 저장은 이미 끝났으므로 알릴 상대가 없을 뿐 실패가 아니다.
-                        log.debug("done 전송 실패 — 이미 닫힌 연결", e);
-                    }
+        try {
+            chatStreamExecutor.execute(() -> {
+                Lock lock = roomLocks[Math.floorMod(roomId, LOCK_STRIPES)];
+                if (!lock.tryLock()) {
+                    sendError(emitter, ErrorCode.ROOM_BUSY);
+                    return;
                 }
-                emitter.complete();
-            } catch (Exception e) {
-                tryRefund(job == null ? null : job.room());
-                sendError(emitter, e);
-            } finally {
-                lock.unlock();
-            }
-        });
+                // 브라우저가 아직 듣고 있는가. 끊겨도 생성과 저장은 끝까지 간다(sendToken 참고) —
+                // 이 플래그는 "더 보내봐야 소용없다"는 표시일 뿐 흐름을 멈추지 않는다.
+                AtomicBoolean listening = new AtomicBoolean(true);
+                // 환불 판정에 쓴다. null이면 prepare가 실패한 것 = 차감도 같이 롤백됐다는 뜻이라
+                // 돌려줄 게 없다. 값이 들어온 뒤의 실패만 "받아놓고 답을 못 준" 경우다.
+                StreamJob job = null;
+                try{
+                    job = prepare.get();
+                    String full = chatAiClient.replyStream(
+                            job.room(), job.content(), job.priorHistory(), job.summaries(),
+                            token -> sendToken(emitter, listening, token));
+                    Message ai = chatTxService.saveAssistant(roomId, full);
+                    if (listening.get()) {
+                        try {
+                            emitter.send(SseEmitter.event().name("done").data(MessageResponse.from(ai)));
+                        } catch (IOException | IllegalStateException e) {
+                            // 마지막 순간에 끊긴 것. 저장은 이미 끝났으므로 알릴 상대가 없을 뿐 실패가 아니다.
+                            log.debug("done 전송 실패 — 이미 닫힌 연결", e);
+                        }
+                    }
+                    emitter.complete();
+                } catch (Exception e) {
+                    tryRefund(job == null ? null : job.room());
+                    sendError(emitter, e);
+                } finally {
+                    lock.unlock();
+                }
+            });
+        } catch (TaskRejectedException e) {
+            // 동시 스트림 상한에 닿았거나 서버가 종료 중이다.
+            // 아직 emitter를 돌려주기 전이라 일반 에러 응답으로 나가고, 차감 전이라 환불할 것도 없다.
+            throw new BusinessException(ErrorCode.SERVER_BUSY);
+        }
         return emitter;
     }
 

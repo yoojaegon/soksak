@@ -42,6 +42,10 @@ services:
     build: ./backend
     restart: unless-stopped
     logging: *default-logging
+    # 종료 신호 뒤 강제 종료까지 기다리는 시간(기본 10초). 진행 중인 스트림이 저장과 환불을
+    # 마칠 시간이다. 웹 서버 정상 종료(최대 30초) 뒤에 chatStreamExecutor가 최대 60초를 더
+    # 기다리므로 그 합보다 길게 둔다. 진행 중인 스트림이 없으면 바로 꺼진다.
+    stop_grace_period: 120s
     environment:
       # 컨테이너 안에서는 DB 호스트가 서비스 이름(postgres)이라 기본값을 여기서 준다.
       # .env에 DB_URL이 있으면 그게 이긴다 — 배포에서 RDS 엔드포인트를 넣는 자리다.
