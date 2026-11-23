@@ -383,7 +383,7 @@ function ChatRoom({ roomId }) {
       } catch {
         setMessages((prev) => prev.filter((m) => m.id !== tempUser.id && m.id !== aiId))
       }
-      // USER 메시지가 저장되지 않은 게 확실한 실패(방 점유·미인증·연결 실패·마디 부족)에서만
+      // USER 메시지가 저장되지 않은 게 확실한 실패(방 점유·서버 혼잡·미인증·연결 실패·마디 부족)에서만
       // 입력값을 되돌린다. AI 실패 등은 USER가 이미 저장됐을 수 있어 복원하면 중복 전송이 된다.
       // 마디 부족은 보통 스트림이 열리기 전에 402로 끊긴다. 잔액 확인과 실제 차감 사이에 다른
       // 요청이 끼면 스트림 '안'에서 올 수도 있는데, 그때도 차감이 USER 저장보다 앞이라 같이
@@ -391,6 +391,7 @@ function ChatRoom({ roomId }) {
       const userNotSaved =
         failed.status === 401 ||
         failed.code === 'ROOM_BUSY' ||
+        failed.code === 'SERVER_BUSY' ||
         failed.code === 'NETWORK' ||
         failed.code === 'INSUFFICIENT_CREDIT'
       if (userNotSaved) setInput(content)

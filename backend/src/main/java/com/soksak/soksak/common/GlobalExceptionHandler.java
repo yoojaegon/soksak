@@ -8,6 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
@@ -216,8 +217,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             log.warn("{} {} {} code={}{}", status.value(), request.getMethod(),
                     request.getRequestURI(), errorCode.name(), fields);
         }
+        // 형식을 정해 두지 않으면 Spring이 요청의 Accept와 맞춰 보다가
+        // 스트림 요청(Accept: text/event-stream)에서는 JSON을 못 보낸다며 500으로 바꾼다.
         return ResponseEntity
                 .status(status)
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(ErrorResponse.of(errorCode, request.getRequestURI(), errors));
     }
 }
